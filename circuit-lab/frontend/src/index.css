@@ -1,0 +1,86 @@
+:root {
+  /* ---- Design tokens: PCB / bench-instrument theme ---- */
+  --bg: #0a0e13;
+  --surface: #10161d;
+  --surface-2: #171f28;
+  --border: #232e3a;
+  --border-bright: #35465a;
+
+  --text: #e7edf3;
+  --text-dim: #8ea0b3;
+  --text-faint: #536575;
+
+  --copper: #e8a33d;
+  --copper-dim: #a5752b;
+  --teal: #45d8c4;
+  --teal-dim: #2c9484;
+  --danger: #ff6259;
+
+  --font-display: "IBM Plex Mono", monospace;
+  --font-body: "Inter", sans-serif;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.mono {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: var(--font-body);
+}
+
+::selection {
+  background: var(--teal-dim);
+  color: #06110f;
+}
+
+:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--copper);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
