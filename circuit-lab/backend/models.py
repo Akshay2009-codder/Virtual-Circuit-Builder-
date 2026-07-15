@@ -31,7 +31,7 @@ class User(db.Model):
         }
 
 
-# --- Placeholder models for later phases (kept here so the schema is visible early) ---
+# --- Project: circuits users build. circuit_json holds the react-flow graph. ---
 
 class Project(db.Model):
     __tablename__ = "projects"
@@ -40,10 +40,20 @@ class Project(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     name = db.Column(db.String(120), nullable=False)
     status = db.Column(db.String(20), default="in_progress")  # in_progress | completed | error
-    circuit_json = db.Column(db.JSON, default=dict)  # nodes + edges graph, added in Phase 3
+    circuit_json = db.Column(db.JSON, default=dict)  # { nodes: [...], edges: [...] }
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(
         db.DateTime,
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "status": self.status,
+            "circuit_json": self.circuit_json or {"nodes": [], "edges": []},
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+        }

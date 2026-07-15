@@ -5,6 +5,10 @@ from flask_jwt_extended import JWTManager
 from config import Config
 from models import db
 from auth import auth_bp
+from components import components_bp
+from projects import projects_bp
+from component_model import Component  # noqa: F401 - registers table with SQLAlchemy
+from seed import seed_components
 
 
 def create_app():
@@ -16,6 +20,8 @@ def create_app():
     CORS(app, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}}, supports_credentials=True)
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(components_bp)
+    app.register_blueprint(projects_bp)
 
     @app.get("/api/health")
     def health():
@@ -23,6 +29,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        seed_components()
 
     return app
 
