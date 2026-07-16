@@ -12,8 +12,8 @@ const STATUS_LABEL = {
 };
 
 const STATUS_COLOR = {
-  in_progress: "var(--copper)",
-  completed: "var(--teal)",
+  in_progress: "var(--primary)",
+  completed: "var(--accent)",
   error: "var(--danger)",
 };
 
@@ -67,8 +67,8 @@ export default function Dashboard() {
             transition={{ duration: 0.4 }}
             style={styles.empty}
           >
-            No circuits yet. Click <strong style={{ color: "var(--copper)" }}>New circuit</strong> to
-            start building, or check out <strong style={{ color: "var(--copper)" }}>Components</strong>{" "}
+            No circuits yet. Click <strong style={{ color: "var(--primary)" }}>New circuit</strong> to
+            start building, or check out <strong style={{ color: "var(--primary)" }}>Components</strong>{" "}
             first to see the parts in 3D.
           </motion.div>
         )}
@@ -81,7 +81,7 @@ export default function Dashboard() {
                 to={`/builder/${p.id}`}
                 style={styles.card}
                 variants={cardVariants}
-                whileHover={{ y: -4, borderColor: "var(--copper)", boxShadow: "0 10px 30px rgba(0,0,0,0.35)" }}
+                whileHover={{ y: -4, borderColor: "var(--primary)", boxShadow: "0 10px 30px rgba(0,0,0,0.35)" }}
                 whileTap={{ scale: 0.98 }}
                 transition={{ duration: 0.2 }}
               >
@@ -105,7 +105,7 @@ export default function Dashboard() {
 const styles = {
   newBtn: {
     display: "inline-block",
-    background: "var(--copper)",
+    background: "var(--primary)",
     color: "#1a1002",
     fontWeight: 600,
     fontSize: 13.5,

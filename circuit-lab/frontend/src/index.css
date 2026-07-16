@@ -1,5 +1,5 @@
 :root {
-  /* ---- Design tokens: PCB / bench-instrument theme ---- */
+  /* ---- Design tokens: PCB theme, green/coral/red accent trio ---- */
   --bg: #0a0e13;
   --surface: #10161d;
   --surface-2: #171f28;
@@ -10,11 +10,12 @@
   --text-dim: #8ea0b3;
   --text-faint: #536575;
 
-  --copper: #e8a33d;
-  --copper-dim: #a5752b;
-  --teal: #45d8c4;
-  --teal-dim: #2c9484;
-  --danger: #ff6259;
+  --primary: #2fd66f;       /* green - primary CTA / active states */
+  --primary-dim: #1f9a51;
+  --accent: #ff6f5e;        /* coral - secondary accent / highlights */
+  --accent-dim: #d1503f;
+  --danger: #ff4757;        /* red - errors / alerts */
+  --gold: #ffc94d;          /* amber - sources / warnings, used sparingly */
 
   --font-display: "IBM Plex Mono", monospace;
   --font-body: "Inter", sans-serif;
@@ -58,13 +59,54 @@ button {
 }
 
 ::selection {
-  background: var(--teal-dim);
+  background: var(--accent-dim);
   color: #06110f;
 }
 
 :focus-visible {
-  outline: 2px solid var(--teal);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+input:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(47, 214, 111, 0.15);
+}
+
+.gradient-text {
+  background: linear-gradient(100deg, var(--primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---- Floating labels above placed 3D components ---- */
+.part3d-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 22, 29, 0.9);
+  border: 1px solid;
+  border-radius: 20px;
+  padding: 3px 6px 3px 10px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  backdrop-filter: blur(3px);
+}
+.part3d-label button {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.part3d-label button:hover {
+  color: var(--danger);
 }
 
 .eyebrow {
@@ -72,7 +114,7 @@ button {
   font-size: 12px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--copper);
+  color: var(--primary);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -83,4 +125,231 @@ button {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* ---- Custom cursor: comet trail + targeting reticle + click sparks ---- */
+body.custom-cursor-active,
+body.custom-cursor-active * {
+  cursor: none !important;
+}
+
+.cursor-core,
+.cursor-trail,
+.cursor-ring,
+.cursor-spark {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.cursor-core {
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 10px var(--primary), 0 0 2px #fff;
+}
+
+.cursor-trail {
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.cursor-ring {
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--accent);
+}
+
+.cursor-spark {
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 2px;
+  background: var(--primary);
+}:root {
+  /* ---- Design tokens: PCB theme, green/coral/red accent trio ---- */
+  --bg: #0a0e13;
+  --surface: #10161d;
+  --surface-2: #171f28;
+  --border: #232e3a;
+  --border-bright: #35465a;
+
+  --text: #e7edf3;
+  --text-dim: #8ea0b3;
+  --text-faint: #536575;
+
+  --primary: #2fd66f;       /* green - primary CTA / active states */
+  --primary-dim: #1f9a51;
+  --accent: #ff6f5e;        /* coral - secondary accent / highlights */
+  --accent-dim: #d1503f;
+  --danger: #ff4757;        /* red - errors / alerts */
+  --gold: #ffc94d;          /* amber - sources / warnings, used sparingly */
+
+  --font-display: "IBM Plex Mono", monospace;
+  --font-body: "Inter", sans-serif;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.mono {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: var(--font-body);
+}
+
+::selection {
+  background: var(--accent-dim);
+  color: #06110f;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(47, 214, 111, 0.15);
+}
+
+.gradient-text {
+  background: linear-gradient(100deg, var(--primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---- Floating labels above placed 3D components ---- */
+.part3d-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 22, 29, 0.9);
+  border: 1px solid;
+  border-radius: 20px;
+  padding: 3px 6px 3px 10px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  backdrop-filter: blur(3px);
+}
+.part3d-label button {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.part3d-label button:hover {
+  color: var(--danger);
+}
+
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---- Custom cursor: comet trail + targeting reticle + click sparks ---- */
+body.custom-cursor-active,
+body.custom-cursor-active * {
+  cursor: none !important;
+}
+
+.cursor-core,
+.cursor-trail,
+.cursor-ring,
+.cursor-spark {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.cursor-core {
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 10px var(--primary), 0 0 2px #fff;
+}
+
+.cursor-trail {
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.cursor-ring {
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--accent);
+}
+
+.cursor-spark {
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 2px;
+  background: var(--primary);
 }

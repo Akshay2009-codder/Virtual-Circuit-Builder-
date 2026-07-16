@@ -13,8 +13,7 @@ circuit-lab/
 │   ├── components.py                 # /api/components (catalog, read-only)
 │   ├── projects.py                   # /api/projects CRUD (save/load circuits)
 │   │
-│   ├── simulate.py                   ⏳ Phase 4 — MNA solver (numpy), /api/simulate
-│   └── circuitlab.db                 # auto-created SQLite file (gitignored)
+│   └── simulate.py                   ⏳ Phase 4 — MNA solver, /api/simulate
 │
 └── frontend/                         (React + Vite)
     ├── index.html
@@ -23,8 +22,8 @@ circuit-lab/
     │
     └── src/
         ├── main.jsx                  # React entry point
-        ├── App.jsx                   # all routes
-        ├── index.css                 # design tokens (PCB theme colors/fonts)
+        ├── App.jsx                   # routes + AnimatePresence + cursor mount
+        ├── index.css                 # design tokens + cursor styles
         │
         ├── api/
         │   └── client.js             # axios instance, attaches JWT to requests
@@ -37,6 +36,8 @@ circuit-lab/
         │   ├── AppShell.jsx          # top nav (Dashboard/Components/Builder)
         │   ├── AuthLayout.jsx        # shared Login/Register page frame
         │   ├── CircuitBackground.jsx # animated PCB trace ambient background
+        │   ├── CustomCursor.jsx      # probe-tip cursor (teal → copper on hover)
+        │   ├── PageTransition.jsx    # fade/slide wrapper for route changes
         │   ├── FormField.jsx         # styled input
         │   ├── PowerButton.jsx       # submit button w/ continuity-tester LED
         │   │

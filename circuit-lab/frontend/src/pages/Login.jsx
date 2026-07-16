@@ -68,7 +68,7 @@ export default function Login() {
 
       <p style={{ color: "var(--text-dim)", fontSize: 13.5, marginTop: 20, textAlign: "center" }}>
         New to CircuitLab?{" "}
-        <Link to="/register" style={{ color: "var(--teal)" }}>
+        <Link to="/register" style={{ color: "var(--accent)" }}>
           Create an account
         </Link>
       </p>

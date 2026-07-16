@@ -10,7 +10,7 @@ class Component(db.Model):
     name = db.Column(db.String(80), nullable=False)
     category = db.Column(db.String(40), nullable=False)  # passive | active | source | control
     description = db.Column(db.Text, nullable=False)
-    model_type = db.Column(db.String(40), nullable=False)  # which 3D builder the frontend uses
+    model_type = db.Column(db.String(40), nullable=False)  # which 3D builder3d the frontend uses
     unit = db.Column(db.String(20))  # Ω, F, V, A...
     default_value = db.Column(db.Float)
     terminal_count = db.Column(db.Integer, default=2)
