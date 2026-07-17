@@ -20,11 +20,15 @@ export default function Builder() {
   const [components, setComponents] = useState([]);
   const [projectId, setProjectId] = useState(id ? Number(id) : null);
   const [projectName, setProjectName] = useState("Untitled Circuit");
+  const [description, setDescription] = useState("");
+  const [showDetails, setShowDetails] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState("idle"); // idle | saving | saved | error
 
   const [draggingId, setDraggingId] = useState(null);
   const [selectedTerminal, setSelectedTerminal] = useState(null);
+  const [simResult, setSimResult] = useState(null);
+  const [simRunning, setSimRunning] = useState(false);
 
   // Load the component catalog for the palette
   useEffect(() => {
@@ -42,11 +46,18 @@ export default function Builder() {
       .then((res) => {
         const p = res.data.project;
         setProjectName(p.name);
+        setDescription(p.description || "");
+        if (p.description) setShowDetails(true);
         setNodes(p.circuit_json.nodes || []);
         setEdges(p.circuit_json.edges || []);
       })
       .finally(() => setLoading(false));
   }, [id]);
+
+  // any edit invalidates the last simulation result
+  useEffect(() => {
+    setSimResult(null);
+  }, [nodes, edges]);
 
   function onDragOver(e) {
     e.preventDefault();
@@ -127,18 +138,37 @@ export default function Builder() {
     setSaveState("saving");
     const circuit_json = { nodes, edges };
     try {
-      if (projectId) {
-        await client.put(`/projects/${projectId}`, { name: projectName, circuit_json });
+      let pid = projectId;
+      if (pid) {
+        await client.put(`/projects/${pid}`, { name: projectName, description, circuit_json });
       } else {
-        const res = await client.post("/projects", { name: projectName, circuit_json });
-        setProjectId(res.data.project.id);
-        navigate(`/builder/${res.data.project.id}`, { replace: true });
+        const res = await client.post("/projects", { name: projectName, description, circuit_json });
+        pid = res.data.project.id;
+        setProjectId(pid);
+        navigate(`/builder/${pid}`, { replace: true });
       }
       setSaveState("saved");
       setTimeout(() => setSaveState("idle"), 1500);
+      return pid;
     } catch {
       setSaveState("error");
       setTimeout(() => setSaveState("idle"), 1500);
+      return null;
+    }
+  }
+
+  async function handleRunCircuit() {
+    setSimRunning(true);
+    setSimResult(null);
+    try {
+      const pid = await handleSave(); // always save first so the simulation reads the current layout
+      if (!pid) return;
+      const res = await client.post(`/projects/${pid}/simulate`);
+      setSimResult(res.data);
+    } catch {
+      setSimResult({ status: "error", message: "Couldn't run the simulation. Try again.", poweredIds: [] });
+    } finally {
+      setSimRunning(false);
     }
   }
 
@@ -146,12 +176,16 @@ export default function Builder() {
     <AppShell>
       <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 65px)" }}>
         <div style={styles.toolbar}>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flex: 1, minWidth: 0 }}>
             <input
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
               style={styles.nameInput}
+              placeholder="Untitled Circuit"
             />
+            <button style={styles.detailsToggle} onClick={() => setShowDetails((s) => !s)}>
+              {showDetails ? "Hide details" : description ? "Edit details" : "+ Add details"}
+            </button>
             <span style={styles.statText}>
               {nodes.length} components · {edges.length} connections
             </span>
@@ -161,8 +195,23 @@ export default function Builder() {
             <button onClick={handleSave} style={styles.saveBtn}>
               Save circuit
             </button>
+            <button onClick={handleRunCircuit} style={styles.runBtn} disabled={simRunning}>
+              {simRunning ? "Running…" : "▶ Run circuit"}
+            </button>
           </div>
         </div>
+
+        {showDetails && (
+          <div style={styles.detailsBar}>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What does this circuit do? e.g. 'ESP32-based temperature monitor that lights an LED above 30°C.'"
+              style={styles.descInput}
+              rows={2}
+            />
+          </div>
+        )}
 
         <div style={styles.hintBar}>
           <span style={styles.hint}>
@@ -170,6 +219,13 @@ export default function Builder() {
             to wire them · drag empty space to orbit, scroll to zoom
           </span>
         </div>
+
+        {simResult && (
+          <div style={{ ...styles.resultBar, ...RESULT_STYLE[simResult.status] }}>
+            <span>{RESULT_ICON[simResult.status] || "ℹ"}</span>
+            <span>{simResult.message}</span>
+          </div>
+        )}
 
         <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
           <div ref={wrapperRef} style={{ flex: 1, position: "relative" }} onDragOver={onDragOver} onDrop={onDrop}>
@@ -185,6 +241,7 @@ export default function Builder() {
                 selectedTerminal={selectedTerminal}
                 onRemove={handleRemove}
                 cameraRef={cameraRef}
+                poweredIds={simResult ? new Set(simResult.poweredIds) : null}
               />
             )}
           </div>
@@ -207,6 +264,22 @@ function SaveStatus({ state }) {
   );
 }
 
+const RESULT_ICON = {
+  complete: "✓",
+  open: "⚠",
+  short: "⚡",
+  no_source: "ℹ",
+  error: "✕",
+};
+
+const RESULT_STYLE = {
+  complete: { background: "rgba(47,214,111,0.12)", color: "var(--primary)", borderColor: "var(--primary)" },
+  open: { background: "rgba(255,201,77,0.12)", color: "var(--gold)", borderColor: "var(--gold)" },
+  short: { background: "rgba(255,71,87,0.12)", color: "var(--danger)", borderColor: "var(--danger)" },
+  no_source: { background: "var(--surface-2)", color: "var(--text-dim)", borderColor: "var(--border-bright)" },
+  error: { background: "rgba(255,71,87,0.12)", color: "var(--danger)", borderColor: "var(--danger)" },
+};
+
 const styles = {
   toolbar: {
     display: "flex",
@@ -215,6 +288,7 @@ const styles = {
     padding: "12px 20px",
     borderBottom: "1px solid var(--border)",
     background: "var(--surface)",
+    gap: 16,
   },
   nameInput: {
     background: "transparent",
@@ -224,12 +298,23 @@ const styles = {
     fontWeight: 600,
     outline: "none",
     fontFamily: "var(--font-body)",
-    minWidth: 200,
+    minWidth: 160,
+  },
+  detailsToggle: {
+    background: "transparent",
+    border: "1px solid var(--border-bright)",
+    color: "var(--text-dim)",
+    borderRadius: "var(--radius-sm)",
+    padding: "5px 12px",
+    fontSize: 12,
+    cursor: "pointer",
+    flexShrink: 0,
   },
   statText: {
     color: "var(--text-faint)",
     fontSize: 12,
     fontFamily: "var(--font-display)",
+    whiteSpace: "nowrap",
   },
   saveBtn: {
     background: "var(--primary)",
@@ -240,6 +325,42 @@ const styles = {
     fontSize: 13.5,
     fontWeight: 600,
     cursor: "pointer",
+  },
+  runBtn: {
+    background: "transparent",
+    color: "var(--accent)",
+    border: "1.5px solid var(--accent)",
+    borderRadius: "var(--radius-sm)",
+    padding: "7px 16px",
+    fontSize: 13.5,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  resultBar: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "9px 20px",
+    borderBottom: "1px solid",
+    fontSize: 12.5,
+    fontWeight: 500,
+  },
+  detailsBar: {
+    padding: "10px 20px",
+    borderBottom: "1px solid var(--border)",
+    background: "var(--surface)",
+  },
+  descInput: {
+    width: "100%",
+    background: "var(--surface-2)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-sm)",
+    padding: "8px 12px",
+    color: "var(--text)",
+    fontSize: 13,
+    fontFamily: "var(--font-body)",
+    outline: "none",
+    resize: "vertical",
   },
   hintBar: {
     padding: "7px 20px",

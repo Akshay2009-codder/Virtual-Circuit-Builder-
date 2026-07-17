@@ -25,9 +25,13 @@ def create_project():
     user_id = get_jwt_identity()
     data = request.get_json(silent=True) or {}
     name = (data.get("name") or "Untitled Circuit").strip()[:120]
+    description = (data.get("description") or "").strip()[:2000]
     circuit_json = data.get("circuit_json") or {"nodes": [], "edges": []}
 
-    project = Project(user_id=user_id, name=name, circuit_json=circuit_json, status="in_progress")
+    project = Project(
+        user_id=user_id, name=name, description=description,
+        circuit_json=circuit_json, status="in_progress",
+    )
     db.session.add(project)
     db.session.commit()
     return jsonify({"project": project.to_dict()}), 201
@@ -54,6 +58,8 @@ def update_project(project_id):
     data = request.get_json(silent=True) or {}
     if "name" in data:
         project.name = (data["name"] or "Untitled Circuit").strip()[:120]
+    if "description" in data:
+        project.description = (data["description"] or "").strip()[:2000]
     if "circuit_json" in data:
         project.circuit_json = data["circuit_json"]
     if "status" in data and data["status"] in ("in_progress", "completed", "error"):

@@ -39,6 +39,7 @@ class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     name = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.Text, default="")
     status = db.Column(db.String(20), default="in_progress")  # in_progress | completed | error
     circuit_json = db.Column(db.JSON, default=dict)  # { nodes: [...], edges: [...] }
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -52,6 +53,7 @@ class Project(db.Model):
         return {
             "id": self.id,
             "name": self.name,
+            "description": self.description or "",
             "status": self.status,
             "circuit_json": self.circuit_json or {"nodes": [], "edges": []},
             "created_at": self.created_at.isoformat(),

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import AppShell from "../components/AppShell";
+import NewCircuitModal from "../components/NewCircuitModal";
 import { useAuth } from "../context/AuthContext";
 import client from "../api/client";
 
@@ -31,8 +32,11 @@ const cardVariants = {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     client
@@ -40,6 +44,20 @@ export default function Dashboard() {
       .then((res) => setProjects(res.data.projects))
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleCreate({ name, description }) {
+    setCreating(true);
+    try {
+      const res = await client.post("/projects", {
+        name,
+        description,
+        circuit_json: { nodes: [], edges: [] },
+      });
+      navigate(`/builder/${res.data.project.id}`);
+    } finally {
+      setCreating(false);
+    }
+  }
 
   return (
     <AppShell>
@@ -51,11 +69,14 @@ export default function Dashboard() {
               Welcome, {user?.name}
             </h1>
           </div>
-          <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-            <Link to="/builder" style={styles.newBtn}>
-              + New circuit
-            </Link>
-          </motion.div>
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setModalOpen(true)}
+            style={styles.newBtn}
+          >
+            + New circuit
+          </motion.button>
         </div>
 
         {loading && <p style={{ color: "var(--text-dim)" }}>Loading your circuits…</p>}
@@ -87,6 +108,7 @@ export default function Dashboard() {
               >
                 <span style={{ ...styles.statusDot, background: STATUS_COLOR[p.status] }} />
                 <span style={styles.cardName}>{p.name}</span>
+                {p.description && <span style={styles.cardDesc}>{p.description}</span>}
                 <span style={{ color: STATUS_COLOR[p.status], fontSize: 12 }} className="mono">
                   {STATUS_LABEL[p.status]}
                 </span>
@@ -98,6 +120,13 @@ export default function Dashboard() {
           </motion.div>
         )}
       </div>
+
+      <NewCircuitModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onCreate={handleCreate}
+        creating={creating}
+      />
     </AppShell>
   );
 }
@@ -111,7 +140,8 @@ const styles = {
     fontSize: 13.5,
     padding: "9px 18px",
     borderRadius: "var(--radius-sm)",
-    textDecoration: "none",
+    border: "none",
+    cursor: "pointer",
   },
   empty: {
     border: "1px dashed var(--border-bright)",
@@ -144,6 +174,15 @@ const styles = {
     fontSize: 15,
     fontWeight: 600,
     color: "var(--text)",
+  },
+  cardDesc: {
+    fontSize: 12,
+    color: "var(--text-dim)",
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+    lineHeight: 1.4,
   },
   cardMeta: {
     color: "var(--text-faint)",
