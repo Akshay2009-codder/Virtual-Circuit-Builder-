@@ -165,8 +165,13 @@ export default function Builder() {
       if (!pid) return;
       const res = await client.post(`/projects/${pid}/simulate`);
       setSimResult(res.data);
-    } catch {
-      setSimResult({ status: "error", message: "Couldn't run the simulation. Try again.", poweredIds: [] });
+    } catch (err) {
+      setSimResult({
+        status: "error",
+        message: err.response?.data?.error || "Couldn't run the simulation. Try again.",
+        poweredIds: [],
+        suggestions: [],
+      });
     } finally {
       setSimRunning(false);
     }
@@ -224,6 +229,17 @@ export default function Builder() {
           <div style={{ ...styles.resultBar, ...RESULT_STYLE[simResult.status] }}>
             <span>{RESULT_ICON[simResult.status] || "ℹ"}</span>
             <span>{simResult.message}</span>
+          </div>
+        )}
+
+        {simResult?.suggestions?.length > 0 && (
+          <div style={styles.suggestionsBar}>
+            {simResult.suggestions.map((s, i) => (
+              <div key={i} style={styles.suggestionRow}>
+                <span style={{ color: "var(--gold)" }}>💡</span>
+                <span>{s}</span>
+              </div>
+            ))}
           </div>
         )}
 
@@ -344,6 +360,21 @@ const styles = {
     borderBottom: "1px solid",
     fontSize: 12.5,
     fontWeight: 500,
+  },
+  suggestionsBar: {
+    padding: "8px 20px",
+    borderBottom: "1px solid var(--border)",
+    background: "var(--surface)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
+  suggestionRow: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 8,
+    fontSize: 12,
+    color: "var(--text-dim)",
   },
   detailsBar: {
     padding: "10px 20px",

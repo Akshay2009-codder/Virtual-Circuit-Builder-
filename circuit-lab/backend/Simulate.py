@@ -9,6 +9,50 @@ simulate_bp = Blueprint("simulate", __name__, url_prefix="/api/projects")
 SOURCE_CATEGORIES = {"source", "board"}
 
 
+def build_suggestions(status, nodes, edges, powered_ids, node_by_id):
+    suggestions = []
+
+    if not nodes:
+        suggestions.append("Drag a power source onto the board to get started — try a 9V Battery or an ESP32.")
+        return suggestions
+
+    if status == "no_source":
+        suggestions.append(
+            "Add a power source (battery, solar panel, or dev board) — nothing can run without one."
+        )
+    elif status == "open":
+        suggestions.append(
+            "Wire a path from every part back to the source's other terminal to close the loop."
+        )
+    elif status == "short":
+        suggestions.append(
+            "Put a resistor between the source and the rest of the circuit — a bare wire loop has nothing to limit current."
+        )
+
+    # LED without a resistor anywhere in the powered loop
+    led_ids = [n["id"] for n in nodes if n.get("key") == "led"]
+    resistor_ids = {n["id"] for n in nodes if n.get("key") == "resistor"}
+    if status == "complete":
+        for led_id in led_ids:
+            if led_id in powered_ids and not (resistor_ids & powered_ids):
+                suggestions.append(
+                    "Add a resistor in series with your LED — without one it can draw too much current and burn out."
+                )
+                break
+
+    # circuit has parts sitting completely unwired
+    wired_ids = {e["sourceId"] for e in edges} | {e["targetId"] for e in edges}
+    stray = [n["name"] for n in nodes if n["id"] not in wired_ids]
+    if stray:
+        names = ", ".join(stray[:3])
+        suggestions.append(f"{names} {'is' if len(stray) == 1 else 'are'} sitting unconnected — wire them in or remove them.")
+
+    if status == "complete" and not suggestions:
+        suggestions.append("Looks solid! Try adding a switch so you can turn it on and off.")
+
+    return suggestions[:3]  # keep it short - a wall of tips is worse than no tips
+
+
 @simulate_bp.post("/<int:project_id>/simulate")
 @jwt_required()
 def simulate_circuit(project_id):
@@ -40,10 +84,12 @@ def simulate_circuit(project_id):
     sources = [n for n in nodes if n.get("category") in SOURCE_CATEGORIES]
 
     if not sources:
+        suggestions = build_suggestions("no_source", nodes, edges, set(), node_by_id)
         return jsonify({
             "status": "no_source",
             "message": "No power source on the board. Add a battery, solar panel, or dev board to power the circuit.",
             "poweredIds": [],
+            "suggestions": suggestions,
         }), 200
 
     powered_ids = set()
@@ -100,8 +146,11 @@ def simulate_circuit(project_id):
         status = "open"
         message = "Open circuit — there's no complete path back to the power source, so no current flows. Check your wiring."
 
+    suggestions = build_suggestions(status, nodes, edges, powered_ids, node_by_id)
+
     return jsonify({
         "status": status,
         "message": message,
         "poweredIds": list(powered_ids),
+        "suggestions": suggestions,
     }), 200

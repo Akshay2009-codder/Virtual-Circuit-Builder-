@@ -37,6 +37,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
 
   useEffect(() => {
     client
@@ -47,6 +48,7 @@ export default function Dashboard() {
 
   async function handleCreate({ name, description }) {
     setCreating(true);
+    setCreateError("");
     try {
       const res = await client.post("/projects", {
         name,
@@ -54,6 +56,11 @@ export default function Dashboard() {
         circuit_json: { nodes: [], edges: [] },
       });
       navigate(`/builder/${res.data.project.id}`);
+    } catch (err) {
+      setCreateError(
+        err.response?.data?.error ||
+          "Couldn't create the circuit. Make sure the backend is running and up to date."
+      );
     } finally {
       setCreating(false);
     }
@@ -123,9 +130,13 @@ export default function Dashboard() {
 
       <NewCircuitModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          setCreateError("");
+        }}
         onCreate={handleCreate}
         creating={creating}
+        error={createError}
       />
     </AppShell>
   );

@@ -6,6 +6,17 @@ import { CATEGORY_COLOR } from "../../constants/categoryColors";
 const SCALE = 0.34;
 const TERMINAL_OFFSET = 0.55;
 
+// Parts where terminal order actually matters in real life. Terminal "a"
+// (left) is treated as positive/anode, "b" (right) as negative/cathode -
+// matches real red/black wire convention and gives a visual +/- marker.
+const POLARIZED_KEYS = new Set([
+  "battery_9v",
+  "battery_aa",
+  "solar_panel",
+  "led",
+  "capacitor_electrolytic",
+]);
+
 export default function PlacedPart3D({
   node,
   isDragging,
@@ -21,6 +32,7 @@ export default function PlacedPart3D({
   const lifted = hovered || isDragging;
   const ringColor = powered ? "#3ddc84" : accent;
   const isLed = node.key === "led";
+  const isPolarized = POLARIZED_KEYS.has(node.key);
 
   return (
     <group position={[node.x, 0, node.z]}>
@@ -63,22 +75,33 @@ export default function PlacedPart3D({
       {/* terminals - click one, then another part's terminal, to wire them */}
       {["a", "b"].map((t, i) => {
         const selected = isTerminalSelected(node.id, t);
+        const isPositive = t === "a";
+        const termColor = isPolarized ? (isPositive ? "#ff4757" : "#4a90e2") : accent;
+        const pos = [i === 0 ? -TERMINAL_OFFSET : TERMINAL_OFFSET, 0.12, 0];
         return (
-          <mesh
-            key={t}
-            position={[i === 0 ? -TERMINAL_OFFSET : TERMINAL_OFFSET, 0.12, 0]}
-            onClick={(e) => {
-              e.stopPropagation();
-              onTerminalClick(node.id, t);
-            }}
-          >
-            <sphereGeometry args={[0.078, 16, 16]} />
-            <meshStandardMaterial
-              color={selected ? "#ffffff" : accent}
-              emissive={accent}
-              emissiveIntensity={selected ? 1.6 : 0.7}
-            />
-          </mesh>
+          <group key={t}>
+            <mesh
+              position={pos}
+              onClick={(e) => {
+                e.stopPropagation();
+                onTerminalClick(node.id, t);
+              }}
+            >
+              <sphereGeometry args={[0.078, 16, 16]} />
+              <meshStandardMaterial
+                color={selected ? "#ffffff" : termColor}
+                emissive={termColor}
+                emissiveIntensity={selected ? 1.6 : 0.7}
+              />
+            </mesh>
+            {isPolarized && (
+              <Html position={[pos[0], pos[1] + 0.22, pos[2]]} center distanceFactor={10} occlude>
+                <span className="part3d-polarity" style={{ color: termColor }}>
+                  {isPositive ? "+" : "−"}
+                </span>
+              </Html>
+            )}
+          </group>
         );
       })}
 

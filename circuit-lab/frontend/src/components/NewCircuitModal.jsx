@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function NewCircuitModal({ open, onClose, onCreate, creating }) {
+export default function NewCircuitModal({ open, onClose, onCreate, creating, error }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
@@ -63,6 +63,8 @@ export default function NewCircuitModal({ open, onClose, onCreate, creating }) {
               />
             </label>
 
+            {error && <p style={styles.error}>{error}</p>}
+
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
               <button type="button" onClick={handleClose} style={styles.cancelBtn}>
                 Cancel
@@ -114,6 +116,11 @@ const styles = {
     color: "var(--text-dim)",
     marginBottom: 16,
     fontWeight: 600,
+  },
+  error: {
+    color: "var(--danger)",
+    fontSize: 12.5,
+    margin: "-8px 0 0",
   },
   input: {
     display: "block",
