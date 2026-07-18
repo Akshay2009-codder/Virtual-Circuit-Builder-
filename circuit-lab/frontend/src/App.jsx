@@ -9,6 +9,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Components from "./pages/Components";
 import Builder from "./pages/Builder";
+import Tutorials from "./pages/Tutorials";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -48,6 +49,14 @@ function AnimatedRoutes() {
           element={
             <ProtectedRoute>
               <PageTransition><Builder /></PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tutorials"
+          element={
+            <ProtectedRoute>
+              <PageTransition><Tutorials /></PageTransition>
             </ProtectedRoute>
           }
         />

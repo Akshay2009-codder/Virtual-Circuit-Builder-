@@ -1,12 +1,26 @@
 from collections import defaultdict, deque
+from datetime import datetime, timezone
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from models import Project
+from models import db, Project, ProjectCollaborator
 
 simulate_bp = Blueprint("simulate", __name__, url_prefix="/api/projects")
 
 SOURCE_CATEGORIES = {"source", "board"}
+TOGGLE_KEYS = {"switch", "dip_switch"}
+
+
+def _accessible_project(project_id, user_id):
+    project = Project.query.filter_by(id=project_id).first()
+    if not project:
+        return None
+    if str(project.user_id) == str(user_id):
+        return project
+    is_collaborator = ProjectCollaborator.query.filter_by(
+        project_id=project_id, user_id=user_id
+    ).first()
+    return project if is_collaborator else None
 
 
 def build_suggestions(status, nodes, edges, powered_ids, node_by_id):
@@ -57,7 +71,7 @@ def build_suggestions(status, nodes, edges, powered_ids, node_by_id):
 @jwt_required()
 def simulate_circuit(project_id):
     user_id = get_jwt_identity()
-    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    project = _accessible_project(project_id, user_id)
     if not project:
         return jsonify({"error": "Project not found."}), 404
 
@@ -72,6 +86,9 @@ def simulate_circuit(project_id):
     # terminal back to its "b" terminal via some external path.
     adj = defaultdict(set)
     for n in nodes:
+        is_open_switch = n.get("key") in TOGGLE_KEYS and n.get("on") is False
+        if is_open_switch:
+            continue  # an open switch doesn't conduct - deliberately not added to the graph
         a, b = (n["id"], "a"), (n["id"], "b")
         adj[a].add(b)
         adj[b].add(a)
@@ -85,6 +102,10 @@ def simulate_circuit(project_id):
 
     if not sources:
         suggestions = build_suggestions("no_source", nodes, edges, set(), node_by_id)
+        project.last_run_status = "no_source"
+        project.last_run_at = datetime.now(timezone.utc)
+        project.run_count = (project.run_count or 0) + 1
+        db.session.commit()
         return jsonify({
             "status": "no_source",
             "message": "No power source on the board. Add a battery, solar panel, or dev board to power the circuit.",
@@ -147,6 +168,11 @@ def simulate_circuit(project_id):
         message = "Open circuit — there's no complete path back to the power source, so no current flows. Check your wiring."
 
     suggestions = build_suggestions(status, nodes, edges, powered_ids, node_by_id)
+
+    project.last_run_status = status
+    project.last_run_at = datetime.now(timezone.utc)
+    project.run_count = (project.run_count or 0) + 1
+    db.session.commit()
 
     return jsonify({
         "status": status,

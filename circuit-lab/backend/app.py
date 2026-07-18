@@ -39,4 +39,7 @@ def create_app():
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    # use_reloader=False: OneDrive-synced folders touch file timestamps
+    # constantly, which fools Flask's file-watcher into restarting the
+    # server mid-request. Debug mode (nice tracebacks) still works fine.
+    app.run(debug=True, use_reloader=False, port=5000)
