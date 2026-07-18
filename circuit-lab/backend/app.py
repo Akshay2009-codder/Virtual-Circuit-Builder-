@@ -7,7 +7,7 @@ from models import db
 from auth import auth_bp
 from components import components_bp
 from projects import projects_bp
-from simulate import simulate_bp
+from Simulate import simulate_bp
 from component_model import Component  # noqa: F401 - registers table with SQLAlchemy
 from seed import seed_components
 
