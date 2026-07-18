@@ -172,13 +172,16 @@ export function WireModel() {
 
 /* ---------------- Active / semiconductors ---------------- */
 
-export function LedModel() {
+export function LedModel({ lit = true } = {}) {
+  const domeColor = lit ? "#ff5555" : "#7a3030";
+  const emissiveColor = lit ? "#ff2222" : "#000000";
+  const emissiveIntensity = lit ? 1.3 : 0;
   return (
     <group>
       <mesh position={[0, 0.15, 0]}>
         <sphereGeometry args={[0.42, 24, 24, 0, Math.PI * 2, 0, Math.PI / 1.7]} />
         <meshStandardMaterial
-          color="#ff5555" emissive="#ff2222" emissiveIntensity={0.9}
+          color={domeColor} emissive={emissiveColor} emissiveIntensity={emissiveIntensity}
           transparent opacity={0.85} roughness={0.2}
         />
       </mesh>
@@ -349,7 +352,9 @@ export function SolarPanelModel() {
 
 /* ---------------- Control / input ---------------- */
 
-export function SwitchModel() {
+export function SwitchModel({ on = true } = {}) {
+  const leverAngle = on ? -0.5 : 0.5; // tilts left when on, right when off
+  const leverColor = on ? "#2fd66f" : "#ff4757";
   return (
     <group>
       <mesh position={[0, -0.15, 0]}>
@@ -360,9 +365,9 @@ export function SwitchModel() {
         <cylinderGeometry args={[0.08, 0.08, 0.2, 16]} />
         <meshStandardMaterial color="#c9c9c9" metalness={0.7} roughness={0.3} />
       </mesh>
-      <mesh position={[0.05, 0.2, 0]} rotation={[0, 0, -0.5]}>
+      <mesh position={[0.05, 0.2, 0]} rotation={[0, 0, leverAngle]}>
         <boxGeometry args={[0.7, 0.07, 0.12]} />
-        <meshStandardMaterial color="#e8a33d" metalness={0.6} roughness={0.3} />
+        <meshStandardMaterial color={leverColor} metalness={0.5} roughness={0.3} emissive={leverColor} emissiveIntensity={0.3} />
       </mesh>
       <mesh position={[0.4, 0.05, 0]}>
         <cylinderGeometry args={[0.08, 0.08, 0.2, 16]} />
@@ -412,8 +417,10 @@ export function RelayModel() {
   );
 }
 
-export function DipSwitchModel() {
+export function DipSwitchModel({ on = true } = {}) {
   const n = 4;
+  const tilt = on ? -0.35 : 0.35;
+  const color = on ? "#3ddc84" : "#e7edf3";
   return (
     <group>
       <mesh>
@@ -421,9 +428,9 @@ export function DipSwitchModel() {
         <meshStandardMaterial color="#1a3a63" roughness={0.5} />
       </mesh>
       {Array.from({ length: n }).map((_, i) => (
-        <mesh key={i} position={[-0.45 + i * 0.3, 0.16, 0]} rotation={[0, 0, i % 2 === 0 ? -0.35 : 0.1]}>
+        <mesh key={i} position={[-0.45 + i * 0.3, 0.16, 0]} rotation={[0, 0, tilt]}>
           <boxGeometry args={[0.14, 0.14, 0.22]} />
-          <meshStandardMaterial color="#e7edf3" roughness={0.4} />
+          <meshStandardMaterial color={color} roughness={0.4} />
         </mesh>
       ))}
     </group>

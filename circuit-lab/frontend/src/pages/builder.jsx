@@ -4,6 +4,7 @@ import AppShell from "../components/AppShell";
 import ComponentPalette from "../components/builder/ComponentPalette";
 import Scene3D from "../components/builder3d/Scene3D";
 import { screenToGround } from "../components/builder3d/raycast";
+import ShareModal from "../components/ShareModal";
 import client from "../api/client";
 
 let idCounter = 1;
@@ -29,6 +30,7 @@ export default function Builder() {
   const [selectedTerminal, setSelectedTerminal] = useState(null);
   const [simResult, setSimResult] = useState(null);
   const [simRunning, setSimRunning] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   // Load the component catalog for the palette
   useEffect(() => {
@@ -83,6 +85,7 @@ export default function Builder() {
         default_value: component.default_value,
         component_id: component.id,
         modelType: component.model_type,
+        on: component.key === "switch" || component.key === "dip_switch" ? true : undefined,
         x: Math.round(x / 0.5) * 0.5,
         z: Math.round(z / 0.5) * 0.5,
       })
@@ -107,6 +110,10 @@ export default function Builder() {
     setNodes((nds) => nds.filter((n) => n.id !== nodeId));
     setEdges((eds) => eds.filter((e) => e.sourceId !== nodeId && e.targetId !== nodeId));
     setSelectedTerminal((sel) => (sel && sel.nodeId === nodeId ? null : sel));
+  }
+
+  function handleToggle(nodeId) {
+    setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, on: !(n.on !== false) } : n)));
   }
 
   function handleTerminalClick(nodeId, terminal) {
@@ -178,7 +185,8 @@ export default function Builder() {
   }
 
   return (
-    <AppShell>
+    <>
+      <AppShell>
       <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 65px)" }}>
         <div style={styles.toolbar}>
           <div style={{ display: "flex", alignItems: "center", gap: 16, flex: 1, minWidth: 0 }}>
@@ -202,6 +210,13 @@ export default function Builder() {
             </button>
             <button onClick={handleRunCircuit} style={styles.runBtn} disabled={simRunning}>
               {simRunning ? "Running…" : "▶ Run circuit"}
+            </button>
+            <button
+              onClick={() => (projectId ? setShareOpen(true) : handleSave().then(() => setShareOpen(true)))}
+              style={styles.shareBtn}
+              title={projectId ? "Share with teammates" : "Save first, then share"}
+            >
+              👥 Share
             </button>
           </div>
         </div>
@@ -254,6 +269,7 @@ export default function Builder() {
                 onDragMove={handleDragMove}
                 onDragEnd={handleDragEnd}
                 onTerminalClick={handleTerminalClick}
+                onToggle={handleToggle}
                 selectedTerminal={selectedTerminal}
                 onRemove={handleRemove}
                 cameraRef={cameraRef}
@@ -266,6 +282,8 @@ export default function Builder() {
         </div>
       </div>
     </AppShell>
+      <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} projectId={projectId} />
+    </>
   );
 }
 
@@ -349,6 +367,16 @@ const styles = {
     borderRadius: "var(--radius-sm)",
     padding: "7px 16px",
     fontSize: 13.5,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  shareBtn: {
+    background: "transparent",
+    color: "var(--text-dim)",
+    border: "1.5px solid var(--border-bright)",
+    borderRadius: "var(--radius-sm)",
+    padding: "7px 14px",
+    fontSize: 13,
     fontWeight: 600,
     cursor: "pointer",
   },

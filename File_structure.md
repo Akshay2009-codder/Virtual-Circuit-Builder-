@@ -2,57 +2,68 @@ circuit-lab/
 ├── .gitignore
 ├── README.md
 │
-├── backend/                          (Flask)
-│   ├── app.py                        # app factory, registers all blueprints
-│   ├── config.py                     # DB URI, JWT secret, CORS origins
+├── backend/                              (Flask)
+│   ├── app.py                            # app factory, registers all blueprints
+│   ├── config.py                         # DB URI, JWT secret, CORS origins
 │   ├── requirements.txt
-│   ├── models.py                     # User + Project models
-│   ├── component_model.py            # Component (parts catalog) model
-│   ├── seed.py                       # seeds the 6 starter parts on first boot
-│   ├── auth.py                       # /api/auth/register, /login, /me
-│   ├── components.py                 # /api/components (catalog, read-only)
-│   ├── projects.py                   # /api/projects CRUD (save/load circuits)
-│   │
-│   └── simulate.py                   ⏳ Phase 4 — MNA solver, /api/simulate
+│   ├── models.py                         # User, Project (+ run tracking), ProjectCollaborator
+│   ├── component_model.py                # Component (parts catalog) model
+│   ├── seed.py                           # seeds 31 parts on first boot
+│   ├── auth.py                           # /api/auth/register, /login, /me
+│   ├── components.py                     # /api/components (catalog, read-only)
+│   ├── projects.py                       # CRUD + collaborator invite/remove
+│   └── simulate.py                       # /api/projects/<id>/simulate (Run circuit + suggestions)
 │
-└── frontend/                         (React + Vite)
+└── frontend/                             (React + Vite)
     ├── index.html
     ├── package.json
     ├── vite.config.js
     │
     └── src/
-        ├── main.jsx                  # React entry point
-        ├── App.jsx                   # routes + AnimatePresence + cursor mount
-        ├── index.css                 # design tokens + cursor styles
+        ├── main.jsx, App.jsx, index.css
         │
         ├── api/
-        │   └── client.js             # axios instance, attaches JWT to requests
+        │   └── client.js
         │
         ├── context/
-        │   └── AuthContext.jsx       # login/register/logout state
+        │   └── AuthContext.jsx
+        │
+        ├── constants/
+        │   └── categoryColors.js
+        │
+        ├── utils/
+        │   └── timeAgo.js                # relative time formatting ("2h ago")
         │
         ├── components/
-        │   ├── ProtectedRoute.jsx    # route guard
-        │   ├── AppShell.jsx          # top nav (Dashboard/Components/Builder)
-        │   ├── AuthLayout.jsx        # shared Login/Register page frame
-        │   ├── CircuitBackground.jsx # animated PCB trace ambient background
-        │   ├── CustomCursor.jsx      # probe-tip cursor (teal → copper on hover)
-        │   ├── PageTransition.jsx    # fade/slide wrapper for route changes
-        │   ├── FormField.jsx         # styled input
-        │   ├── PowerButton.jsx       # submit button w/ continuity-tester LED
+        │   ├── ProtectedRoute.jsx
+        │   ├── AppShell.jsx              # nav: Dashboard/Components/Builder/Tutorials
+        │   ├── AuthLayout.jsx
+        │   ├── CircuitBackground.jsx
+        │   ├── CustomCursor.jsx
+        │   ├── PageTransition.jsx
+        │   ├── FormField.jsx
+        │   ├── PowerButton.jsx
+        │   ├── PartIcon.jsx
+        │   ├── NewCircuitModal.jsx       # name+description on new circuit
+        │   ├── ShareModal.jsx            # invite teammates by email
         │   │
-        │   ├── 3d/
-        │   │   ├── PartModels.jsx    # Three.js primitive models per part
-        │   │   └── PartViewer.jsx    # Canvas + lighting + orbit controls
+        │   ├── 3d/                       (catalog page's 3D viewer)
+        │   │   ├── PartModels.jsx        # 21 model builders → 31 parts (LED lights, switch flips)
+        │   │   └── PartViewer.jsx
         │   │
-        │   └── builder/
-        │       ├── PartNode.jsx          # a placed component on the canvas
-        │       ├── ComponentPalette.jsx  # draggable parts list (right panel)
-        │       └── HealthPanel.jsx       ⏳ Phase 4 — sim results / readings
+        │   ├── builder/                  (legacy - unused, harmless to delete)
+        │   │   ├── PartNode.jsx
+        │   │   └── ComponentPalette.jsx  # ← still used, drag palette sidebar
+        │   │
+        │   └── builder3d/                (the 3D circuit board itself)
+        │       ├── raycast.js
+        │       ├── Wire3D.jsx
+        │       ├── PlacedPart3D.jsx      # lights up LEDs, toggleable switches, +/- polarity
+        │       └── Scene3D.jsx           # workbench, lighting, camera
         │
         └── pages/
-            ├── Login.jsx
-            ├── Register.jsx
-            ├── Dashboard.jsx         # lists saved circuits, "+ New circuit"
-            ├── Components.jsx        # 3D catalog page
-            └── Builder.jsx           # drag/drop canvas, save/load circuits
+            ├── Login.jsx, Register.jsx
+            ├── Dashboard.jsx             # real stats, status badges, activity feed
+            ├── Components.jsx            # product-page style catalog
+            ├── Builder.jsx               # 3D board, Save/Run/Share
+            └── Tutorials.jsx             # 8 accordion lessons

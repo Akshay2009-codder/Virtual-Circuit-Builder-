@@ -17,12 +17,15 @@ const POLARIZED_KEYS = new Set([
   "capacitor_electrolytic",
 ]);
 
+const TOGGLE_KEYS = new Set(["switch", "dip_switch"]);
+
 export default function PlacedPart3D({
   node,
   isDragging,
   onDragStart,
   onRemove,
   onTerminalClick,
+  onToggle,
   isTerminalSelected,
   powered,
 }) {
@@ -30,33 +33,38 @@ export default function PlacedPart3D({
   const Model = MODEL_BY_TYPE[node.modelType];
   const accent = CATEGORY_COLOR[node.category] || "#45d8c4";
   const lifted = hovered || isDragging;
-  const ringColor = powered ? "#3ddc84" : accent;
   const isLed = node.key === "led";
   const isPolarized = POLARIZED_KEYS.has(node.key);
+  const isToggleable = TOGGLE_KEYS.has(node.key);
+  const isOn = node.on !== false; // default on
+  const ringColor = powered ? "#3ddc84" : accent;
+  const ringOpacity = powered ? 0.85 : lifted ? 0.55 : isToggleable && !isOn ? 0.06 : 0.18;
 
   return (
     <group position={[node.x, 0, node.z]}>
-      {/* soft colored ring on the floor - grounds the part, brightens on hover/drag/power */}
+      {/* soft colored ring on the floor - grounds the part, brightens on hover/drag/power, dims when a switch is off */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]}>
         <ringGeometry args={[0.58, 0.66, 32]} />
-        <meshBasicMaterial
-          color={ringColor}
-          transparent
-          opacity={powered ? 0.85 : lifted ? 0.55 : 0.18}
-        />
+        <meshBasicMaterial color={ringColor} transparent opacity={ringOpacity} />
       </mesh>
 
       {/* a lit LED gets its own warm glow lighting the area around it */}
       {powered && isLed && <pointLight position={[0, 0.9, 0]} intensity={1.4} distance={2.2} color="#ff5555" />}
       {powered && !isLed && <pointLight position={[0, 0.7, 0]} intensity={0.35} distance={1.6} color="#3ddc84" />}
 
-      {/* invisible drag handle beneath the part */}
+      {/* invisible drag handle beneath the part - also toggles switches on click */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0.015, 0]}
         onPointerDown={(e) => {
           e.stopPropagation();
           onDragStart(node.id);
+        }}
+        onClick={(e) => {
+          if (isToggleable) {
+            e.stopPropagation();
+            onToggle(node.id);
+          }
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
@@ -69,7 +77,7 @@ export default function PlacedPart3D({
       </mesh>
 
       <group scale={SCALE} position={[0, lifted ? 0.46 : 0.35, 0]}>
-        {Model && <Model />}
+        {Model && <Model lit={isLed ? powered : undefined} on={isToggleable ? isOn : undefined} />}
       </group>
 
       {/* terminals - click one, then another part's terminal, to wire them */}
@@ -126,6 +134,18 @@ export default function PlacedPart3D({
             ×
           </button>
         </div>
+        {isToggleable && (
+          <button
+            className="part3d-toggle"
+            style={{ background: isOn ? "#2fd66f" : "#ff4757" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle(node.id);
+            }}
+          >
+            {isOn ? "ON" : "OFF"}
+          </button>
+        )}
       </Html>
     </group>
   );

@@ -137,6 +137,21 @@ input:focus {
   user-select: none;
 }
 
+.part3d-toggle {
+  display: block;
+  margin: 4px auto 0;
+  border: none;
+  border-radius: 20px;
+  padding: 2px 12px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #0a0e13;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
 .eyebrow {
   font-family: var(--font-display);
   font-size: 12px;
