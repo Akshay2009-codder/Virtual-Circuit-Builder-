@@ -20,10 +20,12 @@ export default function Scene3D({
   onDragMove,
   onDragEnd,
   onTerminalClick,
+  onToggle,
   selectedTerminal,
   onRemove,
   cameraRef,
   poweredIds,
+  readings,
 }) {
   function terminalWorldPos(nodeId, terminal) {
     const n = nodes.find((x) => x.id === nodeId);
@@ -96,7 +98,9 @@ export default function Scene3D({
           onDragStart={onDragStart}
           onRemove={onRemove}
           onTerminalClick={onTerminalClick}
+          onToggle={onToggle}
           powered={poweredIds ? poweredIds.has(n.id) : false}
+          reading={readings ? readings[n.id] : null}
           isTerminalSelected={(id, t) =>
             selectedTerminal && selectedTerminal.nodeId === id && selectedTerminal.terminal === t
           }
