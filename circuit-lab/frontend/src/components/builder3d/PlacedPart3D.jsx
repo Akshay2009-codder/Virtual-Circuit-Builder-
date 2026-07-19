@@ -28,6 +28,7 @@ export default function PlacedPart3D({
   onToggle,
   isTerminalSelected,
   powered,
+  reading,
 }) {
   const [hovered, setHovered] = useState(false);
   const Model = MODEL_BY_TYPE[node.modelType];
@@ -118,10 +119,16 @@ export default function PlacedPart3D({
           <span className="part3d-label-dot" style={{ background: powered ? "#3ddc84" : accent }} />
           <div className="part3d-label-text">
             <span className="part3d-label-name">{node.name}</span>
-            {node.unit && (
-              <span className="part3d-label-value">
-                {node.default_value} {node.unit}
+            {reading && reading.state === "on" ? (
+              <span className="part3d-label-value" style={{ color: "#3ddc84" }}>
+                {reading.voltage.toFixed(2)}V · {reading.current_mA.toFixed(1)}mA
               </span>
+            ) : (
+              node.unit && (
+                <span className="part3d-label-value">
+                  {node.default_value} {node.unit}
+                </span>
+              )
             )}
           </div>
           <button
