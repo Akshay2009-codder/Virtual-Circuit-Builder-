@@ -592,6 +592,487 @@ export function DevBoardModel() {
   );
 }
 
+/* ---------------- Power (additional) ---------------- */
+
+export function CoinCellModel() {
+  return (
+    <group rotation={[0, 0, Math.PI / 2]}>
+      <mesh>
+        <cylinderGeometry args={[0.5, 0.5, 0.12, 28]} />
+        <meshStandardMaterial color="#c9c9c9" metalness={0.85} roughness={0.2} />
+      </mesh>
+      <mesh position={[0, 0.065, 0]}>
+        <cylinderGeometry args={[0.42, 0.42, 0.01, 28]} />
+        <meshStandardMaterial color="#8a8f96" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <Lead position={[0, -0.4, 0]} length={0.5} />
+      <Lead position={[0, 0.4, 0]} length={0.5} />
+    </group>
+  );
+}
+
+export function BenchPsuModel() {
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[1.6, 1, 0.9]} />
+        <meshStandardMaterial color="#3a4552" roughness={0.5} metalness={0.2} />
+      </mesh>
+      <mesh position={[-0.4, 0.15, 0.46]}>
+        <boxGeometry args={[0.5, 0.28, 0.02]} />
+        <meshStandardMaterial color="#1a1f26" roughness={0.3} />
+      </mesh>
+      <mesh position={[-0.4, 0.15, 0.47]}>
+        <boxGeometry args={[0.42, 0.16, 0.01]} />
+        <meshStandardMaterial color="#3ddc84" emissive="#2fd66f" emissiveIntensity={0.6} />
+      </mesh>
+      {[0.15, 0.5].map((x, i) => (
+        <mesh key={i} position={[x, -0.15, 0.46]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.13, 0.13, 0.06, 20]} />
+          <meshStandardMaterial color="#111318" roughness={0.6} />
+        </mesh>
+      ))}
+      <Lead position={[-0.2, -0.55, 0.3]} rotation={[Math.PI / 2, 0, 0]} length={0.35} />
+      <Lead position={[0.2, -0.55, 0.3]} rotation={[Math.PI / 2, 0, 0]} length={0.35} />
+    </group>
+  );
+}
+
+export function UsbPowerModel() {
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[0.9, 0.35, 0.5]} />
+        <meshStandardMaterial color="#c9c9c9" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0, 0.05]}>
+        <boxGeometry args={[0.7, 0.22, 0.35]} />
+        <meshStandardMaterial color="#15181c" roughness={0.4} />
+      </mesh>
+      <Lead position={[-0.15, -0.35, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.4} />
+      <Lead position={[0.15, -0.35, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.4} />
+    </group>
+  );
+}
+
+/* ---------------- Diodes (additional) ---------------- */
+
+export function BridgeRectifierModel() {
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[0.9, 0.4, 0.9]} />
+        <meshStandardMaterial color="#1a1a1a" roughness={0.5} />
+      </mesh>
+      <mesh position={[0, 0.22, 0]}>
+        <cylinderGeometry args={[0.06, 0.06, 0.04, 16]} />
+        <meshStandardMaterial color="#e7edf3" />
+      </mesh>
+      {[[-0.35, -0.35], [0.35, -0.35], [-0.35, 0.35], [0.35, 0.35]].map(([x, z], i) => (
+        <Lead key={i} position={[x, -0.35, z]} rotation={[Math.PI / 2, 0, 0]} length={0.35} radius={0.025} />
+      ))}
+    </group>
+  );
+}
+
+export function RgbLedModel() {
+  return (
+    <group>
+      <mesh position={[0, 0.15, 0]}>
+        <sphereGeometry args={[0.42, 24, 24, 0, Math.PI * 2, 0, Math.PI / 1.7]} />
+        <meshStandardMaterial color="#e0e0e0" transparent opacity={0.55} roughness={0.15} />
+      </mesh>
+      {[["#ff3b3b", -0.15], ["#3ddc84", 0], ["#4a90ff", 0.15]].map(([c, x], i) => (
+        <mesh key={i} position={[x, 0.12, 0.1]}>
+          <sphereGeometry args={[0.1, 12, 12]} />
+          <meshStandardMaterial color={c} emissive={c} emissiveIntensity={0.8} />
+        </mesh>
+      ))}
+      <mesh position={[0, -0.15, 0]}>
+        <cylinderGeometry args={[0.42, 0.42, 0.3, 24]} />
+        <meshStandardMaterial color="#e0e0e0" transparent opacity={0.4} roughness={0.2} />
+      </mesh>
+      <Lead position={[-0.14, -0.85, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.9} />
+      <Lead position={[0.14, -1.0, 0]} rotation={[Math.PI / 2, 0, 0]} length={1.1} />
+    </group>
+  );
+}
+
+/* ---------------- Switches (additional) ---------------- */
+
+export function RockerSwitchModel({ on = true } = {}) {
+  const color = on ? "#3ddc84" : "#ff4757";
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[0.9, 0.5, 0.6]} />
+        <meshStandardMaterial color="#15181c" roughness={0.5} />
+      </mesh>
+      <mesh position={[0, 0.28, on ? -0.08 : 0.08]} rotation={[on ? -0.25 : 0.25, 0, 0]}>
+        <boxGeometry args={[0.6, 0.3, 0.18]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} roughness={0.4} />
+      </mesh>
+      <Lead position={[-0.2, -0.35, 0.35]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+      <Lead position={[0.2, -0.35, 0.35]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+    </group>
+  );
+}
+
+export function SlideSwitchModel({ on = true } = {}) {
+  const knobX = on ? 0.25 : -0.25;
+  return (
+    <group>
+      <mesh position={[0, -0.1, 0]}>
+        <boxGeometry args={[1, 0.15, 0.4]} />
+        <meshStandardMaterial color="#232e3a" roughness={0.6} />
+      </mesh>
+      <mesh position={[knobX, 0.02, 0]}>
+        <boxGeometry args={[0.3, 0.12, 0.3]} />
+        <meshStandardMaterial color="#e8e8e8" roughness={0.4} />
+      </mesh>
+      <Lead position={[-0.35, -0.3, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+      <Lead position={[0.35, -0.3, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+    </group>
+  );
+}
+
+/* ---------------- Sensors (additional) ---------------- */
+
+export function To92SensorModel() {
+  return <TransistorModel />;
+}
+
+export function UltrasonicSensorModel() {
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[1.3, 0.5, 0.6]} />
+        <meshStandardMaterial color="#1a3a63" roughness={0.5} />
+      </mesh>
+      {[-0.32, 0.32].map((x, i) => (
+        <mesh key={i} position={[x, 0.05, 0.28]}>
+          <cylinderGeometry args={[0.22, 0.22, 0.22, 24]} rotation={[Math.PI / 2, 0, 0]} />
+          <meshStandardMaterial color="#c9c9c9" metalness={0.6} roughness={0.35} />
+        </mesh>
+      ))}
+      <Lead position={[-0.4, -0.35, -0.2]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+      <Lead position={[0.4, -0.35, -0.2]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+    </group>
+  );
+}
+
+export function IrSensorModel() {
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[1, 0.18, 0.5]} />
+        <meshStandardMaterial color="#1a3a63" roughness={0.5} />
+      </mesh>
+      {[-0.25, 0.25].map((x, i) => (
+        <mesh key={i} position={[x, 0.14, 0]}>
+          <cylinderGeometry args={[0.1, 0.1, 0.14, 16]} />
+          <meshStandardMaterial color={i === 0 ? "#3a2a6a" : "#1a1a1a"} roughness={0.3} />
+        </mesh>
+      ))}
+      <Lead position={[-0.3, -0.25, 0.2]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+      <Lead position={[0.3, -0.25, 0.2]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+    </group>
+  );
+}
+
+export function PirSensorModel() {
+  return (
+    <group>
+      <mesh position={[0, -0.1, 0]}>
+        <cylinderGeometry args={[0.5, 0.5, 0.15, 24]} />
+        <meshStandardMaterial color="#e7edf3" roughness={0.5} />
+      </mesh>
+      <mesh position={[0, 0.18, 0]}>
+        <sphereGeometry args={[0.4, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#f5f5f0" transparent opacity={0.75} roughness={0.2} />
+      </mesh>
+      <Lead position={[-0.12, -0.3, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+      <Lead position={[0.12, -0.3, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+    </group>
+  );
+}
+
+export function GasSensorModel() {
+  return (
+    <group>
+      <mesh position={[0, -0.15, 0]}>
+        <boxGeometry args={[0.8, 0.1, 0.8]} />
+        <meshStandardMaterial color="#1a3a63" roughness={0.5} />
+      </mesh>
+      <mesh position={[0, 0.15, 0]}>
+        <cylinderGeometry args={[0.35, 0.35, 0.4, 20]} />
+        <meshStandardMaterial color="#c9c9c9" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.37, 0]}>
+        <cylinderGeometry args={[0.28, 0.28, 0.03, 20]} />
+        <meshStandardMaterial color="#7a828c" metalness={0.5} roughness={0.4} />
+      </mesh>
+      <Lead position={[-0.25, -0.25, 0.3]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+      <Lead position={[0.25, -0.25, 0.3]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+    </group>
+  );
+}
+
+export function HumiditySensorModel() {
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[0.8, 1, 0.35]} />
+        <meshStandardMaterial color="#2e6fbd" roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 0.15, 0.18]}>
+        <boxGeometry args={[0.5, 0.35, 0.03]} />
+        <meshStandardMaterial color="#e7edf3" roughness={0.6} />
+      </mesh>
+      <Lead position={[-0.15, -0.6, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.4} />
+      <Lead position={[0.15, -0.6, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.4} />
+    </group>
+  );
+}
+
+export function TouchSensorModel() {
+  return (
+    <group>
+      <mesh>
+        <cylinderGeometry args={[0.4, 0.4, 0.08, 24]} />
+        <meshStandardMaterial color="#1a3a63" roughness={0.5} />
+      </mesh>
+      <mesh position={[0, 0.06, 0]}>
+        <cylinderGeometry args={[0.22, 0.22, 0.02, 24]} />
+        <meshStandardMaterial color="#e8a33d" metalness={0.6} roughness={0.3} emissive="#e8a33d" emissiveIntensity={0.2} />
+      </mesh>
+      <Lead position={[-0.12, -0.2, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+      <Lead position={[0.12, -0.2, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+    </group>
+  );
+}
+
+/* ---------------- Displays ---------------- */
+
+export function SevenSegmentModel() {
+  const segments = [
+    [0, 0.32, 0.62, 0.09],
+    [0, -0.32, 0.62, 0.09],
+    [0, 0, 0.62, 0.09],
+    [-0.26, 0.16, 0.09, 0.55],
+    [0.26, 0.16, 0.09, 0.55],
+    [-0.26, -0.16, 0.09, 0.55],
+    [0.26, -0.16, 0.09, 0.55],
+  ];
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[1, 1.3, 0.2]} />
+        <meshStandardMaterial color="#15181c" roughness={0.5} />
+      </mesh>
+      {segments.map(([x, y, w, h], i) => (
+        <mesh key={i} position={[x, y, 0.11]}>
+          <boxGeometry args={[w, h, 0.02]} />
+          <meshStandardMaterial color="#ff3b3b" emissive="#ff2222" emissiveIntensity={0.9} />
+        </mesh>
+      ))}
+      <mesh position={[0.4, -0.55, 0.11]}>
+        <sphereGeometry args={[0.05, 10, 10]} />
+        <meshStandardMaterial color="#ff3b3b" emissive="#ff2222" emissiveIntensity={0.9} />
+      </mesh>
+    </group>
+  );
+}
+
+export function LcdDisplayModel() {
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[1.8, 0.9, 0.15]} />
+        <meshStandardMaterial color="#e7edf3" roughness={0.5} />
+      </mesh>
+      <mesh position={[0, 0, 0.09]}>
+        <boxGeometry args={[1.5, 0.55, 0.02]} />
+        <meshStandardMaterial color="#3ddc84" emissive="#1f9a51" emissiveIntensity={0.5} roughness={0.3} />
+      </mesh>
+      <Lead position={[-0.7, -0.5, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+      <Lead position={[0.7, -0.5, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+    </group>
+  );
+}
+
+export function OledDisplayModel() {
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[1, 0.7, 0.1]} />
+        <meshStandardMaterial color="#0a0e13" roughness={0.3} metalness={0.2} />
+      </mesh>
+      <mesh position={[0, 0, 0.06]}>
+        <boxGeometry args={[0.8, 0.45, 0.01]} />
+        <meshStandardMaterial color="#4a90ff" emissive="#2f6fe0" emissiveIntensity={0.7} />
+      </mesh>
+      <Lead position={[-0.35, -0.4, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.25} />
+      <Lead position={[0.35, -0.4, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.25} />
+    </group>
+  );
+}
+
+export function LedMatrixModel() {
+  const n = 5;
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[1.1, 1.1, 0.15]} />
+        <meshStandardMaterial color="#15181c" roughness={0.5} />
+      </mesh>
+      {Array.from({ length: n }).map((_, row) =>
+        Array.from({ length: n }).map((_, col) => (
+          <mesh key={`${row}-${col}`} position={[-0.4 + col * 0.2, -0.4 + row * 0.2, 0.09]}>
+            <sphereGeometry args={[0.06, 8, 8]} />
+            <meshStandardMaterial color="#ff3b3b" emissive="#ff2222" emissiveIntensity={0.7} />
+          </mesh>
+        ))
+      )}
+    </group>
+  );
+}
+
+/* ---------------- Outputs (additional) ---------------- */
+
+export function ServoMotorModel() {
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[0.8, 0.9, 0.5]} />
+        <meshStandardMaterial color="#2e6fbd" roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 0.55, 0]}>
+        <cylinderGeometry args={[0.15, 0.15, 0.12, 20]} />
+        <meshStandardMaterial color="#c9c9c9" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.65, 0]} rotation={[0, 0, 0.3]}>
+        <boxGeometry args={[0.5, 0.06, 0.1]} />
+        <meshStandardMaterial color="#e8e8e8" roughness={0.4} />
+      </mesh>
+      <Lead position={[-0.1, -0.55, 0.3]} rotation={[Math.PI / 2, 0, 0]} length={0.35} />
+      <Lead position={[0.1, -0.55, 0.3]} rotation={[Math.PI / 2, 0, 0]} length={0.35} />
+    </group>
+  );
+}
+
+export function StepperMotorModel() {
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[0.9, 0.9, 0.7]} />
+        <meshStandardMaterial color="#8a8f96" metalness={0.5} roughness={0.4} />
+      </mesh>
+      {[[-0.38, -0.38], [0.38, -0.38], [-0.38, 0.38], [0.38, 0.38]].map(([x, y], i) => (
+        <mesh key={i} position={[x, y, 0.36]}>
+          <cylinderGeometry args={[0.05, 0.05, 0.1, 10]} rotation={[Math.PI / 2, 0, 0]} />
+          <meshStandardMaterial color="#333333" />
+        </mesh>
+      ))}
+      <mesh position={[0, 0, 0.5]}>
+        <cylinderGeometry args={[0.1, 0.1, 0.3, 16]} rotation={[Math.PI / 2, 0, 0]} />
+        <meshStandardMaterial color="#c9c9c9" metalness={0.8} roughness={0.2} />
+      </mesh>
+      <Lead position={[-0.1, -0.5, -0.3]} length={0.3} />
+      <Lead position={[0.1, -0.5, -0.3]} length={0.3} />
+    </group>
+  );
+}
+
+export function FanModel() {
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[1, 1, 0.25]} />
+        <meshStandardMaterial color="#15181c" roughness={0.5} />
+      </mesh>
+      {Array.from({ length: 5 }).map((_, i) => {
+        const angle = (i / 5) * Math.PI * 2;
+        return (
+          <mesh key={i} position={[0, 0, 0.15]} rotation={[0, 0, angle]}>
+            <mesh position={[0.22, 0, 0]}>
+              <boxGeometry args={[0.32, 0.12, 0.03]} />
+              <meshStandardMaterial color="#7a828c" roughness={0.4} />
+            </mesh>
+          </mesh>
+        );
+      })}
+      <mesh position={[0, 0, 0.16]}>
+        <cylinderGeometry args={[0.1, 0.1, 0.05, 16]} />
+        <meshStandardMaterial color="#333333" />
+      </mesh>
+      <Lead position={[-0.1, -0.5, -0.1]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+      <Lead position={[0.1, -0.5, -0.1]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+    </group>
+  );
+}
+
+/* ---------------- Misc ---------------- */
+
+export function CrystalOscillatorModel() {
+  return (
+    <group rotation={[0, 0, Math.PI / 2]}>
+      <mesh>
+        <boxGeometry args={[0.7, 0.4, 0.3]} />
+        <meshStandardMaterial color="#c9c9c9" metalness={0.75} roughness={0.25} />
+      </mesh>
+      <Lead position={[0, -0.35, 0]} length={0.4} />
+      <Lead position={[0, 0.35, 0]} length={0.4} />
+    </group>
+  );
+}
+
+export function BreadboardModel() {
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[2, 0.15, 1.2]} />
+        <meshStandardMaterial color="#e8e4d8" roughness={0.6} />
+      </mesh>
+      {Array.from({ length: 10 }).map((_, col) =>
+        Array.from({ length: 4 }).map((_, row) => (
+          <mesh key={`${col}-${row}`} position={[-0.85 + col * 0.19, 0.08, -0.4 + row * 0.28]}>
+            <cylinderGeometry args={[0.02, 0.02, 0.04, 6]} />
+            <meshStandardMaterial color="#2b2f36" />
+          </mesh>
+        ))
+      )}
+      <mesh position={[0, 0.08, 0.52]}>
+        <boxGeometry args={[1.9, 0.02, 0.06]} />
+        <meshStandardMaterial color="#ff4757" />
+      </mesh>
+      <mesh position={[0, 0.08, -0.52]}>
+        <boxGeometry args={[1.9, 0.02, 0.06]} />
+        <meshStandardMaterial color="#2b2f36" />
+      </mesh>
+    </group>
+  );
+}
+
+export function TerminalBlockModel() {
+  return (
+    <group>
+      <mesh>
+        <boxGeometry args={[1, 0.5, 0.5]} />
+        <meshStandardMaterial color="#1a8a4a" roughness={0.5} />
+      </mesh>
+      {[-0.25, 0.25].map((x, i) => (
+        <mesh key={i} position={[x, 0.28, 0]}>
+          <cylinderGeometry args={[0.07, 0.07, 0.1, 12]} />
+          <meshStandardMaterial color="#c9c9c9" metalness={0.7} roughness={0.3} />
+        </mesh>
+      ))}
+      <Lead position={[-0.25, -0.35, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+      <Lead position={[0.25, -0.35, 0]} rotation={[Math.PI / 2, 0, 0]} length={0.3} />
+    </group>
+  );
+}
+
 export const MODEL_BY_TYPE = {
   resistor: ResistorModel,
   capacitor_electrolytic: CapacitorElectrolyticModel,
@@ -625,4 +1106,35 @@ export const MODEL_BY_TYPE = {
   thermistor: ThermistorModel,
 
   dev_board: DevBoardModel,
+
+  coin_cell: CoinCellModel,
+  bench_psu: BenchPsuModel,
+  usb_power: UsbPowerModel,
+
+  bridge_rectifier: BridgeRectifierModel,
+  rgb_led: RgbLedModel,
+
+  rocker_switch: RockerSwitchModel,
+  slide_switch: SlideSwitchModel,
+
+  to92_sensor: To92SensorModel,
+  ultrasonic_sensor: UltrasonicSensorModel,
+  ir_sensor: IrSensorModel,
+  pir_sensor: PirSensorModel,
+  gas_sensor: GasSensorModel,
+  humidity_sensor: HumiditySensorModel,
+  touch_sensor: TouchSensorModel,
+
+  seven_segment: SevenSegmentModel,
+  lcd_display: LcdDisplayModel,
+  oled_display: OledDisplayModel,
+  led_matrix: LedMatrixModel,
+
+  servo_motor: ServoMotorModel,
+  stepper_motor: StepperMotorModel,
+  fan: FanModel,
+
+  crystal_oscillator: CrystalOscillatorModel,
+  breadboard: BreadboardModel,
+  terminal_block: TerminalBlockModel,
 };
