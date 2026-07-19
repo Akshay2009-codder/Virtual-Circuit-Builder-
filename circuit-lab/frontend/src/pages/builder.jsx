@@ -274,7 +274,12 @@ export default function Builder() {
                 onRemove={handleRemove}
                 cameraRef={cameraRef}
                 poweredIds={simResult ? new Set(simResult.poweredIds) : null}
+                readings={simResult?.readings || null}
               />
+            )}
+
+            {simResult?.readings && Object.keys(simResult.readings).length > 0 && (
+              <ReadingsPanel readings={simResult.readings} nodes={nodes} />
             )}
           </div>
 
@@ -295,6 +300,40 @@ function SaveStatus({ state }) {
     <span className="mono" style={{ fontSize: 12, color }}>
       {label}
     </span>
+  );
+}
+
+function ReadingsPanel({ readings, nodes }) {
+  const nodeById = Object.fromEntries(nodes.map((n) => [n.id, n]));
+  const rows = Object.entries(readings)
+    .filter(([, r]) => r.state === "on")
+    .map(([id, r]) => ({ id, name: nodeById[id]?.name || id, ...r }))
+    .sort((a, b) => b.current_mA - a.current_mA);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div style={styles.readingsPanel}>
+      <div className="eyebrow" style={{ marginBottom: 8 }}>
+        Live readings
+      </div>
+      <div style={styles.readingsHeader}>
+        <span>Part</span>
+        <span>V</span>
+        <span>mA</span>
+        <span>mW</span>
+      </div>
+      {rows.map((r) => (
+        <div key={r.id} style={styles.readingsRow}>
+          <span style={styles.readingsName}>{r.name}</span>
+          <span className="mono">{r.voltage.toFixed(2)}</span>
+          <span className="mono" style={{ color: r.current_mA > 1000 ? "var(--danger)" : "var(--text)" }}>
+            {r.current_mA.toFixed(1)}
+          </span>
+          <span className="mono">{r.power_mW.toFixed(1)}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -429,5 +468,42 @@ const styles = {
   hint: {
     color: "var(--text-faint)",
     fontSize: 11.5,
+  },
+  readingsPanel: {
+    position: "absolute",
+    bottom: 16,
+    left: 16,
+    width: 230,
+    background: "rgba(16,22,29,0.92)",
+    backdropFilter: "blur(6px)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius)",
+    padding: "12px 14px",
+    zIndex: 5,
+  },
+  readingsHeader: {
+    display: "grid",
+    gridTemplateColumns: "1.4fr 0.7fr 0.8fr 0.8fr",
+    gap: 6,
+    fontSize: 9.5,
+    color: "var(--text-faint)",
+    fontFamily: "var(--font-display)",
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+    paddingBottom: 6,
+    borderBottom: "1px solid var(--border)",
+  },
+  readingsRow: {
+    display: "grid",
+    gridTemplateColumns: "1.4fr 0.7fr 0.8fr 0.8fr",
+    gap: 6,
+    fontSize: 11.5,
+    padding: "5px 0",
+  },
+  readingsName: {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    color: "var(--text-dim)",
   },
 };
