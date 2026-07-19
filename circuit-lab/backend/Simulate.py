@@ -1,14 +1,13 @@
-from collections import defaultdict, deque
 from datetime import datetime, timezone
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from models import db, Project, ProjectCollaborator
+from mna_solver import solve_circuit
 
 simulate_bp = Blueprint("simulate", __name__, url_prefix="/api/projects")
 
-SOURCE_CATEGORIES = {"source", "board"}
-TOGGLE_KEYS = {"switch", "dip_switch"}
+SHORT_CIRCUIT_MA = 3000.0  # current above this is treated as a dangerous short for these small parts
 
 
 def _accessible_project(project_id, user_id):
@@ -23,7 +22,7 @@ def _accessible_project(project_id, user_id):
     return project if is_collaborator else None
 
 
-def build_suggestions(status, nodes, edges, powered_ids, node_by_id):
+def build_suggestions(status, nodes, edges, readings):
     suggestions = []
 
     if not nodes:
@@ -31,30 +30,23 @@ def build_suggestions(status, nodes, edges, powered_ids, node_by_id):
         return suggestions
 
     if status == "no_source":
-        suggestions.append(
-            "Add a power source (battery, solar panel, or dev board) — nothing can run without one."
-        )
+        suggestions.append("Add a power source (battery, solar panel, or dev board) — nothing can run without one.")
     elif status == "open":
-        suggestions.append(
-            "Wire a path from every part back to the source's other terminal to close the loop."
-        )
+        suggestions.append("Wire a path from every part back to the source's other terminal to close the loop.")
     elif status == "short":
-        suggestions.append(
-            "Put a resistor between the source and the rest of the circuit — a bare wire loop has nothing to limit current."
-        )
+        suggestions.append("Put a resistor between the source and the rest of the circuit — nothing is limiting the current.")
 
-    # LED without a resistor anywhere in the powered loop
-    led_ids = [n["id"] for n in nodes if n.get("key") == "led"]
-    resistor_ids = {n["id"] for n in nodes if n.get("key") == "resistor"}
-    if status == "complete":
-        for led_id in led_ids:
-            if led_id in powered_ids and not (resistor_ids & powered_ids):
-                suggestions.append(
-                    "Add a resistor in series with your LED — without one it can draw too much current and burn out."
-                )
-                break
+    # real over-current check on LEDs, using the solved reading, not a guess
+    for n in nodes:
+        if n.get("key") != "led":
+            continue
+        r = readings.get(n["id"])
+        if r and r["state"] == "on" and r["current_mA"] > 25:
+            suggestions.append(
+                f"{n['name']} is drawing {r['current_mA']:.0f}mA — that's above its ~20mA rating. "
+                "Use a larger resistor to bring the current down."
+            )
 
-    # circuit has parts sitting completely unwired
     wired_ids = {e["sourceId"] for e in edges} | {e["targetId"] for e in edges}
     stray = [n["name"] for n in nodes if n["id"] not in wired_ids]
     if stray:
@@ -64,7 +56,7 @@ def build_suggestions(status, nodes, edges, powered_ids, node_by_id):
     if status == "complete" and not suggestions:
         suggestions.append("Looks solid! Try adding a switch so you can turn it on and off.")
 
-    return suggestions[:3]  # keep it short - a wall of tips is worse than no tips
+    return suggestions[:3]
 
 
 @simulate_bp.post("/<int:project_id>/simulate")
@@ -80,94 +72,41 @@ def simulate_circuit(project_id):
     edges = circuit.get("edges", [])
     node_by_id = {n["id"]: n for n in nodes}
 
-    # Graph over terminal points: ("nodeId", "a"|"b"). Every component
-    # conducts between its own two terminals; every wire connects two
-    # terminals. A closed loop exists if we can walk from a source's "a"
-    # terminal back to its "b" terminal via some external path.
-    adj = defaultdict(set)
-    for n in nodes:
-        is_open_switch = n.get("key") in TOGGLE_KEYS and n.get("on") is False
-        if is_open_switch:
-            continue  # an open switch doesn't conduct - deliberately not added to the graph
-        a, b = (n["id"], "a"), (n["id"], "b")
-        adj[a].add(b)
-        adj[b].add(a)
-    for e in edges:
-        p1 = (e["sourceId"], e["sourceTerminal"])
-        p2 = (e["targetId"], e["targetTerminal"])
-        adj[p1].add(p2)
-        adj[p2].add(p1)
+    result = solve_circuit(nodes, edges)
 
-    sources = [n for n in nodes if n.get("category") in SOURCE_CATEGORIES]
-
-    if not sources:
-        suggestions = build_suggestions("no_source", nodes, edges, set(), node_by_id)
-        project.last_run_status = "no_source"
-        project.last_run_at = datetime.now(timezone.utc)
-        project.run_count = (project.run_count or 0) + 1
-        db.session.commit()
-        return jsonify({
-            "status": "no_source",
-            "message": "No power source on the board. Add a battery, solar panel, or dev board to power the circuit.",
-            "poweredIds": [],
-            "suggestions": suggestions,
-        }), 200
-
-    powered_ids = set()
-    any_complete = False
-    is_short = False
-
-    for src in sources:
-        start = (src["id"], "a")
-        goal = (src["id"], "b")
-
-        visited = {start}
-        queue = deque([(start, [start])])
-        found_path = None
-        while queue:
-            current, path = queue.popleft()
-            if current == goal and len(path) > 1:
-                found_path = path
-                break
-            for nxt in adj[current]:
-                if current == start and nxt == goal:
-                    continue  # skip the trivial direct a-b jump inside the source itself
-                if nxt in visited:
-                    continue
-                visited.add(nxt)
-                queue.append((nxt, path + [nxt]))
-
-        if found_path:
-            any_complete = True
-            powered_ids |= {p[0] for p in found_path}
-
-            # crude short-circuit heuristic: the entire external path back to
-            # the source is nothing but wire - nothing limits the current
-            intermediate = [node_by_id.get(p[0]) for p in found_path[1:-1]]
-            if intermediate and all((c or {}).get("key") == "wire" for c in intermediate):
-                is_short = True
-
-    lit_leds = [
-        node_by_id[nid]["name"]
-        for nid in powered_ids
-        if node_by_id.get(nid, {}).get("key") == "led"
-    ]
-
-    if is_short:
-        status = "short"
-        message = "Short circuit detected — current has nothing to limit it. In real life this could damage the source or components."
-    elif any_complete:
-        status = "complete"
-        if lit_leds:
-            names = ", ".join(lit_leds)
-            message = f"Circuit complete! Current is flowing — {names} lights up."
-        else:
-            message = "Circuit complete! Current is flowing through the loop."
+    if not result["ok"]:
+        status = "no_source"
+        message = "No power source on the board. Add a battery, solar panel, or dev board to power the circuit."
+        readings = {}
+        powered_ids = []
     else:
-        status = "open"
-        message = "Open circuit — there's no complete path back to the power source, so no current flows. Check your wiring."
+        readings = result["readings"]
+        powered_ids = [nid for nid, r in readings.items() if r["state"] == "on"]
 
-    suggestions = build_suggestions(status, nodes, edges, powered_ids, node_by_id)
+        lit_leds = [
+            f"{node_by_id[nid]['name']} ({readings[nid]['voltage']:.1f}V, {readings[nid]['current_mA']:.1f}mA)"
+            for nid in powered_ids
+            if node_by_id.get(nid, {}).get("key") == "led"
+        ]
+
+        if result["max_source_current_mA"] > SHORT_CIRCUIT_MA:
+            status = "short"
+            message = (
+                f"Short circuit! ~{result['max_source_current_mA']:.0f}mA would flow — "
+                "nothing is limiting the current. Add a resistor before you power this for real."
+            )
+        elif result["any_source_current"]:
+            status = "complete"
+            total_mA = sum(result["source_currents_mA"].values())
+            if lit_leds:
+                message = f"Circuit complete! {total_mA:.1f}mA flowing — {', '.join(lit_leds)} lights up."
+            else:
+                message = f"Circuit complete! {total_mA:.1f}mA flowing through the loop."
+        else:
+            status = "open"
+            message = "Open circuit — there's no complete path back to the power source, so no current flows. Check your wiring."
+
+    suggestions = build_suggestions(status, nodes, edges, readings)
 
     project.last_run_status = status
     project.last_run_at = datetime.now(timezone.utc)
@@ -177,6 +116,7 @@ def simulate_circuit(project_id):
     return jsonify({
         "status": status,
         "message": message,
-        "poweredIds": list(powered_ids),
+        "poweredIds": powered_ids,
         "suggestions": suggestions,
+        "readings": readings,
     }), 200
