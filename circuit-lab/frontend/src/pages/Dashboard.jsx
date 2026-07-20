@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import AppShell from "../components/AppShell";
 import NewCircuitModal from "../components/NewCircuitModal";
 import { useAuth } from "../context/AuthContext";
@@ -17,7 +17,22 @@ const RUN_STATUS = {
 const MotionLink = motion(Link);
 
 const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
-const cardVariants = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } } };
+const cardVariants = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+  exit: { opacity: 0, x: -24, scale: 0.98, transition: { duration: 0.2, ease: "easeIn" } },
+};
+const menuVariants = {
+  hidden: { opacity: 0, scale: 0.92, y: -6 },
+  show: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.15, ease: "easeOut" } },
+  exit: { opacity: 0, scale: 0.94, y: -4, transition: { duration: 0.1 } },
+};
+const modalBackdropVariants = { hidden: { opacity: 0 }, show: { opacity: 1 }, exit: { opacity: 0 } };
+const modalPanelVariants = {
+  hidden: { opacity: 0, scale: 0.94, y: 12 },
+  show: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.22, ease: "easeOut" } },
+  exit: { opacity: 0, scale: 0.96, y: 8, transition: { duration: 0.15 } },
+};
 
 function greeting() {
   const h = new Date().getHours();
@@ -31,6 +46,196 @@ function runBadge(project) {
   return RUN_STATUS[project.last_run_status] || { label: "Unknown", color: "var(--text-faint)" };
 }
 
+// Counts up from 0 to `value` whenever value changes - used on the stat cards
+// so the dashboard feels alive instead of just printing static numbers.
+function AnimatedNumber({ value }) {
+  const [display, setDisplay] = useState(0);
+  const fromRef = useRef(0);
+
+  useEffect(() => {
+    const from = fromRef.current;
+    const to = value;
+    const duration = 500;
+    const start = performance.now();
+    let raf;
+
+    function tick(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(from + (to - from) * eased));
+      if (progress < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = to;
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  return <>{display}</>;
+}
+
+function Toast({ toast }) {
+  return (
+    <div style={styles.toastWrap}>
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key={toast.id}
+            initial={{ opacity: 0, y: 12, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            style={{
+              ...styles.toast,
+              borderColor: toast.type === "error" ? "var(--danger)" : "var(--primary)",
+            }}
+          >
+            <span
+              style={{
+                ...styles.toastDot,
+                background: toast.type === "error" ? "var(--danger)" : "var(--primary)",
+              }}
+            />
+            {toast.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function ProjectMenu({ project, onRename, onDuplicate, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    function handleKey(e) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, []);
+
+  function stop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  return (
+    <div ref={ref} style={{ position: "relative" }} onClick={stop}>
+      <motion.button
+        whileHover={{ background: "var(--border)" }}
+        whileTap={{ scale: 0.92 }}
+        onClick={(e) => {
+          stop(e);
+          setOpen((o) => !o);
+        }}
+        style={styles.kebabBtn}
+        aria-label="Circuit options"
+      >
+        ⋮
+      </motion.button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            variants={menuVariants}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            style={styles.menu}
+            onClick={stop}
+          >
+            <button
+              style={styles.menuItem}
+              onClick={(e) => {
+                stop(e);
+                setOpen(false);
+                onRename(project);
+              }}
+            >
+              Rename
+            </button>
+            <button
+              style={styles.menuItem}
+              onClick={(e) => {
+                stop(e);
+                setOpen(false);
+                onDuplicate(project);
+              }}
+            >
+              Duplicate
+            </button>
+            <div style={styles.menuDivider} />
+            <button
+              style={{ ...styles.menuItem, color: "var(--danger)" }}
+              onClick={(e) => {
+                stop(e);
+                setOpen(false);
+                onDelete(project);
+              }}
+            >
+              Delete
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function DeleteConfirmModal({ project, onCancel, onConfirm, deleting }) {
+  return (
+    <AnimatePresence>
+      {project && (
+        <motion.div
+          variants={modalBackdropVariants}
+          initial="hidden"
+          animate="show"
+          exit="exit"
+          style={styles.backdrop}
+          onClick={onCancel}
+        >
+          <motion.div
+            variants={modalPanelVariants}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            style={styles.confirmPanel}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: "0 0 8px", fontSize: 16 }}>Delete this circuit?</h3>
+            <p style={{ margin: "0 0 20px", fontSize: 13, color: "var(--text-dim)" }}>
+              <strong style={{ color: "var(--text)" }}>{project.name}</strong> and its circuit data
+              will be permanently removed. This can't be undone.
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button style={styles.cancelBtn} onClick={onCancel} disabled={deleting}>
+                Cancel
+              </button>
+              <motion.button
+                whileHover={{ scale: deleting ? 1 : 1.03 }}
+                whileTap={{ scale: deleting ? 1 : 0.97 }}
+                style={styles.deleteBtn}
+                onClick={onConfirm}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting…" : "Delete circuit"}
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -40,12 +245,37 @@ export default function Dashboard() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
 
+  const [query, setQuery] = useState("");
+  const [sortBy, setSortBy] = useState("recent"); // recent | name | components
+
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameValue, setRenameValue] = useState("");
+  const renameInputRef = useRef(null);
+
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const [toast, setToast] = useState(null);
+
   useEffect(() => {
     client
       .get("/projects")
       .then((res) => setProjects(res.data.projects))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (renamingId && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [renamingId]);
+
+  function showToast(message, type = "success") {
+    setToast({ id: Date.now(), message, type });
+    window.clearTimeout(showToast._t);
+    showToast._t = window.setTimeout(() => setToast(null), 2600);
+  }
 
   async function handleCreate({ name, description }) {
     setCreating(true);
@@ -67,6 +297,57 @@ export default function Dashboard() {
     }
   }
 
+  function startRename(project) {
+    setRenamingId(project.id);
+    setRenameValue(project.name);
+  }
+
+  async function commitRename(project) {
+    const nextName = renameValue.trim();
+    setRenamingId(null);
+    if (!nextName || nextName === project.name) return;
+
+    const prevProjects = projects;
+    setProjects((ps) => ps.map((p) => (p.id === project.id ? { ...p, name: nextName } : p)));
+
+    try {
+      await client.patch(`/projects/${project.id}`, { name: nextName });
+      showToast("Circuit renamed");
+    } catch (err) {
+      setProjects(prevProjects);
+      showToast(err.response?.data?.error || "Couldn't rename the circuit", "error");
+    }
+  }
+
+  async function handleDuplicate(project) {
+    try {
+      const res = await client.post("/projects", {
+        name: `${project.name} (copy)`,
+        description: project.description,
+        circuit_json: project.circuit_json || { nodes: [], edges: [] },
+      });
+      setProjects((ps) => [res.data.project, ...ps]);
+      showToast("Circuit duplicated");
+    } catch (err) {
+      showToast(err.response?.data?.error || "Couldn't duplicate the circuit", "error");
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await client.delete(`/projects/${deleteTarget.id}`);
+      setProjects((ps) => ps.filter((p) => p.id !== deleteTarget.id));
+      showToast("Circuit deleted");
+      setDeleteTarget(null);
+    } catch (err) {
+      showToast(err.response?.data?.error || "Couldn't delete the circuit", "error");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const stats = useMemo(() => {
     const totalComponents = projects.reduce((sum, p) => sum + (p.circuit_json?.nodes?.length || 0), 0);
     const totalRuns = projects.reduce((sum, p) => sum + (p.run_count || 0), 0);
@@ -80,11 +361,35 @@ export default function Dashboard() {
       .slice(0, 6);
   }, [projects]);
 
+  const visibleProjects = useMemo(() => {
+    let list = projects;
+    if (query.trim()) {
+      const q = query.trim().toLowerCase();
+      list = list.filter(
+        (p) => p.name.toLowerCase().includes(q) || (p.description || "").toLowerCase().includes(q)
+      );
+    }
+    list = [...list];
+    if (sortBy === "name") {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortBy === "components") {
+      list.sort((a, b) => (b.circuit_json?.nodes?.length || 0) - (a.circuit_json?.nodes?.length || 0));
+    } else {
+      list.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+    }
+    return list;
+  }, [projects, query, sortBy]);
+
   return (
     <AppShell>
       <div style={{ padding: "36px 6vw" }}>
         {/* welcome banner */}
-        <div style={styles.banner}>
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          style={styles.banner}
+        >
           <div>
             <h1 style={styles.bannerTitle}>
               {greeting()}, <span className="gradient-text">{user?.name}</span> 👋
@@ -101,21 +406,38 @@ export default function Dashboard() {
               Browse parts
             </Link>
           </div>
-        </div>
+        </motion.div>
 
-        {/* stat cards - real numbers only */}
-        <div style={styles.statGrid}>
+        {/* stat cards - real numbers, animated on change */}
+        <motion.div
+          style={styles.statGrid}
+          variants={gridVariants}
+          initial="hidden"
+          animate="show"
+        >
           <StatCard label="Active projects" value={stats.active} sub="circuits in your workspace" accent="var(--primary)" />
           <StatCard label="Components placed" value={stats.totalComponents} sub="across all your circuits" accent="var(--accent)" />
           <StatCard label="Simulations run" value={stats.totalRuns} sub="times you've hit Run circuit" accent="var(--gold)" />
-        </div>
+        </motion.div>
 
         <div style={styles.layout}>
           {/* project list */}
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
+            <div style={styles.listHeader}>
               <h2 style={{ fontSize: 16, margin: 0 }}>Recent projects</h2>
-              <span style={{ color: "var(--text-faint)", fontSize: 12 }}>Manage your circuit schematics</span>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search circuits…"
+                  style={styles.searchInput}
+                />
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={styles.sortSelect}>
+                  <option value="recent">Recently updated</option>
+                  <option value="name">Name (A–Z)</option>
+                  <option value="components">Most components</option>
+                </select>
+              </div>
             </div>
 
             {loading && <p style={{ color: "var(--text-dim)" }}>Loading your circuits…</p>}
@@ -127,33 +449,83 @@ export default function Dashboard() {
               </motion.div>
             )}
 
-            {!loading && projects.length > 0 && (
-              <motion.div style={styles.list} variants={gridVariants} initial="hidden" animate="show">
-                {projects.map((p) => {
-                  const badge = runBadge(p);
-                  return (
-                    <MotionLink
-                      key={p.id}
-                      to={`/builder/${p.id}`}
-                      style={styles.row}
-                      variants={cardVariants}
-                      whileHover={{ borderColor: "var(--primary)", x: 2 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={styles.rowName}>{p.name}</span>
-                          {!p.is_owner && <span style={styles.sharedTag}>Shared</span>}
+            {!loading && projects.length > 0 && visibleProjects.length === 0 && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={styles.empty}>
+                No circuits match <strong style={{ color: "var(--text)" }}>"{query}"</strong>.
+              </motion.div>
+            )}
+
+            {!loading && visibleProjects.length > 0 && (
+              <motion.div style={styles.list} variants={gridVariants} initial="hidden" animate="show" layout>
+                <AnimatePresence initial={false}>
+                  {visibleProjects.map((p) => {
+                    const badge = runBadge(p);
+                    const isRenaming = renamingId === p.id;
+                    return (
+                      <MotionLink
+                        key={p.id}
+                        to={`/builder/${p.id}`}
+                        style={styles.row}
+                        layout
+                        variants={cardVariants}
+                        initial="hidden"
+                        animate="show"
+                        exit="exit"
+                        whileHover={{ borderColor: "var(--primary)", x: 2 }}
+                        transition={{ duration: 0.15 }}
+                        onClick={(e) => {
+                          if (isRenaming) e.preventDefault();
+                        }}
+                      >
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            {isRenaming ? (
+                              <input
+                                ref={renameInputRef}
+                                value={renameValue}
+                                onChange={(e) => setRenameValue(e.target.value)}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    commitRename(p);
+                                  }
+                                  if (e.key === "Escape") {
+                                    e.preventDefault();
+                                    setRenamingId(null);
+                                  }
+                                }}
+                                onBlur={() => commitRename(p)}
+                                style={styles.renameInput}
+                              />
+                            ) : (
+                              <span style={styles.rowName}>{p.name}</span>
+                            )}
+                            {!p.is_owner && <span style={styles.sharedTag}>Shared</span>}
+                          </div>
+                          {p.description && !isRenaming && <div style={styles.rowDesc}>{p.description}</div>}
+                          <div style={styles.rowMeta}>
+                            {(p.circuit_json?.nodes || []).length} components · updated {timeAgo(p.updated_at)}
+                          </div>
                         </div>
-                        {p.description && <div style={styles.rowDesc}>{p.description}</div>}
-                        <div style={styles.rowMeta}>
-                          {(p.circuit_json?.nodes || []).length} components · updated {timeAgo(p.updated_at)}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                          <span style={{ ...styles.badge, color: badge.color, borderColor: badge.color }}>{badge.label}</span>
+                          {p.is_owner !== false && (
+                            <ProjectMenu
+                              project={p}
+                              onRename={startRename}
+                              onDuplicate={handleDuplicate}
+                              onDelete={setDeleteTarget}
+                            />
+                          )}
                         </div>
-                      </div>
-                      <span style={{ ...styles.badge, color: badge.color, borderColor: badge.color }}>{badge.label}</span>
-                    </MotionLink>
-                  );
-                })}
+                      </MotionLink>
+                    );
+                  })}
+                </AnimatePresence>
               </motion.div>
             )}
           </div>
@@ -166,17 +538,23 @@ export default function Dashboard() {
                 Nothing yet — run a circuit to see activity here.
               </p>
             )}
-            {recentActivity.map((p) => {
+            {recentActivity.map((p, i) => {
               const badge = runBadge(p);
               return (
-                <div key={p.id} style={styles.activityRow}>
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, x: 8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.04 }}
+                  style={styles.activityRow}
+                >
                   <span style={{ ...styles.activityDot, background: badge.color }} />
                   <div>
                     <div style={styles.activityTime}>{timeAgo(p.last_run_at)}</div>
                     <div style={styles.activityName}>{p.name}</div>
                     <div style={{ color: badge.color, fontSize: 11.5 }}>{badge.label}</div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -193,20 +571,31 @@ export default function Dashboard() {
         creating={creating}
         error={createError}
       />
+
+      <DeleteConfirmModal
+        project={deleteTarget}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        deleting={deleting}
+      />
+
+      <Toast toast={toast} />
     </AppShell>
   );
 }
 
 function StatCard({ label, value, sub, accent }) {
   return (
-    <div style={styles.statCard}>
+    <motion.div variants={cardVariants} style={styles.statCard} whileHover={{ y: -2, borderColor: accent }}>
       <div style={{ ...styles.statAccentBar, background: accent }} />
       <div className="eyebrow" style={{ color: accent }}>
         {label}
       </div>
-      <div style={styles.statValue}>{value}</div>
+      <div style={styles.statValue}>
+        <AnimatedNumber value={value} />
+      </div>
       <div style={styles.statSub}>{sub}</div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -256,6 +645,7 @@ const styles = {
     borderRadius: "var(--radius)",
     padding: "18px 20px",
     overflow: "hidden",
+    transition: "border-color 0.2s ease",
   },
   statAccentBar: { position: "absolute", top: 0, left: 0, right: 0, height: 3 },
   statValue: { fontSize: 28, fontWeight: 700, margin: "8px 0 2px", fontFamily: "var(--font-display)" },
@@ -265,6 +655,33 @@ const styles = {
     gridTemplateColumns: "1fr 300px",
     gap: 28,
     alignItems: "start",
+  },
+  listHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 14,
+  },
+  searchInput: {
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-sm)",
+    color: "var(--text)",
+    fontSize: 12.5,
+    padding: "7px 10px",
+    outline: "none",
+    width: 170,
+  },
+  sortSelect: {
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-sm)",
+    color: "var(--text-dim)",
+    fontSize: 12.5,
+    padding: "7px 8px",
+    outline: "none",
   },
   empty: {
     border: "1px dashed var(--border-bright)",
@@ -315,6 +732,53 @@ const styles = {
     whiteSpace: "nowrap",
     flexShrink: 0,
   },
+  renameInput: {
+    fontSize: 14.5,
+    fontWeight: 600,
+    color: "var(--text)",
+    background: "var(--bg)",
+    border: "1px solid var(--primary)",
+    borderRadius: 6,
+    padding: "3px 7px",
+    outline: "none",
+    minWidth: 160,
+  },
+  kebabBtn: {
+    background: "transparent",
+    border: "1px solid var(--border)",
+    borderRadius: 6,
+    color: "var(--text-dim)",
+    width: 28,
+    height: 28,
+    fontSize: 16,
+    lineHeight: 1,
+    cursor: "pointer",
+  },
+  menu: {
+    position: "absolute",
+    top: 34,
+    right: 0,
+    background: "var(--surface)",
+    border: "1px solid var(--border-bright)",
+    borderRadius: "var(--radius-sm)",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+    minWidth: 140,
+    padding: 6,
+    zIndex: 20,
+  },
+  menuItem: {
+    display: "block",
+    width: "100%",
+    textAlign: "left",
+    background: "transparent",
+    border: "none",
+    color: "var(--text)",
+    fontSize: 13,
+    padding: "8px 10px",
+    borderRadius: 6,
+    cursor: "pointer",
+  },
+  menuDivider: { height: 1, background: "var(--border)", margin: "4px 2px" },
   activityPanel: {
     background: "var(--surface)",
     border: "1px solid var(--border)",
@@ -332,4 +796,60 @@ const styles = {
   activityDot: { width: 7, height: 7, borderRadius: "50%", marginTop: 5, flexShrink: 0 },
   activityTime: { fontSize: 10.5, color: "var(--text-faint)", fontFamily: "var(--font-display)" },
   activityName: { fontSize: 13, fontWeight: 600, color: "var(--text)", margin: "2px 0" },
+  backdrop: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.55)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 100,
+  },
+  confirmPanel: {
+    background: "var(--surface)",
+    border: "1px solid var(--border-bright)",
+    borderRadius: "var(--radius)",
+    padding: "22px 24px",
+    width: 360,
+    boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
+  },
+  cancelBtn: {
+    background: "transparent",
+    border: "1px solid var(--border-bright)",
+    color: "var(--text-dim)",
+    fontSize: 13,
+    fontWeight: 600,
+    padding: "9px 16px",
+    borderRadius: "var(--radius-sm)",
+    cursor: "pointer",
+  },
+  deleteBtn: {
+    background: "var(--danger)",
+    border: "none",
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: 600,
+    padding: "9px 16px",
+    borderRadius: "var(--radius-sm)",
+    cursor: "pointer",
+  },
+  toastWrap: {
+    position: "fixed",
+    bottom: 24,
+    right: 24,
+    zIndex: 200,
+  },
+  toast: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    background: "var(--surface)",
+    border: "1px solid",
+    borderRadius: "var(--radius-sm)",
+    padding: "10px 16px",
+    fontSize: 13,
+    color: "var(--text)",
+    boxShadow: "0 12px 30px rgba(0,0,0,0.4)",
+  },
+  toastDot: { width: 7, height: 7, borderRadius: "50%", flexShrink: 0 },
 };
