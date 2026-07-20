@@ -15,9 +15,15 @@ const POLARIZED_KEYS = new Set([
   "solar_panel",
   "led",
   "capacitor_electrolytic",
+  "coin_cell",
+  "bench_power_supply",
+  "usb_power",
+  "rgb_led",
+  "lithium_battery",
+  "power_bank",
 ]);
 
-const TOGGLE_KEYS = new Set(["switch", "dip_switch"]);
+const TOGGLE_KEYS = new Set(["switch", "dip_switch", "rocker_switch", "slide_switch", "limit_switch", "reed_switch"]);
 
 export default function PlacedPart3D({
   node,
