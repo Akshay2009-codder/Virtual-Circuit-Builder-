@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import AppShell from "../components/AppShell";
 
 /* ---------------- Category styling ---------------- */
@@ -12,6 +12,7 @@ const TAG_COLOR = {
   "Using CircuitLab": "#b98aff",
 };
 
+const DIFFICULTY_LEVEL = { Beginner: 1, Intermediate: 2, Advanced: 3 };
 const DIFFICULTY_COLOR = {
   Beginner: "var(--primary)",
   Intermediate: "var(--gold)",
@@ -157,12 +158,33 @@ function LessonIcon({ id, color, size = 40 }) {
         display: "grid",
         placeItems: "center",
         flexShrink: 0,
+        position: "relative",
+        zIndex: 1,
       }}
     >
       <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 24 24">
         {glyph(color)}
       </svg>
     </div>
+  );
+}
+
+/* Signal-strength dots standing in for a text difficulty label —
+   reads like a bar-graph readout on a meter. */
+function DifficultyMeter({ level, color, label }) {
+  return (
+    <span style={styles.meter} role="img" aria-label={`Difficulty: ${label}`} title={label}>
+      {[1, 2, 3].map((i) => (
+        <span
+          key={i}
+          style={{
+            ...styles.meterBar,
+            height: 5 + i * 2.5,
+            background: i <= level ? color : "var(--border)",
+          }}
+        />
+      ))}
+    </span>
   );
 }
 
@@ -368,16 +390,17 @@ Shared projects show up on both people's dashboards, tagged so you can tell it's
 
 const ALL_TAGS = ["All", ...Object.keys(TAG_COLOR)];
 
-const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
+const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.035 } } };
 const cardVariants = {
-  hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: "easeOut" } },
 };
 
 export default function Tutorials() {
   const [query, setQuery] = useState("");
   const [activeTag, setActiveTag] = useState("All");
   const [openIndex, setOpenIndex] = useState(null);
+  const prefersReducedMotion = useReducedMotion();
 
   const filtered = useMemo(() => {
     return TOPICS.filter((t) => {
@@ -393,8 +416,11 @@ export default function Tutorials() {
     <AppShell>
       <div style={{ padding: "40px 6vw 60px" }}>
         {/* Hero */}
-        <div style={{ maxWidth: 680, marginBottom: 30 }}>
-          <div className="eyebrow">Learn</div>
+        <div style={{ maxWidth: 680, marginBottom: 34 }}>
+          <div style={styles.eyebrowRow}>
+            <span style={styles.powerDot} className={prefersReducedMotion ? "" : "power-dot-pulse"} />
+            <span className="eyebrow" style={{ margin: 0 }}>Learn</span>
+          </div>
           <h1 style={styles.heroTitle}>
             Master <span className="gradient-text">circuit design</span>
           </h1>
@@ -405,13 +431,19 @@ export default function Tutorials() {
         </div>
 
         {/* Search + filters */}
-        <div style={{ marginBottom: 26 }}>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search lessons… e.g. 'resistor', 'short circuit', 'LED'"
-            style={styles.search}
-          />
+        <div style={{ marginBottom: 30 }}>
+          <div style={styles.searchWrap}>
+            <svg width="15" height="15" viewBox="0 0 24 24" style={styles.searchIcon}>
+              <circle cx="10.5" cy="10.5" r="6.5" stroke="var(--text-faint)" strokeWidth="2" fill="none" />
+              <path d="M20 20 15.5 15.5" stroke="var(--text-faint)" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search lessons… e.g. 'resistor', 'short circuit', 'LED'"
+              style={styles.search}
+            />
+          </div>
           <div style={styles.chipRow}>
             {ALL_TAGS.map((tag) => {
               const active = activeTag === tag;
@@ -421,6 +453,7 @@ export default function Tutorials() {
                 <button
                   key={tag}
                   onClick={() => setActiveTag(tag)}
+                  aria-pressed={active}
                   style={{
                     ...styles.chip,
                     borderColor: active ? color : "var(--border)",
@@ -428,7 +461,8 @@ export default function Tutorials() {
                     background: active ? `color-mix(in srgb, ${color} 12%, var(--surface))` : "var(--surface)",
                   }}
                 >
-                  {tag} <span style={{ opacity: 0.6 }}>{count}</span>
+                  {tag !== "All" && <span style={{ ...styles.chipSwatch, background: color }} />}
+                  {tag} <span style={{ opacity: 0.55 }}>{count}</span>
                 </button>
               );
             })}
@@ -437,73 +471,154 @@ export default function Tutorials() {
 
         {/* Lessons */}
         {filtered.length === 0 ? (
-          <p style={{ color: "var(--text-faint)", fontSize: 13.5 }}>No lessons match "{query}".</p>
+          <div style={styles.emptyState}>
+            <p style={{ color: "var(--text)", fontSize: 14, fontWeight: 600, margin: 0 }}>
+              No lessons match "{query}"
+            </p>
+            <p style={{ color: "var(--text-faint)", fontSize: 12.5, margin: "4px 0 0" }}>
+              Try a different term, or clear the {activeTag !== "All" ? `${activeTag} filter` : "search"}.
+            </p>
+          </div>
         ) : (
-          <motion.div style={styles.list} variants={gridVariants} initial="hidden" animate="show">
-            {filtered.map((topic) => {
-              const globalIndex = TOPICS.indexOf(topic);
-              const open = openIndex === globalIndex;
-              const tagColor = TAG_COLOR[topic.tag] || "var(--primary)";
-              return (
-                <motion.div key={topic.title} variants={cardVariants} style={styles.card} layout="position">
-                  <button onClick={() => setOpenIndex(open ? null : globalIndex)} style={styles.header}>
-                    <LessonIcon id={topic.icon} color={tagColor} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={styles.metaRow}>
-                        <span style={{ ...styles.tagPill, color: tagColor, borderColor: tagColor }}>{topic.tag}</span>
-                        <span style={{ ...styles.diffPill, color: DIFFICULTY_COLOR[topic.difficulty] }}>
-                          {topic.difficulty}
-                        </span>
+          <div style={styles.listWrap}>
+            <div style={styles.trace} aria-hidden="true" />
+            <motion.div style={styles.list} variants={gridVariants} initial="hidden" animate="show">
+              {filtered.map((topic) => {
+                const globalIndex = TOPICS.indexOf(topic);
+                const open = openIndex === globalIndex;
+                const tagColor = TAG_COLOR[topic.tag] || "var(--primary)";
+                return (
+                  <motion.div
+                    key={topic.title}
+                    variants={cardVariants}
+                    layout="position"
+                    style={{
+                      ...styles.card,
+                      borderColor: open ? `color-mix(in srgb, ${tagColor} 45%, var(--border))` : "var(--border)",
+                      boxShadow: open ? `0 0 0 1px color-mix(in srgb, ${tagColor} 20%, transparent)` : "none",
+                    }}
+                    className="tutorial-card"
+                  >
+                    <span
+                      style={{ ...styles.traceNode, background: tagColor, boxShadow: `0 0 0 3px color-mix(in srgb, ${tagColor} 18%, transparent)` }}
+                      aria-hidden="true"
+                    />
+                    <button
+                      onClick={() => setOpenIndex(open ? null : globalIndex)}
+                      style={styles.header}
+                      aria-expanded={open}
+                    >
+                      <LessonIcon id={topic.icon} color={tagColor} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={styles.metaRow}>
+                          <span style={{ ...styles.tagPill, color: tagColor, borderColor: tagColor }}>{topic.tag}</span>
+                          <DifficultyMeter
+                            level={DIFFICULTY_LEVEL[topic.difficulty]}
+                            color={DIFFICULTY_COLOR[topic.difficulty]}
+                            label={topic.difficulty}
+                          />
+                        </div>
+                        <div style={styles.title}>{topic.title}</div>
+                        {!open && <div style={styles.summary}>{topic.summary}</div>}
                       </div>
-                      <div style={styles.title}>{topic.title}</div>
-                      {!open && <div style={styles.summary}>{topic.summary}</div>}
-                    </div>
-                    <motion.span animate={{ rotate: open ? 45 : 0 }} style={{ ...styles.plus, color: tagColor }}>
-                      +
-                    </motion.span>
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {open && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25, ease: "easeOut" }}
-                        style={{ overflow: "hidden" }}
-                      >
-                        <p style={styles.body}>{topic.body}</p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
-          </motion.div>
+                      <motion.span animate={{ rotate: open ? 45 : 0 }} style={{ ...styles.plus, color: tagColor }}>
+                        +
+                      </motion.span>
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {open && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25, ease: "easeOut" }}
+                          style={{ overflow: "hidden" }}
+                        >
+                          <p style={styles.body}>{topic.body}</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          </div>
         )}
       </div>
+
+      <style>{`
+        .power-dot-pulse {
+          animation: powerPulse 2.2s ease-in-out infinite;
+        }
+        @keyframes powerPulse {
+          0%, 100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 55%, transparent); }
+          50% { opacity: 0.65; box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 0%, transparent); }
+        }
+        .tutorial-card {
+          transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+        .tutorial-card:hover {
+          transform: translateY(-2px);
+        }
+        .tutorial-card:focus-within {
+          outline: 2px solid var(--primary);
+          outline-offset: 2px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .power-dot-pulse { animation: none; }
+          .tutorial-card { transition: none; }
+          .tutorial-card:hover { transform: none; }
+        }
+        @media (max-width: 640px) {
+          .trace-line { display: none; }
+        }
+      `}</style>
     </AppShell>
   );
 }
 
 const styles = {
+  eyebrowRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 2,
+  },
+  powerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: "50%",
+    background: "var(--primary)",
+    display: "inline-block",
+  },
   heroTitle: {
-    margin: "6px 0 0",
+    margin: "8px 0 0",
     fontSize: "clamp(26px, 3.2vw, 36px)",
     fontWeight: 700,
     fontFamily: "var(--font-body)",
     lineHeight: 1.15,
   },
+  searchWrap: {
+    position: "relative",
+    maxWidth: 480,
+    marginBottom: 14,
+  },
+  searchIcon: {
+    position: "absolute",
+    left: 13,
+    top: "50%",
+    transform: "translateY(-50%)",
+    pointerEvents: "none",
+  },
   search: {
     width: "100%",
-    maxWidth: 480,
     background: "var(--surface)",
     border: "1px solid var(--border)",
     borderRadius: "var(--radius-sm)",
-    padding: "10px 14px",
+    padding: "10px 14px 10px 36px",
     color: "var(--text)",
     fontSize: 13.5,
     outline: "none",
-    marginBottom: 14,
     display: "block",
   },
   chipRow: {
@@ -519,18 +634,58 @@ const styles = {
     border: "1px solid",
     cursor: "pointer",
     whiteSpace: "nowrap",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+  },
+  chipSwatch: {
+    width: 7,
+    height: 7,
+    borderRadius: 2,
+    display: "inline-block",
+    flexShrink: 0,
+  },
+  emptyState: {
+    border: "1px dashed var(--border)",
+    borderRadius: "var(--radius)",
+    padding: "28px 20px",
+    maxWidth: 420,
+  },
+  listWrap: {
+    position: "relative",
+    maxWidth: 820,
+  },
+  trace: {
+    position: "absolute",
+    left: 19,
+    top: 8,
+    bottom: 8,
+    width: 2,
+    background: "var(--border)",
+    zIndex: 0,
   },
   list: {
     display: "flex",
     flexDirection: "column",
     gap: 10,
-    maxWidth: 820,
+    position: "relative",
+    zIndex: 1,
   },
   card: {
     background: "var(--surface)",
     border: "1px solid var(--border)",
     borderRadius: "var(--radius)",
     overflow: "hidden",
+    position: "relative",
+  },
+  traceNode: {
+    position: "absolute",
+    left: 15,
+    top: 24,
+    width: 8,
+    height: 8,
+    borderRadius: "50%",
+    zIndex: 2,
   },
   header: {
     width: "100%",
@@ -546,7 +701,7 @@ const styles = {
   metaRow: {
     display: "flex",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     marginBottom: 6,
   },
   tagPill: {
@@ -557,11 +712,16 @@ const styles = {
     borderRadius: 20,
     border: "1px solid",
   },
-  diffPill: {
-    fontFamily: "var(--font-display)",
-    fontSize: 9.5,
-    letterSpacing: "0.04em",
-    opacity: 0.85,
+  meter: {
+    display: "inline-flex",
+    alignItems: "flex-end",
+    gap: 2,
+    height: 12,
+  },
+  meterBar: {
+    width: 3,
+    borderRadius: 1,
+    display: "inline-block",
   },
   title: { fontSize: 14.5, fontWeight: 600, color: "var(--text)", lineHeight: 1.35 },
   summary: { fontSize: 12.5, color: "var(--text-faint)", marginTop: 4 },
