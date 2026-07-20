@@ -1,5 +1,13 @@
-import { useMemo, useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  useSpring,
+  useScroll,
+  useTransform,
+  useReducedMotion,
+} from "framer-motion";
 import AppShell from "../components/AppShell";
 
 /* ---------------- Category styling ---------------- */
@@ -158,8 +166,6 @@ function LessonIcon({ id, color, size = 40 }) {
         display: "grid",
         placeItems: "center",
         flexShrink: 0,
-        position: "relative",
-        zIndex: 1,
       }}
     >
       <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 24 24">
@@ -169,8 +175,6 @@ function LessonIcon({ id, color, size = 40 }) {
   );
 }
 
-/* Signal-strength dots standing in for a text difficulty label —
-   reads like a bar-graph readout on a meter. */
 function DifficultyMeter({ level, color, label }) {
   return (
     <span style={styles.meter} role="img" aria-label={`Difficulty: ${label}`} title={label}>
@@ -188,15 +192,100 @@ function DifficultyMeter({ level, color, label }) {
   );
 }
 
+/* Animated count-up readout, used for hero stats */
+function StatReadout({ value, label, color }) {
+  const [display, setDisplay] = useState(0);
+  const ref = useRef(null);
+  const started = useRef(false);
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !started.current) {
+            started.current = true;
+            if (reduceMotion) {
+              setDisplay(value);
+              return;
+            }
+            const start = performance.now();
+            const duration = 900;
+            const tick = (now) => {
+              const p = Math.min(1, (now - start) / duration);
+              const eased = 1 - Math.pow(1 - p, 3);
+              setDisplay(Math.round(eased * value));
+              if (p < 1) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+          }
+        });
+      },
+      { threshold: 0.4 }
+    );
+    obs.observe(node);
+    return () => obs.disconnect();
+  }, [value, reduceMotion]);
+
+  return (
+    <div ref={ref} style={styles.statBlock}>
+      <div style={{ ...styles.statNumber, color }}>{display}</div>
+      <div style={styles.statLabel}>{label}</div>
+    </div>
+  );
+}
+
+/* Card with a subtle pointer-driven tilt — disabled under reduced motion */
+function TiltCard({ children, onClick, style, layoutId, reduceMotion, ...rest }) {
+  const rx = useMotionValue(0);
+  const ry = useMotionValue(0);
+  const srx = useSpring(rx, { stiffness: 220, damping: 20 });
+  const sry = useSpring(ry, { stiffness: 220, damping: 20 });
+
+  function handleMove(e) {
+    if (reduceMotion) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width - 0.5;
+    const py = (e.clientY - rect.top) / rect.height - 0.5;
+    ry.set(px * 6);
+    rx.set(py * -6);
+  }
+  function handleLeave() {
+    rx.set(0);
+    ry.set(0);
+  }
+
+  return (
+    <motion.div
+      layoutId={layoutId}
+      onClick={onClick}
+      onMouseMove={handleMove}
+      onMouseLeave={handleLeave}
+      style={{
+        ...style,
+        rotateX: reduceMotion ? 0 : srx,
+        rotateY: reduceMotion ? 0 : sry,
+        transformPerspective: 700,
+      }}
+      whileHover={reduceMotion ? undefined : { y: -4 }}
+      {...rest}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 /* ---------------- Lesson content ---------------- */
 const TOPICS = [
   {
     icon: "bolt", tag: "Fundamentals", difficulty: "Beginner",
     title: "Ohm's Law — the one formula everything else builds on",
-    summary: "V = I × R. Know any two, find the third.",
-    body: `Ohm's Law says V = I × R — voltage equals current times resistance. If you know any two of those, you can find the third.
+    summary: "V = I x R. Know any two, find the third.",
+    body: `Ohm's Law says V = I x R — voltage equals current times resistance. If you know any two of those, you can find the third.
 
-A 9V battery pushing current through a 220Ω resistor gives I = V / R = 9 / 220 ≈ 41mA. That's the same math CircuitLab's simulator runs to give you real voltage/current/power numbers when you hit "Run circuit."
+A 9V battery pushing current through a 220 ohm resistor gives I = V / R = 9 / 220, about 41mA. That's the same math CircuitLab's simulator runs to give you real voltage/current/power numbers when you hit "Run circuit."
 
 Higher resistance means less current for the same voltage. That's why a resistor in series with an LED protects it — it limits how much current can flow.`,
   },
@@ -238,7 +327,7 @@ A short circuit happens when current finds a path with little or no resistance b
 
 Common colors as digits: black=0, brown=1, red=2, orange=3, yellow=4, green=5, blue=6, violet=7, grey=8, white=9.
 
-Example: red-red-brown-gold reads as 2, 2, ×10 → 220Ω, ±5% tolerance (gold). That's the exact resistor CircuitLab uses as its default catalog value.`,
+Example: red-red-brown-gold reads as 2, 2, x10, giving 220 ohms, +/-5% tolerance (gold). That's the exact resistor CircuitLab uses as its default catalog value.`,
   },
   {
     icon: "toggle", tag: "Components", difficulty: "Beginner",
@@ -262,11 +351,11 @@ Always start on the highest range if you're unsure, and never measure resistance
   },
   {
     icon: "plusMinus", tag: "Components", difficulty: "Beginner",
-    title: "Polarity — why + and − matter",
+    title: "Polarity — why + and - matter",
     summary: "Some parts only work one way round.",
     body: `Some components only work one way round. Batteries, LEDs, electrolytic capacitors, solar panels, and coin cells are polarized — connect them backwards and at best they won't work, at worst (especially electrolytic capacitors) they can be damaged or dangerous.
 
-In the Builder, polarized parts show a glowing + (red) and − (blue) at their terminals so you can see which way current is meant to flow before you wire them in.`,
+In the Builder, polarized parts show a glowing + (red) and - (blue) at their terminals so you can see which way current is meant to flow before you wire them in.`,
   },
   {
     icon: "diode", tag: "Components", difficulty: "Intermediate",
@@ -350,7 +439,7 @@ Treating them as sources in the simplified model is a deliberate simplification 
 
 Exceed the current or power rating and a part can overheat or fail — this is exactly what CircuitLab's "Run circuit" warnings are checking for, using the same ratings shown in each part's spec panel on the Components page.
 
-Tolerance matters more in precision circuits than beginner ones — a ±5% resistor is fine for an LED current limiter, but not for a precise timing circuit.`,
+Tolerance matters more in precision circuits than beginner ones — a +/-5% resistor is fine for an LED current limiter, but not for a precise timing circuit.`,
   },
   {
     icon: "grid", tag: "Tools", difficulty: "Beginner",
@@ -368,7 +457,7 @@ Both are included in CircuitLab's catalog under Tools/Misc, mainly as a way to v
     summary: "Work through these before assuming something's broken.",
     body: `1. Is there a power source on the board at all? No battery/board means nothing can ever run — CircuitLab will tell you this directly.
 
-2. Is the loop actually closed? Trace the path with your eyes from the source's + terminal, through every part, back to its − terminal. A single missing wire breaks everything downstream of it.
+2. Is the loop actually closed? Trace the path with your eyes from the source's + terminal, through every part, back to its - terminal. A single missing wire breaks everything downstream of it.
 
 3. Is a switch in the "off" position? Easy to forget — check the label pill on any switches in the path.
 
@@ -388,19 +477,30 @@ Shared projects show up on both people's dashboards, tagged so you can tell it's
   },
 ];
 
-const ALL_TAGS = ["All", ...Object.keys(TAG_COLOR)];
+const CATEGORY_ORDER = Object.keys(TAG_COLOR);
 
-const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.035 } } };
+const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const cardVariants = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: "easeOut" } },
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.32, ease: "easeOut" } },
 };
 
 export default function Tutorials() {
   const [query, setQuery] = useState("");
   const [activeTag, setActiveTag] = useState("All");
-  const [openIndex, setOpenIndex] = useState(null);
-  const prefersReducedMotion = useReducedMotion();
+  const [activeTopic, setActiveTopic] = useState(null); // global index or null
+  const reduceMotion = useReducedMotion();
+  const scrollRef = useRef(null);
+  const { scrollYProgress } = useScroll();
+  const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === "Escape") setActiveTopic(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const filtered = useMemo(() => {
     return TOPICS.filter((t) => {
@@ -412,26 +512,119 @@ export default function Tutorials() {
     });
   }, [query, activeTag]);
 
+  const sections = useMemo(() => {
+    return CATEGORY_ORDER.map((tag) => ({
+      tag,
+      color: TAG_COLOR[tag],
+      items: filtered.filter((t) => t.tag === tag),
+    })).filter((s) => s.items.length > 0);
+  }, [filtered]);
+
+  const openTopic = activeTopic !== null ? TOPICS[activeTopic] : null;
+
+  function scrollToLessons() {
+    scrollRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  }
+
   return (
     <AppShell>
-      <div style={{ padding: "40px 6vw 60px" }}>
-        {/* Hero */}
-        <div style={{ maxWidth: 680, marginBottom: 34 }}>
-          <div style={styles.eyebrowRow}>
-            <span style={styles.powerDot} className={prefersReducedMotion ? "" : "power-dot-pulse"} />
-            <span className="eyebrow" style={{ margin: 0 }}>Learn</span>
-          </div>
-          <h1 style={styles.heroTitle}>
-            Master <span className="gradient-text">circuit design</span>
-          </h1>
-          <p style={{ color: "var(--text-dim)", fontSize: 14.5, lineHeight: 1.6, margin: "10px 0 0" }}>
-            {TOPICS.length} short, practical lessons — the exact concepts behind everything CircuitLab
-            checks for you when you hit Run.
-          </p>
+      {/* Scroll progress rail */}
+      <motion.div style={{ ...styles.progressRail, width: progressWidth }} aria-hidden="true" />
+
+      {/* ---------------- Full-screen hero ---------------- */}
+      <section style={styles.hero}>
+        <div style={styles.heroBg} aria-hidden="true">
+          <svg viewBox="0 0 1200 800" style={styles.heroSvg} preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="traceFade" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.15" />
+              </linearGradient>
+            </defs>
+            {[
+              "M-50 120 H300 V320 H620 V180 H1000 V500",
+              "M-50 620 H220 V440 H520 V680 H900 V420 H1260",
+              "M-50 380 H150 V240 H420 V560 H760 V300 H1100 V520 H1260",
+            ].map((d, i) => (
+              <path
+                key={i}
+                d={d}
+                stroke="url(#traceFade)"
+                strokeWidth="1.4"
+                fill="none"
+                className="circuit-path"
+                style={{ animationDelay: `${i * 0.6}s` }}
+              />
+            ))}
+            {[0, 1, 2].map((i) => (
+              <circle key={i} r="3.2" fill="var(--primary)" className={`circuit-pulse circuit-pulse-${i}`} />
+            ))}
+          </svg>
+          <div style={styles.heroGlowA} />
+          <div style={styles.heroGlowB} />
         </div>
 
-        {/* Search + filters */}
-        <div style={{ marginBottom: 30 }}>
+        <div style={styles.heroContent}>
+          <div style={styles.eyebrowRow}>
+            <span style={styles.powerDot} className={reduceMotion ? "" : "power-dot-pulse"} />
+            <span className="eyebrow" style={{ margin: 0 }}>Learn</span>
+          </div>
+          <motion.h1
+            style={styles.heroTitle}
+            initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            Master <span className="gradient-text">circuit design</span>,
+            <br />
+            one component at a time
+          </motion.h1>
+          <motion.p
+            style={styles.heroSubtitle}
+            initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+          >
+            {TOPICS.length} short, practical lessons — the exact concepts behind everything CircuitLab
+            checks for you the moment you hit Run.
+          </motion.p>
+
+          <motion.div
+            style={styles.statsRow}
+            initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+          >
+            <StatReadout value={TOPICS.length} label="Lessons" color="var(--primary)" />
+            <div style={styles.statDivider} />
+            <StatReadout value={CATEGORY_ORDER.length} label="Categories" color="var(--accent)" />
+            <div style={styles.statDivider} />
+            <StatReadout value={3} label="Skill levels" color="var(--gold)" />
+          </motion.div>
+
+          <motion.button
+            onClick={scrollToLessons}
+            style={styles.scrollCue}
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            aria-label="Scroll to lessons"
+          >
+            <span>Browse lessons</span>
+            <motion.svg
+              width="14" height="14" viewBox="0 0 24 24"
+              animate={reduceMotion ? {} : { y: [0, 5, 0] }}
+              transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </motion.svg>
+          </motion.button>
+        </div>
+      </section>
+
+      {/* ---------------- Toolbar ---------------- */}
+      <div ref={scrollRef} style={styles.toolbar}>
+        <div style={styles.toolbarInner}>
           <div style={styles.searchWrap}>
             <svg width="15" height="15" viewBox="0 0 24 24" style={styles.searchIcon}>
               <circle cx="10.5" cy="10.5" r="6.5" stroke="var(--text-faint)" strokeWidth="2" fill="none" />
@@ -440,12 +633,12 @@ export default function Tutorials() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search lessons… e.g. 'resistor', 'short circuit', 'LED'"
+              placeholder="Search lessons..."
               style={styles.search}
             />
           </div>
           <div style={styles.chipRow}>
-            {ALL_TAGS.map((tag) => {
+            {["All", ...CATEGORY_ORDER].map((tag) => {
               const active = activeTag === tag;
               const color = TAG_COLOR[tag] || "var(--text-dim)";
               const count = tag === "All" ? TOPICS.length : TOPICS.filter((t) => t.tag === tag).length;
@@ -468,9 +661,11 @@ export default function Tutorials() {
             })}
           </div>
         </div>
+      </div>
 
-        {/* Lessons */}
-        {filtered.length === 0 ? (
+      {/* ---------------- Lesson sections ---------------- */}
+      <div style={{ padding: "10px 6vw 80px" }}>
+        {sections.length === 0 ? (
           <div style={styles.emptyState}>
             <p style={{ color: "var(--text)", fontSize: 14, fontWeight: 600, margin: 0 }}>
               No lessons match "{query}"
@@ -480,97 +675,138 @@ export default function Tutorials() {
             </p>
           </div>
         ) : (
-          <div style={styles.listWrap}>
-            <div style={styles.trace} aria-hidden="true" />
-            <motion.div style={styles.list} variants={gridVariants} initial="hidden" animate="show">
-              {filtered.map((topic) => {
-                const globalIndex = TOPICS.indexOf(topic);
-                const open = openIndex === globalIndex;
-                const tagColor = TAG_COLOR[topic.tag] || "var(--primary)";
-                return (
-                  <motion.div
-                    key={topic.title}
-                    variants={cardVariants}
-                    layout="position"
-                    style={{
-                      ...styles.card,
-                      borderColor: open ? `color-mix(in srgb, ${tagColor} 45%, var(--border))` : "var(--border)",
-                      boxShadow: open ? `0 0 0 1px color-mix(in srgb, ${tagColor} 20%, transparent)` : "none",
-                    }}
-                    className="tutorial-card"
-                  >
-                    <span
-                      style={{ ...styles.traceNode, background: tagColor, boxShadow: `0 0 0 3px color-mix(in srgb, ${tagColor} 18%, transparent)` }}
-                      aria-hidden="true"
-                    />
-                    <button
-                      onClick={() => setOpenIndex(open ? null : globalIndex)}
-                      style={styles.header}
-                      aria-expanded={open}
+          sections.map((section) => (
+            <div key={section.tag} style={styles.section}>
+              <div style={styles.sectionHeader}>
+                <span style={{ ...styles.sectionDot, background: section.color }} />
+                <h2 style={styles.sectionTitle}>{section.tag}</h2>
+                <span style={styles.sectionCount}>{section.items.length}</span>
+                <span style={{ ...styles.sectionRule, background: `color-mix(in srgb, ${section.color} 30%, var(--border))` }} />
+              </div>
+
+              <motion.div
+                style={styles.cardGrid}
+                variants={gridVariants}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true, margin: "-60px" }}
+              >
+                {section.items.map((topic) => {
+                  const globalIndex = TOPICS.indexOf(topic);
+                  const tagColor = TAG_COLOR[topic.tag] || "var(--primary)";
+                  return (
+                    <TiltCard
+                      key={topic.title}
+                      layoutId={`card-${globalIndex}`}
+                      onClick={() => setActiveTopic(globalIndex)}
+                      reduceMotion={reduceMotion}
+                      style={styles.card}
+                      variants={cardVariants}
+                      className="tutorial-card"
                     >
-                      <LessonIcon id={topic.icon} color={tagColor} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={styles.metaRow}>
-                          <span style={{ ...styles.tagPill, color: tagColor, borderColor: tagColor }}>{topic.tag}</span>
-                          <DifficultyMeter
-                            level={DIFFICULTY_LEVEL[topic.difficulty]}
-                            color={DIFFICULTY_COLOR[topic.difficulty]}
-                            label={topic.difficulty}
-                          />
-                        </div>
-                        <div style={styles.title}>{topic.title}</div>
-                        {!open && <div style={styles.summary}>{topic.summary}</div>}
+                      <div style={styles.cardTop}>
+                        <LessonIcon id={topic.icon} color={tagColor} />
+                        <DifficultyMeter
+                          level={DIFFICULTY_LEVEL[topic.difficulty]}
+                          color={DIFFICULTY_COLOR[topic.difficulty]}
+                          label={topic.difficulty}
+                        />
                       </div>
-                      <motion.span animate={{ rotate: open ? 45 : 0 }} style={{ ...styles.plus, color: tagColor }}>
-                        +
-                      </motion.span>
-                    </button>
-                    <AnimatePresence initial={false}>
-                      {open && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.25, ease: "easeOut" }}
-                          style={{ overflow: "hidden" }}
-                        >
-                          <p style={styles.body}>{topic.body}</p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </div>
+                      <div style={styles.cardTitle}>{topic.title}</div>
+                      <div style={styles.cardSummary}>{topic.summary}</div>
+                      <div style={{ ...styles.cardFooter, color: tagColor }}>
+                        Read lesson
+                        <svg width="12" height="12" viewBox="0 0 24 24">
+                          <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                    </TiltCard>
+                  );
+                })}
+              </motion.div>
+            </div>
+          ))
         )}
       </div>
 
+      {/* ---------------- Expanded lesson modal ---------------- */}
+      <AnimatePresence>
+        {openTopic && (
+          <>
+            <motion.div
+              key="backdrop"
+              style={styles.backdrop}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setActiveTopic(null)}
+            />
+            <div style={styles.modalWrap}>
+              <motion.div
+                layoutId={`card-${activeTopic}`}
+                style={styles.modal}
+                role="dialog"
+                aria-modal="true"
+                aria-label={openTopic.title}
+              >
+                <div style={styles.modalHeader}>
+                  <LessonIcon id={openTopic.icon} color={TAG_COLOR[openTopic.tag]} size={48} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={styles.metaRow}>
+                      <span style={{ ...styles.tagPill, color: TAG_COLOR[openTopic.tag], borderColor: TAG_COLOR[openTopic.tag] }}>
+                        {openTopic.tag}
+                      </span>
+                      <DifficultyMeter
+                        level={DIFFICULTY_LEVEL[openTopic.difficulty]}
+                        color={DIFFICULTY_COLOR[openTopic.difficulty]}
+                        label={openTopic.difficulty}
+                      />
+                    </div>
+                    <div style={styles.modalTitle}>{openTopic.title}</div>
+                  </div>
+                  <button style={styles.closeBtn} onClick={() => setActiveTopic(null)} aria-label="Close lesson">
+                    <svg width="16" height="16" viewBox="0 0 24 24">
+                      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </div>
+                <motion.p
+                  style={styles.modalBody}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1, transition: { delay: 0.12 } }}
+                >
+                  {openTopic.body}
+                </motion.p>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
+
       <style>{`
-        .power-dot-pulse {
-          animation: powerPulse 2.2s ease-in-out infinite;
-        }
+        .power-dot-pulse { animation: powerPulse 2.2s ease-in-out infinite; }
         @keyframes powerPulse {
-          0%, 100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 55%, transparent); }
-          50% { opacity: 0.65; box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 0%, transparent); }
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.55; }
         }
-        .tutorial-card {
-          transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        .circuit-path {
+          stroke-dasharray: 14 10;
+          animation: dashFlow 6s linear infinite;
         }
-        .tutorial-card:hover {
-          transform: translateY(-2px);
-        }
-        .tutorial-card:focus-within {
-          outline: 2px solid var(--primary);
-          outline-offset: 2px;
-        }
+        @keyframes dashFlow { to { stroke-dashoffset: -240; } }
+        .circuit-pulse { opacity: 0.9; filter: drop-shadow(0 0 4px var(--primary)); }
+        .circuit-pulse-0 { offset-path: path("M-50 120 H300 V320 H620 V180 H1000 V500"); animation: travel 7s linear infinite; }
+        .circuit-pulse-1 { offset-path: path("M-50 620 H220 V440 H520 V680 H900 V420 H1260"); animation: travel 9s linear infinite; animation-delay: 1.5s; }
+        .circuit-pulse-2 { offset-path: path("M-50 380 H150 V240 H420 V560 H760 V300 H1100 V520 H1260"); animation: travel 8s linear infinite; animation-delay: 3s; }
+        @keyframes travel { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+        .tutorial-card { cursor: pointer; transition: border-color 0.18s ease, box-shadow 0.18s ease; }
+        .tutorial-card:hover { border-color: var(--text-faint); }
+        .tutorial-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
         @media (prefers-reduced-motion: reduce) {
-          .power-dot-pulse { animation: none; }
-          .tutorial-card { transition: none; }
-          .tutorial-card:hover { transform: none; }
+          .power-dot-pulse, .circuit-path, .circuit-pulse-0, .circuit-pulse-1, .circuit-pulse-2 { animation: none; }
         }
-        @media (max-width: 640px) {
-          .trace-line { display: none; }
+        @media (max-width: 720px) {
+          .hero-stats-hide { display: none; }
         }
       `}</style>
     </AppShell>
@@ -578,11 +814,70 @@ export default function Tutorials() {
 }
 
 const styles = {
+  progressRail: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    height: 2,
+    background: "linear-gradient(90deg, var(--primary), var(--accent))",
+    zIndex: 60,
+  },
+  hero: {
+    position: "relative",
+    minHeight: "88vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    borderBottom: "1px solid var(--border)",
+  },
+  heroBg: {
+    position: "absolute",
+    inset: 0,
+    overflow: "hidden",
+  },
+  heroSvg: {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    opacity: 0.5,
+  },
+  heroGlowA: {
+    position: "absolute",
+    width: 480,
+    height: 480,
+    borderRadius: "50%",
+    top: "-10%",
+    left: "-8%",
+    background: "radial-gradient(circle, color-mix(in srgb, var(--primary) 30%, transparent), transparent 70%)",
+    filter: "blur(40px)",
+  },
+  heroGlowB: {
+    position: "absolute",
+    width: 520,
+    height: 520,
+    borderRadius: "50%",
+    bottom: "-15%",
+    right: "-10%",
+    background: "radial-gradient(circle, color-mix(in srgb, var(--accent) 26%, transparent), transparent 70%)",
+    filter: "blur(50px)",
+  },
+  heroContent: {
+    position: "relative",
+    zIndex: 1,
+    maxWidth: 760,
+    padding: "0 6vw",
+    textAlign: "center",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
   eyebrowRow: {
     display: "flex",
     alignItems: "center",
     gap: 8,
-    marginBottom: 2,
+    marginBottom: 6,
   },
   powerDot: {
     width: 6,
@@ -592,39 +887,103 @@ const styles = {
     display: "inline-block",
   },
   heroTitle: {
-    margin: "8px 0 0",
-    fontSize: "clamp(26px, 3.2vw, 36px)",
+    margin: "10px 0 0",
+    fontSize: "clamp(34px, 6vw, 62px)",
     fontWeight: 700,
     fontFamily: "var(--font-body)",
-    lineHeight: 1.15,
+    lineHeight: 1.1,
+    letterSpacing: "-0.02em",
+  },
+  heroSubtitle: {
+    color: "var(--text-dim)",
+    fontSize: "clamp(14px, 1.4vw, 17px)",
+    lineHeight: 1.6,
+    margin: "18px 0 0",
+    maxWidth: 560,
+  },
+  statsRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 22,
+    marginTop: 40,
+  },
+  statBlock: { textAlign: "center", minWidth: 70 },
+  statNumber: {
+    fontFamily: "var(--font-display)",
+    fontSize: 28,
+    fontWeight: 700,
+    lineHeight: 1,
+  },
+  statLabel: {
+    fontSize: 10.5,
+    color: "var(--text-faint)",
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+    marginTop: 6,
+  },
+  statDivider: {
+    width: 1,
+    height: 30,
+    background: "var(--border)",
+  },
+  scrollCue: {
+    marginTop: 46,
+    background: "transparent",
+    border: "none",
+    color: "var(--text-faint)",
+    fontSize: 12,
+    fontFamily: "var(--font-display)",
+    letterSpacing: "0.04em",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 6,
+    cursor: "pointer",
+  },
+  toolbar: {
+    position: "sticky",
+    top: 0,
+    zIndex: 20,
+    background: "color-mix(in srgb, var(--surface) 85%, transparent)",
+    backdropFilter: "blur(10px)",
+    borderBottom: "1px solid var(--border)",
+    padding: "18px 6vw",
+  },
+  toolbarInner: {
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 16,
+    maxWidth: 1100,
+    margin: "0 auto",
   },
   searchWrap: {
     position: "relative",
-    maxWidth: 480,
-    marginBottom: 14,
+    width: 260,
+    flexShrink: 0,
   },
   searchIcon: {
     position: "absolute",
-    left: 13,
+    left: 12,
     top: "50%",
     transform: "translateY(-50%)",
     pointerEvents: "none",
   },
   search: {
     width: "100%",
-    background: "var(--surface)",
+    background: "var(--surface-2)",
     border: "1px solid var(--border)",
     borderRadius: "var(--radius-sm)",
-    padding: "10px 14px 10px 36px",
+    padding: "9px 12px 9px 34px",
     color: "var(--text)",
-    fontSize: 13.5,
+    fontSize: 13,
     outline: "none",
-    display: "block",
   },
   chipRow: {
     display: "flex",
     flexWrap: "wrap",
     gap: 8,
+    flex: 1,
   },
   chip: {
     fontFamily: "var(--font-display)",
@@ -650,67 +1009,63 @@ const styles = {
     borderRadius: "var(--radius)",
     padding: "28px 20px",
     maxWidth: 420,
+    margin: "40px auto 0",
+    textAlign: "center",
   },
-  listWrap: {
-    position: "relative",
-    maxWidth: 820,
+  section: {
+    maxWidth: 1100,
+    margin: "0 auto",
+    padding: "40px 0 8px",
   },
-  trace: {
-    position: "absolute",
-    left: 19,
-    top: 8,
-    bottom: 8,
-    width: 2,
-    background: "var(--border)",
-    zIndex: 0,
-  },
-  list: {
+  sectionHeader: {
     display: "flex",
-    flexDirection: "column",
+    alignItems: "center",
     gap: 10,
-    position: "relative",
-    zIndex: 1,
+    marginBottom: 18,
+  },
+  sectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: "50%",
+    flexShrink: 0,
+  },
+  sectionTitle: {
+    fontFamily: "var(--font-display)",
+    fontSize: 15,
+    fontWeight: 600,
+    color: "var(--text)",
+    margin: 0,
+    whiteSpace: "nowrap",
+  },
+  sectionCount: {
+    fontSize: 11.5,
+    color: "var(--text-faint)",
+    background: "var(--surface-2)",
+    borderRadius: 20,
+    padding: "1px 8px",
+  },
+  sectionRule: {
+    flex: 1,
+    height: 1,
+  },
+  cardGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+    gap: 14,
   },
   card: {
     background: "var(--surface)",
     border: "1px solid var(--border)",
     borderRadius: "var(--radius)",
-    overflow: "hidden",
-    position: "relative",
-  },
-  traceNode: {
-    position: "absolute",
-    left: 15,
-    top: 24,
-    width: 8,
-    height: 8,
-    borderRadius: "50%",
-    zIndex: 2,
-  },
-  header: {
-    width: "100%",
+    padding: "18px",
     display: "flex",
-    alignItems: "flex-start",
-    gap: 14,
-    padding: "16px 18px",
-    background: "transparent",
-    border: "none",
-    cursor: "pointer",
-    textAlign: "left",
+    flexDirection: "column",
+    gap: 12,
   },
-  metaRow: {
+  cardTop: {
     display: "flex",
     alignItems: "center",
-    gap: 10,
-    marginBottom: 6,
-  },
-  tagPill: {
-    fontFamily: "var(--font-display)",
-    fontSize: 9.5,
-    letterSpacing: "0.04em",
-    padding: "2px 9px",
-    borderRadius: 20,
-    border: "1px solid",
+    justifyContent: "space-between",
   },
   meter: {
     display: "inline-flex",
@@ -723,19 +1078,97 @@ const styles = {
     borderRadius: 1,
     display: "inline-block",
   },
-  title: { fontSize: 14.5, fontWeight: 600, color: "var(--text)", lineHeight: 1.35 },
-  summary: { fontSize: 12.5, color: "var(--text-faint)", marginTop: 4 },
-  plus: {
-    fontSize: 20,
-    flexShrink: 0,
+  cardTitle: {
+    fontSize: 14.5,
+    fontWeight: 600,
+    color: "var(--text)",
+    lineHeight: 1.35,
+  },
+  cardSummary: {
+    fontSize: 12.5,
+    color: "var(--text-faint)",
+    lineHeight: 1.5,
+    flex: 1,
+  },
+  cardFooter: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 12,
+    fontWeight: 600,
     fontFamily: "var(--font-display)",
   },
-  body: {
-    padding: "0 18px 20px 72px",
-    margin: 0,
+  backdrop: {
+    position: "fixed",
+    inset: 0,
+    background: "color-mix(in srgb, #000 55%, transparent)",
+    backdropFilter: "blur(4px)",
+    zIndex: 70,
+  },
+  modalWrap: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 71,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "5vh 5vw",
+    pointerEvents: "none",
+  },
+  modal: {
+    pointerEvents: "auto",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius)",
+    maxWidth: 620,
+    width: "100%",
+    maxHeight: "82vh",
+    overflowY: "auto",
+    padding: 26,
+    boxShadow: "0 24px 60px color-mix(in srgb, #000 40%, transparent)",
+  },
+  modalHeader: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 16,
+  },
+  metaRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 8,
+  },
+  tagPill: {
+    fontFamily: "var(--font-display)",
+    fontSize: 9.5,
+    letterSpacing: "0.04em",
+    padding: "2px 9px",
+    borderRadius: 20,
+    border: "1px solid",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 700,
+    color: "var(--text)",
+    lineHeight: 1.3,
+  },
+  closeBtn: {
+    background: "var(--surface-2)",
+    border: "1px solid var(--border)",
+    borderRadius: "50%",
+    width: 32,
+    height: 32,
+    display: "grid",
+    placeItems: "center",
     color: "var(--text-dim)",
-    fontSize: 13.5,
-    lineHeight: 1.75,
+    cursor: "pointer",
+    flexShrink: 0,
+  },
+  modalBody: {
+    marginTop: 22,
+    color: "var(--text-dim)",
+    fontSize: 14,
+    lineHeight: 1.8,
     whiteSpace: "pre-line",
   },
 };
