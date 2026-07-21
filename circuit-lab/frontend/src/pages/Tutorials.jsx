@@ -360,6 +360,47 @@ const ICONS = {
   ),
 };
 
+/* Slow, ambient drifting glow field — sits behind the whole page for atmosphere.
+   Deliberately slow (28-46s loops) so it registers as mood, not motion. */
+function AmbientField({ reduceMotion }) {
+  if (reduceMotion) return null;
+  const blobs = [
+    { color: "var(--primary)", size: 480, top: "-8%", left: "6%", dur: 34, delay: 0 },
+    { color: "var(--accent)", size: 420, top: "18%", left: "72%", dur: 40, delay: 4 },
+    { color: "var(--gold)", size: 360, top: "62%", left: "18%", dur: 46, delay: 8 },
+  ];
+  return (
+    <div style={styles.ambientField} aria-hidden="true">
+      {blobs.map((b, i) => (
+        <motion.div
+          key={i}
+          style={{
+            position: "absolute",
+            top: b.top,
+            left: b.left,
+            width: b.size,
+            height: b.size,
+            borderRadius: "50%",
+            background: `radial-gradient(circle, color-mix(in srgb, ${b.color} 14%, transparent) 0%, transparent 70%)`,
+            filter: "blur(10px)",
+          }}
+          animate={{
+            x: [0, 40, -20, 0],
+            y: [0, -30, 20, 0],
+            scale: [1, 1.08, 0.96, 1],
+          }}
+          transition={{
+            duration: b.dur,
+            delay: b.delay,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function LessonIcon({ id, color, size = 44 }) {
   const glyph = ICONS[id] || ICONS.bulb;
   return (
@@ -489,11 +530,10 @@ function TiltCard({ children, onClick, style, layoutId, reduceMotion, ...rest })
         transformPerspective: 800,
         position: "relative",
       }}
-      initial={{ opacity: 0, y: 22, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -14, scale: 0.96, transition: { duration: 0.18 } }}
-      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={reduceMotion ? undefined : { y: -6 }}
+      initial="hidden"
+      animate="show"
+      exit="exit"
+      whileHover={reduceMotion ? undefined : { y: -7, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } }}
       whileTap={{ scale: 0.985 }}
       {...rest}
     >
@@ -503,6 +543,120 @@ function TiltCard({ children, onClick, style, layoutId, reduceMotion, ...rest })
       <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 14, height: "100%" }}>
         {children}
       </div>
+    </motion.div>
+  );
+}
+
+/* Floating back-to-top control — only appears once there's real scroll
+   distance behind you, so the page never feels as long as its word count. */
+function BackToTop({ scrollYProgress, reduceMotion }) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    return scrollYProgress.on("change", (v) => setShow(v > 0.08));
+  }, [scrollYProgress]);
+
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.button
+          style={styles.backToTop}
+          className={reduceMotion ? "" : "back-to-top-bob"}
+          onClick={() => window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" })}
+          initial={{ opacity: 0, scale: 0.7, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.7, y: 10 }}
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          aria-label="Back to top"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24">
+            <path d="M12 19V6M6 11l6-6 6 6" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </motion.button>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/* Fixed side rail of category dots — gives constant orientation through a long
+   page, and doubles as a quick-jump nav. Desktop only (hidden on narrow viewports
+   via inline media query check on mount). */
+function CategoryRail({ sections, reduceMotion }) {
+  const [active, setActive] = useState(sections[0]?.tag);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    setVisible(window.innerWidth >= 980);
+    function onResize() {
+      setVisible(window.innerWidth >= 980);
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    const els = sections
+      .map((s) => document.getElementById(`section-${s.tag}`))
+      .filter(Boolean);
+    if (!els.length) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const tag = entry.target.getAttribute("data-tag");
+            if (tag) setActive(tag);
+          }
+        });
+      },
+      { rootMargin: "-15% 0px -70% 0px", threshold: 0 }
+    );
+    els.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, [sections]);
+
+  if (!visible || sections.length < 2) return null;
+
+  return (
+    <motion.div
+      style={styles.categoryRail}
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.6, delay: 0.3 }}
+    >
+      {sections.map((s) => {
+        const isActive = active === s.tag;
+        return (
+          <button
+            key={s.tag}
+            onClick={() => {
+              document.getElementById(`section-${s.tag}`)?.scrollIntoView({
+                behavior: reduceMotion ? "auto" : "smooth",
+                block: "start",
+              });
+            }}
+            style={styles.railItem}
+            aria-label={`Jump to ${s.tag}`}
+            aria-current={isActive}
+          >
+            <motion.span
+              style={{
+                ...styles.railDot,
+                background: isActive ? s.color : "var(--border)",
+              }}
+              animate={{ scale: isActive ? 1.4 : 1 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            />
+            <motion.span
+              style={{ ...styles.railLabel, color: isActive ? s.color : "var(--text-faint)" }}
+              animate={{ opacity: isActive ? 1 : 0, x: isActive ? 0 : -4 }}
+              transition={{ duration: 0.25 }}
+            >
+              {s.tag}
+            </motion.span>
+          </button>
+        );
+      })}
     </motion.div>
   );
 }
@@ -1194,19 +1348,26 @@ One limitation worth knowing: a voltage divider's output isn't a strong, stiff v
 
 const CATEGORY_ORDER = Object.keys(TAG_COLOR);
 
-const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
+const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.09 } } };
 const cardVariants = {
-  hidden: { opacity: 0, y: 22, scale: 0.96 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
+  hidden: { opacity: 0, y: 30, scale: 0.97, filter: "blur(6px)" },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    filter: "blur(0px)",
+    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] },
+  },
+  exit: { opacity: 0, y: -14, scale: 0.96, filter: "blur(4px)", transition: { duration: 0.18 } },
 };
 
 const heroVariants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
+  show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
 };
 const heroItem = {
-  hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] } },
+  hidden: { opacity: 0, y: 18, filter: "blur(4px)" },
+  show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.85, ease: [0.16, 1, 0.3, 1] } },
 };
 
 export default function Tutorials() {
@@ -1217,9 +1378,42 @@ export default function Tutorials() {
   const { scrollYProgress } = useScroll();
   const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
 
+  const heroMX = useMotionValue(0);
+  const heroMY = useMotionValue(0);
+  const heroSpringX = useSpring(heroMX, { stiffness: 40, damping: 20 });
+  const heroSpringY = useSpring(heroMY, { stiffness: 40, damping: 20 });
+
+  function handleHeroMove(e) {
+    if (reduceMotion) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    heroMX.set(((e.clientX - rect.left) / rect.width - 0.5) * 16);
+    heroMY.set(((e.clientY - rect.top) / rect.height - 0.5) * 10);
+  }
+  function handleHeroLeave() {
+    heroMX.set(0);
+    heroMY.set(0);
+  }
+
+  // A single "keep exploring" pick — stable across a browser day, not a
+  // full-random shuffle, so it feels like a deliberate daily nudge rather
+  // than noise on every reload.
+  const featured = useMemo(() => {
+    const dayIndex = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+    return TOPICS[dayIndex % TOPICS.length];
+  }, []);
+  const featuredIndex = TOPICS.indexOf(featured);
+
   useEffect(() => {
     function onKey(e) {
       if (e.key === "Escape") setActiveTopic(null);
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        setActiveTopic((cur) => {
+          if (cur === null) return cur;
+          const next = e.key === "ArrowRight" ? cur + 1 : cur - 1;
+          if (next < 0 || next >= TOPICS.length) return cur;
+          return next;
+        });
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -1244,6 +1438,19 @@ export default function Tutorials() {
   }, [filtered]);
 
   const openTopic = activeTopic !== null ? TOPICS[activeTopic] : null;
+  const modalRef = useRef(null);
+  const [modalProgress, setModalProgress] = useState(0);
+
+  useEffect(() => {
+    if (modalRef.current) modalRef.current.scrollTop = 0;
+    setModalProgress(0);
+  }, [activeTopic]);
+
+  function handleModalScroll(e) {
+    const el = e.currentTarget;
+    const max = el.scrollHeight - el.clientHeight;
+    setModalProgress(max > 0 ? el.scrollTop / max : 0);
+  }
   const openParagraphs = useMemo(
     () => (openTopic ? openTopic.body.split(/\n\n+/) : []),
     [openTopic]
@@ -1256,12 +1463,16 @@ export default function Tutorials() {
 
   return (
     <AppShell>
+      <AmbientField reduceMotion={reduceMotion} />
       {/* Scroll progress rail */}
       <motion.div style={{ ...styles.progressRail, width: progressWidth }} aria-hidden="true" />
 
       {/* ---------------- Compact header ---------------- */}
-      <section style={styles.hero}>
-        <div style={styles.heroBg} aria-hidden="true">
+      <section style={styles.hero} onMouseMove={handleHeroMove} onMouseLeave={handleHeroLeave}>
+        <motion.div
+          style={{ ...styles.heroBg, x: heroSpringX, y: heroSpringY }}
+          aria-hidden="true"
+        >
           <svg viewBox="0 0 1200 260" style={styles.heroSvg} preserveAspectRatio="xMidYMid slice">
             <defs>
               <linearGradient id="traceFade" x1="0" y1="0" x2="1" y2="1">
@@ -1279,7 +1490,7 @@ export default function Tutorials() {
             <circle r="3" fill="var(--accent)" className="circuit-pulse circuit-pulse-1" />
             <circle r="2.4" fill="var(--gold)" className="circuit-pulse circuit-pulse-2" />
           </svg>
-        </div>
+        </motion.div>
 
         <motion.div
           style={styles.heroContent}
@@ -1306,6 +1517,24 @@ export default function Tutorials() {
             <div style={styles.statDivider} />
             <StatReadout value={3} label="Skill levels" color="var(--gold)" />
           </motion.div>
+
+          {featured && (
+            <motion.button
+              style={styles.featuredStrip}
+              className={reduceMotion ? "" : "featured-shimmer"}
+              variants={heroItem}
+              onClick={() => setActiveTopic(featuredIndex)}
+              whileHover={reduceMotion ? undefined : { x: 4 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <span style={{ ...styles.featuredDot, background: TAG_COLOR[featured.tag] }} className={reduceMotion ? "" : "power-dot-pulse"} />
+              <span style={styles.featuredLabel}>Pick up today</span>
+              <span style={styles.featuredTitle}>{featured.title}</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" style={{ flexShrink: 0, opacity: 0.7 }}>
+                <path d="M5 12h14M13 6l6 6-6 6" stroke={TAG_COLOR[featured.tag]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </motion.button>
+          )}
         </motion.div>
       </section>
 
@@ -1359,6 +1588,7 @@ export default function Tutorials() {
       </motion.div>
 
       {/* ---------------- Lesson sections ---------------- */}
+      <CategoryRail sections={sections} reduceMotion={reduceMotion} />
       <div style={{ padding: "10px 6vw 90px", position: "relative" }}>
         <div style={styles.dotGrid} aria-hidden="true" />
         {sections.length === 0 ? (
@@ -1376,18 +1606,18 @@ export default function Tutorials() {
           </motion.div>
         ) : (
           sections.map((section, sIdx) => (
-            <div key={section.tag} style={styles.section}>
+            <div key={section.tag} id={`section-${section.tag}`} data-tag={section.tag} style={styles.section}>
               <motion.div
                 style={styles.sectionHeader}
-                initial={{ opacity: 0, x: -12 }}
-                whileInView={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, x: -16, filter: "blur(3px)" }}
+                whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                 viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.4, delay: Math.min(sIdx, 3) * 0.04 }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: Math.min(sIdx, 3) * 0.05 }}
               >
                 <span style={{ ...styles.sectionDot, background: section.color }} className={reduceMotion ? "" : "section-dot-pulse"} />
                 <h2 style={styles.sectionTitle}>{section.tag}</h2>
                 <span style={styles.sectionCount}>{section.items.length}</span>
-                <span style={{ ...styles.sectionRule, background: `color-mix(in srgb, ${section.color} 30%, var(--border))` }} />
+                <span style={{ ...styles.sectionRule, background: `color-mix(in srgb, ${section.color} 30%, var(--border))` }} className={reduceMotion ? "" : "section-rule"} />
               </motion.div>
 
               <motion.div
@@ -1456,8 +1686,19 @@ export default function Tutorials() {
                 role="dialog"
                 aria-modal="true"
                 aria-label={openTopic.title}
-                transition={{ type: "spring", stiffness: 260, damping: 26 }}
+                transition={{ type: "spring", stiffness: 210, damping: 28 }}
+                ref={modalRef}
+                onScroll={handleModalScroll}
               >
+                <div style={styles.modalProgressTrack} aria-hidden="true">
+                  <motion.div
+                    style={{
+                      ...styles.modalProgressFill,
+                      background: TAG_COLOR[openTopic.tag],
+                      scaleX: modalProgress,
+                    }}
+                  />
+                </div>
                 <div style={styles.modalHeader}>
                   <LessonIcon id={openTopic.icon} color={TAG_COLOR[openTopic.tag]} size={52} />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -1492,12 +1733,33 @@ export default function Tutorials() {
                     <motion.p
                       key={i}
                       style={styles.modalParagraph}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0, transition: { delay: 0.1 + i * 0.06, duration: 0.35 } }}
+                      initial={{ opacity: 0, y: 10, filter: "blur(3px)" }}
+                      animate={{ opacity: 1, y: 0, filter: "blur(0px)", transition: { delay: 0.12 + i * 0.09, duration: 0.55, ease: [0.16, 1, 0.3, 1] } }}
                     >
                       {para}
                     </motion.p>
                   ))}
+                </div>
+                <div style={styles.modalFooter}>
+                  <button
+                    style={{ ...styles.modalNavBtn, opacity: activeTopic > 0 ? 1 : 0.35 }}
+                    onClick={() => activeTopic > 0 && setActiveTopic(activeTopic - 1)}
+                    disabled={activeTopic === 0}
+                    aria-label="Previous lesson"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    Previous
+                  </button>
+                  <span style={styles.modalCounter}>{activeTopic + 1} / {TOPICS.length}</span>
+                  <button
+                    style={{ ...styles.modalNavBtn, opacity: activeTopic < TOPICS.length - 1 ? 1 : 0.35 }}
+                    onClick={() => activeTopic < TOPICS.length - 1 && setActiveTopic(activeTopic + 1)}
+                    disabled={activeTopic === TOPICS.length - 1}
+                    aria-label="Next lesson"
+                  >
+                    Next
+                    <svg width="13" height="13" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  </button>
                 </div>
               </motion.div>
             </div>
@@ -1505,33 +1767,49 @@ export default function Tutorials() {
         )}
       </AnimatePresence>
 
+      <BackToTop scrollYProgress={scrollYProgress} reduceMotion={reduceMotion} />
+
       <style>{`
-        .power-dot-pulse { animation: powerPulse 2.2s ease-in-out infinite; }
-        @keyframes powerPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .circuit-path { stroke-dasharray: 14 10; animation: dashFlow 6s linear infinite; }
+        .power-dot-pulse { animation: powerPulse 3.2s ease-in-out infinite; }
+        @keyframes powerPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+        .circuit-path { stroke-dasharray: 14 10; animation: dashFlow 11s linear infinite; }
         @keyframes dashFlow { to { stroke-dashoffset: -240; } }
-        .circuit-pulse { opacity: 0.9; filter: drop-shadow(0 0 4px var(--primary)); }
-        .circuit-pulse-0 { offset-path: path("M-50 40 H260 V140 H560 V70 H900 V180"); animation: travel 6s linear infinite; }
-        .circuit-pulse-1 { offset-path: path("M-50 210 H180 V120 H480 V220 H820 V90 H1260"); animation: travel 8s linear infinite; animation-delay: 2s; }
-        .circuit-pulse-2 { offset-path: path("M-50 40 H260 V140 H560 V70 H900 V180"); animation: travel 6s linear infinite; animation-delay: 3s; }
+        .circuit-pulse { opacity: 0.85; filter: drop-shadow(0 0 4px var(--primary)); }
+        .circuit-pulse-0 { offset-path: path("M-50 40 H260 V140 H560 V70 H900 V180"); animation: travel 11s linear infinite; }
+        .circuit-pulse-1 { offset-path: path("M-50 210 H180 V120 H480 V220 H820 V90 H1260"); animation: travel 14s linear infinite; animation-delay: 3s; }
+        .circuit-pulse-2 { offset-path: path("M-50 40 H260 V140 H560 V70 H900 V180"); animation: travel 11s linear infinite; animation-delay: 5.5s; }
         @keyframes travel { from { offset-distance: 0%; } to { offset-distance: 100%; } }
-        .gradient-text-anim { background-size: 200% auto; animation: gradientShift 5s ease-in-out infinite; }
+        .gradient-text-anim { background-size: 200% auto; animation: gradientShift 8s ease-in-out infinite; }
         @keyframes gradientShift { 0%, 100% { background-position: 0% center; } 50% { background-position: 100% center; } }
-        .section-dot-pulse { animation: sectionDotPulse 2.6s ease-in-out infinite; }
-        @keyframes sectionDotPulse { 0%, 100% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.35); filter: brightness(1.35); } }
-        .tutorial-card { cursor: pointer; transition: border-color 0.18s ease, box-shadow 0.2s ease; }
-        .tutorial-card:hover { border-color: var(--text-faint); box-shadow: 0 14px 34px color-mix(in srgb, #000 18%, transparent); }
-        .tutorial-card:hover .footer-arrow { transform: translateX(3px); }
-        .footer-arrow { transition: transform 0.2s ease; }
+        .section-dot-pulse { animation: sectionDotPulse 3.6s ease-in-out infinite; }
+        @keyframes sectionDotPulse { 0%, 100% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.3); filter: brightness(1.3); } }
+        .section-rule { transform-origin: left; animation: ruleDraw 1.1s cubic-bezier(0.16,1,0.3,1) both; }
+        @keyframes ruleDraw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+        .tutorial-card { cursor: pointer; transition: border-color 0.4s ease, box-shadow 0.5s ease; }
+        .tutorial-card:hover { border-color: var(--text-faint); box-shadow: 0 18px 40px color-mix(in srgb, #000 20%, transparent); }
+        .tutorial-card:hover .footer-arrow { transform: translateX(4px); }
+        .footer-arrow { transition: transform 0.35s cubic-bezier(0.16,1,0.3,1); }
         .tutorial-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-        .lesson-icon-glow { transition: box-shadow 0.25s ease; }
-        .tutorial-card:hover .lesson-icon-glow { box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 10%, transparent); }
+        .lesson-icon-glow { transition: box-shadow 0.5s ease, transform 0.5s ease; }
+        .tutorial-card:hover .lesson-icon-glow { box-shadow: 0 0 0 5px color-mix(in srgb, var(--primary) 10%, transparent); }
+        .featured-shimmer { position: relative; overflow: hidden; }
+        .featured-shimmer::after {
+          content: ""; position: absolute; inset: 0; pointer-events: none;
+          background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--text) 6%, transparent) 50%, transparent 70%);
+          background-size: 220% 100%;
+          animation: shimmerSweep 7s ease-in-out infinite;
+        }
+        @keyframes shimmerSweep { 0% { background-position: 140% 0; } 45%, 100% { background-position: -60% 0; } }
+        .back-to-top-bob { animation: backToTopBob 4s ease-in-out infinite; }
+        @keyframes backToTopBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
         @media (prefers-reduced-motion: reduce) {
           .power-dot-pulse, .circuit-path, .circuit-pulse-0, .circuit-pulse-1, .circuit-pulse-2,
-          .gradient-text-anim, .section-dot-pulse { animation: none; }
+          .gradient-text-anim, .section-dot-pulse, .section-rule, .featured-shimmer::after,
+          .back-to-top-bob { animation: none; }
         }
       `}</style>
     </AppShell>
+
   );
 }
 
@@ -1865,5 +2143,134 @@ const styles = {
     fontSize: 14.5,
     lineHeight: 1.8,
     margin: "0 0 16px",
+  },
+  modalProgressTrack: {
+    position: "sticky",
+    top: 0,
+    marginTop: -28,
+    marginLeft: -28,
+    marginRight: -28,
+    marginBottom: 18,
+    width: "calc(100% + 56px)",
+    height: 3,
+    background: "var(--border)",
+    zIndex: 2,
+  },
+  modalProgressFill: {
+    height: "100%",
+    transformOrigin: "left",
+    transition: "transform 0.08s linear",
+  },
+  modalFooter: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 26,
+    paddingTop: 18,
+    borderTop: "1px solid var(--border)",
+  },
+  modalNavBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    background: "var(--surface-2)",
+    border: "1px solid var(--border)",
+    borderRadius: 20,
+    padding: "7px 14px",
+    fontSize: 12.5,
+    fontFamily: "var(--font-display)",
+    color: "var(--text-dim)",
+    cursor: "pointer",
+  },
+  modalCounter: {
+    fontSize: 11,
+    color: "var(--text-faint)",
+    fontFamily: "var(--font-display)",
+  },
+  ambientField: {
+    position: "fixed",
+    inset: 0,
+    overflow: "hidden",
+    pointerEvents: "none",
+    zIndex: -1,
+  },
+  categoryRail: {
+    position: "fixed",
+    left: 22,
+    top: "50%",
+    transform: "translateY(-50%)",
+    zIndex: 15,
+    display: "flex",
+    flexDirection: "column",
+    gap: 14,
+  },
+  railItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    padding: 2,
+  },
+  railDot: {
+    width: 7,
+    height: 7,
+    borderRadius: "50%",
+    display: "inline-block",
+    flexShrink: 0,
+  },
+  railLabel: {
+    fontSize: 10.5,
+    fontFamily: "var(--font-display)",
+    whiteSpace: "nowrap",
+  },
+  featuredStrip: {
+    marginTop: 22,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 10,
+    background: "var(--surface-2)",
+    border: "1px solid var(--border)",
+    borderRadius: 24,
+    padding: "8px 16px 8px 10px",
+    cursor: "pointer",
+    maxWidth: "100%",
+  },
+  featuredDot: {
+    width: 6,
+    height: 6,
+    borderRadius: "50%",
+    flexShrink: 0,
+  },
+  featuredLabel: {
+    fontSize: 10.5,
+    fontFamily: "var(--font-display)",
+    color: "var(--text-faint)",
+    whiteSpace: "nowrap",
+  },
+  featuredTitle: {
+    fontSize: 12.5,
+    color: "var(--text)",
+    fontWeight: 600,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  backToTop: {
+    position: "fixed",
+    right: 24,
+    bottom: 24,
+    width: 42,
+    height: 42,
+    borderRadius: "50%",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    color: "var(--text-dim)",
+    display: "grid",
+    placeItems: "center",
+    cursor: "pointer",
+    zIndex: 30,
+    boxShadow: "0 8px 22px color-mix(in srgb, #000 20%, transparent)",
   },
 };
