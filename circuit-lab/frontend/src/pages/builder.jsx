@@ -31,6 +31,8 @@ export default function Builder() {
   const [simResult, setSimResult] = useState(null);
   const [simRunning, setSimRunning] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   // Load the component catalog for the palette
   useEffect(() => {
@@ -49,6 +51,7 @@ export default function Builder() {
         const p = res.data.project;
         setProjectName(p.name);
         setDescription(p.description || "");
+        setIsPublic(!!p.is_public);
         if (p.description) setShowDetails(true);
         setNodes(p.circuit_json.nodes || []);
         setEdges(p.circuit_json.edges || []);
@@ -164,6 +167,18 @@ export default function Builder() {
     }
   }
 
+  async function handleTogglePublic() {
+    const pid = projectId || (await handleSave());
+    if (!pid) return;
+    setPublishing(true);
+    try {
+      const res = await client.put(`/projects/${pid}`, { is_public: !isPublic });
+      setIsPublic(!!res.data.project.is_public);
+    } finally {
+      setPublishing(false);
+    }
+  }
+
   async function handleRunCircuit() {
     setSimRunning(true);
     setSimResult(null);
@@ -217,6 +232,18 @@ export default function Builder() {
               title={projectId ? "Share with teammates" : "Save first, then share"}
             >
               👥 Share
+            </button>
+            <button
+              onClick={handleTogglePublic}
+              disabled={publishing}
+              style={{
+                ...styles.publishBtn,
+                borderColor: isPublic ? "var(--primary)" : "var(--border-bright)",
+                color: isPublic ? "var(--primary)" : "var(--text-dim)",
+              }}
+              title={isPublic ? "Visible in the community gallery - click to make private" : "Publish to the community gallery"}
+            >
+              {isPublic ? "🌐 Public" : "🔒 Private"}
             </button>
           </div>
         </div>
@@ -413,6 +440,15 @@ const styles = {
     background: "transparent",
     color: "var(--text-dim)",
     border: "1.5px solid var(--border-bright)",
+    borderRadius: "var(--radius-sm)",
+    padding: "7px 14px",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  publishBtn: {
+    background: "transparent",
+    border: "1.5px solid",
     borderRadius: "var(--radius-sm)",
     padding: "7px 14px",
     fontSize: 13,
