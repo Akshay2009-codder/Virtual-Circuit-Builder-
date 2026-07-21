@@ -4,33 +4,39 @@ import client from "../api/client";
 
 export default function ShareModal({ open, onClose, projectId }) {
   const [collaborators, setCollaborators] = useState([]);
+  const [pendingInvites, setPendingInvites] = useState([]);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [adding, setAdding] = useState(false);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (!open || !projectId) return;
     setLoading(true);
-    client
-      .get(`/projects/${projectId}/collaborators`)
-      .then((res) => setCollaborators(res.data.collaborators))
+    Promise.all([
+      client.get(`/projects/${projectId}/collaborators`),
+      client.get(`/projects/${projectId}/invites`),
+    ])
+      .then(([collabRes, inviteRes]) => {
+        setCollaborators(collabRes.data.collaborators);
+        setPendingInvites(inviteRes.data.invites);
+      })
       .finally(() => setLoading(false));
   }, [open, projectId]);
 
-  async function handleAdd(e) {
+  async function handleSend(e) {
     e.preventDefault();
     if (!email.trim()) return;
-    setAdding(true);
+    setSending(true);
     setError("");
     try {
-      const res = await client.post(`/projects/${projectId}/collaborators`, { email: email.trim() });
-      setCollaborators((c) => [...c, res.data.collaborator]);
+      const res = await client.post(`/projects/${projectId}/invites`, { email: email.trim() });
+      setPendingInvites((inv) => [res.data.invite, ...inv.filter((i) => i.id !== res.data.invite.id)]);
       setEmail("");
     } catch (err) {
-      setError(err.response?.data?.error || "Couldn't add that person.");
+      setError(err.response?.data?.error || "Couldn't send that request.");
     } finally {
-      setAdding(false);
+      setSending(false);
     }
   }
 
@@ -57,12 +63,12 @@ export default function ShareModal({ open, onClose, projectId }) {
             </div>
             <h2 style={{ margin: "4px 0 6px", fontSize: 20 }}>Share this circuit</h2>
             <p style={{ color: "var(--text-dim)", fontSize: 12.5, margin: "0 0 18px" }}>
-              Anyone you add can open, edit, and save this exact circuit from their own account -
-              handy for group projects. It's shared access, not live simultaneous editing, so if
-              you're both working at once, whoever saves last wins.
+              Sending a request doesn't grant access right away — they'll get a notification and
+              need to accept it first. Once accepted, they can open, edit, and save this exact
+              circuit from their own account.
             </p>
 
-            <form onSubmit={handleAdd} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            <form onSubmit={handleSend} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
               <input
                 type="email"
                 value={email}
@@ -70,16 +76,36 @@ export default function ShareModal({ open, onClose, projectId }) {
                 placeholder="teammate@email.com"
                 style={styles.input}
               />
-              <button type="submit" disabled={adding} style={styles.addBtn}>
-                {adding ? "Adding…" : "Add"}
+              <button type="submit" disabled={sending} style={styles.addBtn}>
+                {sending ? "Sending…" : "Send request"}
               </button>
             </form>
             {error && <p style={{ color: "var(--danger)", fontSize: 12.5, margin: "-10px 0 14px" }}>{error}</p>}
 
+            {loading && <p style={{ color: "var(--text-dim)", fontSize: 13 }}>Loading…</p>}
+
+            {!loading && pendingInvites.length > 0 && (
+              <>
+                <div className="eyebrow" style={{ marginBottom: 8 }}>
+                  Waiting for response
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 18 }}>
+                  {pendingInvites.map((i) => (
+                    <div key={i.id} style={styles.collabRow}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{i.to_name}</div>
+                        <div style={{ fontSize: 11.5, color: "var(--text-faint)" }}>{i.to_email}</div>
+                      </div>
+                      <span style={{ fontSize: 11.5, color: "var(--gold)" }}>⏳ Pending</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
             <div className="eyebrow" style={{ marginBottom: 8 }}>
               Has access
             </div>
-            {loading && <p style={{ color: "var(--text-dim)", fontSize: 13 }}>Loading…</p>}
             {!loading && collaborators.length === 0 && (
               <p style={{ color: "var(--text-faint)", fontSize: 12.5 }}>Only you, for now.</p>
             )}
