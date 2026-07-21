@@ -10,6 +10,8 @@ import Dashboard from "./pages/Dashboard";
 import Components from "./pages/Components";
 import Builder from "./pages/Builder";
 import Tutorials from "./pages/Tutorials";
+import Share from "./pages/Share";
+import CircuitView from "./pages/CircuitView";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -57,6 +59,22 @@ function AnimatedRoutes() {
           element={
             <ProtectedRoute>
               <PageTransition><Tutorials /></PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/share"
+          element={
+            <ProtectedRoute>
+              <PageTransition><Share /></PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/circuits/:id"
+          element={
+            <ProtectedRoute>
+              <PageTransition><CircuitView /></PageTransition>
             </ProtectedRoute>
           }
         />
