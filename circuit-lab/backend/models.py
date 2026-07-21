@@ -49,6 +49,8 @@ class Project(db.Model):
     last_run_at = db.Column(db.DateTime)
     run_count = db.Column(db.Integer, default=0)
 
+    is_public = db.Column(db.Boolean, default=False)  # shared to the community gallery
+
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(
         db.DateTime,
@@ -66,9 +68,28 @@ class Project(db.Model):
             "last_run_status": self.last_run_status,
             "last_run_at": self.last_run_at.isoformat() if self.last_run_at else None,
             "run_count": self.run_count or 0,
+            "is_public": bool(self.is_public),
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "is_owner": (viewer_id is not None and int(viewer_id) == self.user_id),
+        }
+
+    def to_community_dict(self, viewer_id=None):
+        owner = User.query.get(self.user_id)
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description or "",
+            "owner_name": owner.name if owner else "Unknown",
+            "component_count": len((self.circuit_json or {}).get("nodes", [])),
+            "last_run_status": self.last_run_status,
+            "like_count": ProjectLike.query.filter_by(project_id=self.id).count(),
+            "comment_count": ProjectComment.query.filter_by(project_id=self.id).count(),
+            "liked_by_me": (
+                viewer_id is not None
+                and ProjectLike.query.filter_by(project_id=self.id, user_id=viewer_id).first() is not None
+            ),
+            "created_at": self.created_at.isoformat(),
         }
 
 
@@ -93,4 +114,38 @@ class ProjectCollaborator(db.Model):
             "name": user.name if user else "Unknown",
             "email": user.email if user else "",
             "added_at": self.added_at.isoformat(),
+        }
+
+
+# --- Community: public gallery, likes, comments. Only projects the owner has
+# explicitly marked is_public=True show up here for anyone to browse. ---
+
+class ProjectLike(db.Model):
+    __tablename__ = "project_likes"
+    __table_args__ = (db.UniqueConstraint("project_id", "user_id", name="uq_like_project_user"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ProjectComment(db.Model):
+    __tablename__ = "project_comments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self, viewer_id=None):
+        user = User.query.get(self.user_id)
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "author_name": user.name if user else "Unknown",
+            "body": self.body,
+            "created_at": self.created_at.isoformat(),
+            "is_mine": viewer_id is not None and int(viewer_id) == self.user_id,
         }
