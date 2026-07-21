@@ -14,7 +14,11 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    # Phase 3+ will add: projects = db.relationship("Project", backref="owner", lazy=True)
+    # Email verification via OTP - unverified accounts can't log in yet.
+    is_verified = db.Column(db.Boolean, default=False)
+    otp_code = db.Column(db.String(6))
+    otp_expires_at = db.Column(db.DateTime)
+    otp_last_sent_at = db.Column(db.DateTime)
 
     def set_password(self, raw_password):
         self.password_hash = generate_password_hash(raw_password)
