@@ -23,7 +23,7 @@ export default function Register() {
     setStatus("loading");
     try {
       await register(form.name, form.email, form.password);
-      navigate("/dashboard");
+      navigate("/verify-email", { state: { email: form.email } });
     } catch (err) {
       setStatus("error");
       setFormError(err.response?.data?.error || "Couldn't create your account. Try again.");
