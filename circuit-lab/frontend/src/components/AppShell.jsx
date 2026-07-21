@@ -24,6 +24,9 @@ export default function AppShell({ children }) {
           <NavLink to="/tutorials" style={navStyle}>
             Tutorials
           </NavLink>
+          <NavLink to="/share" style={navStyle}>
+            Share
+          </NavLink>
         </nav>
 
         <div style={styles.userArea}>
