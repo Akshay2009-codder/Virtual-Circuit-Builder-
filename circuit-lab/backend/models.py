@@ -149,3 +149,37 @@ class ProjectComment(db.Model):
             "created_at": self.created_at.isoformat(),
             "is_mine": viewer_id is not None and int(viewer_id) == self.user_id,
         }
+
+
+# --- Share requests: sending someone an invite doesn't grant access by
+# itself - they have to accept it first. Powers the notification bell. ---
+
+class ProjectInvite(db.Model):
+    __tablename__ = "project_invites"
+    __table_args__ = (db.UniqueConstraint("project_id", "to_user_id", name="uq_invite_project_user"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
+    from_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    to_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    status = db.Column(db.String(20), default="pending")  # pending | accepted | declined
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    responded_at = db.Column(db.DateTime)
+
+    def to_dict(self):
+        project = Project.query.get(self.project_id)
+        sender = User.query.get(self.from_user_id)
+        recipient = User.query.get(self.to_user_id)
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "project_name": project.name if project else "Untitled Circuit",
+            "from_user_id": self.from_user_id,
+            "from_name": sender.name if sender else "Unknown",
+            "from_email": sender.email if sender else "",
+            "to_user_id": self.to_user_id,
+            "to_name": recipient.name if recipient else "Unknown",
+            "to_email": recipient.email if recipient else "",
+            "status": self.status,
+            "created_at": self.created_at.isoformat(),
+        }
