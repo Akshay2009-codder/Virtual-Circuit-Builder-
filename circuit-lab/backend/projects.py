@@ -60,6 +60,9 @@ def get_project(project_id):
     user_id = get_jwt_identity()
     project = _accessible_project(project_id, user_id)
     if not project:
+        # not owned/shared with this user - but anyone can view a public one, read-only
+        project = Project.query.filter_by(id=project_id, is_public=True).first()
+    if not project:
         return jsonify({"error": "Project not found."}), 404
     return jsonify({"project": project.to_dict(viewer_id=user_id)}), 200
 
@@ -81,6 +84,8 @@ def update_project(project_id):
         project.circuit_json = data["circuit_json"]
     if "status" in data and data["status"] in ("in_progress", "completed", "error"):
         project.status = data["status"]
+    if "is_public" in data:
+        project.is_public = bool(data["is_public"])
 
     db.session.commit()
     return jsonify({"project": project.to_dict(viewer_id=user_id)}), 200
