@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import NotificationBell from "./NotificationBell";
 
 export default function AppShell({ children }) {
   const { user, logout } = useAuth();
@@ -30,6 +31,7 @@ export default function AppShell({ children }) {
         </nav>
 
         <div style={styles.userArea}>
+          <NotificationBell />
           <span style={{ color: "var(--text-dim)", fontSize: 13.5 }}>{user?.name}</span>
           <button onClick={logout} style={styles.logoutBtn}>
             Sign out
