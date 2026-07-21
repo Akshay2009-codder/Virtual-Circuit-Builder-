@@ -1,7 +1,8 @@
+from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from models import db, Project, ProjectCollaborator, User
+from models import db, Project, ProjectCollaborator, ProjectInvite, User
 
 projects_bp = Blueprint("projects", __name__, url_prefix="/api/projects")
 
@@ -118,35 +119,6 @@ def list_collaborators(project_id):
     return jsonify({"collaborators": [c.to_dict() for c in items]}), 200
 
 
-@projects_bp.post("/<int:project_id>/collaborators")
-@jwt_required()
-def add_collaborator(project_id):
-    user_id = get_jwt_identity()
-    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
-    if not project:
-        return jsonify({"error": "Project not found, or only the owner can add collaborators."}), 404
-
-    data = request.get_json(silent=True) or {}
-    email = (data.get("email") or "").strip().lower()
-    if not email:
-        return jsonify({"error": "Enter an email address."}), 400
-
-    target = User.query.filter_by(email=email).first()
-    if not target:
-        return jsonify({"error": "No CircuitLab account with that email. They need to register first."}), 404
-    if str(target.id) == str(user_id):
-        return jsonify({"error": "That's your own account."}), 400
-
-    existing = ProjectCollaborator.query.filter_by(project_id=project_id, user_id=target.id).first()
-    if existing:
-        return jsonify({"error": f"{target.name} already has access."}), 409
-
-    collab = ProjectCollaborator(project_id=project_id, user_id=target.id)
-    db.session.add(collab)
-    db.session.commit()
-    return jsonify({"collaborator": collab.to_dict()}), 201
-
-
 @projects_bp.delete("/<int:project_id>/collaborators/<int:collaborator_id>")
 @jwt_required()
 def remove_collaborator(project_id, collaborator_id):
@@ -161,3 +133,58 @@ def remove_collaborator(project_id, collaborator_id):
     db.session.delete(collab)
     db.session.commit()
     return jsonify({"deleted": True}), 200
+
+
+# --- Share requests: sending an invite doesn't grant access immediately -
+# the recipient has to accept it first (see invites.py for accept/decline). ---
+
+@projects_bp.get("/<int:project_id>/invites")
+@jwt_required()
+def list_project_invites(project_id):
+    user_id = get_jwt_identity()
+    project = _accessible_project(project_id, user_id)
+    if not project:
+        return jsonify({"error": "Project not found."}), 404
+    items = ProjectInvite.query.filter_by(project_id=project_id, status="pending").all()
+    return jsonify({"invites": [i.to_dict() for i in items]}), 200
+
+
+@projects_bp.post("/<int:project_id>/invites")
+@jwt_required()
+def send_invite(project_id):
+    user_id = get_jwt_identity()
+    project = _accessible_project(project_id, user_id)
+    if not project:
+        return jsonify({"error": "Project not found."}), 404
+
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email:
+        return jsonify({"error": "Enter an email address."}), 400
+
+    target = User.query.filter_by(email=email).first()
+    if not target:
+        return jsonify({"error": "No CircuitLab account with that email. They need to register first."}), 404
+    if str(target.id) == str(user_id):
+        return jsonify({"error": "That's your own account."}), 400
+
+    already_collab = ProjectCollaborator.query.filter_by(project_id=project_id, user_id=target.id).first()
+    if already_collab:
+        return jsonify({"error": f"{target.name} already has access."}), 409
+
+    existing_invite = ProjectInvite.query.filter_by(project_id=project_id, to_user_id=target.id).first()
+    if existing_invite:
+        if existing_invite.status == "pending":
+            return jsonify({"error": f"{target.name} already has a pending invite for this circuit."}), 409
+        # they declined (or an old accepted one somehow lost its collaborator row) - let this resend
+        existing_invite.status = "pending"
+        existing_invite.from_user_id = user_id
+        existing_invite.created_at = datetime.now(timezone.utc)
+        existing_invite.responded_at = None
+        db.session.commit()
+        return jsonify({"invite": existing_invite.to_dict()}), 201
+
+    invite = ProjectInvite(project_id=project_id, from_user_id=user_id, to_user_id=target.id)
+    db.session.add(invite)
+    db.session.commit()
+    return jsonify({"invite": invite.to_dict()}), 201
