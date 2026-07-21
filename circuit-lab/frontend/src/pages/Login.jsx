@@ -25,6 +25,10 @@ export default function Login() {
       await login(form.email, form.password);
       navigate("/dashboard");
     } catch (err) {
+      if (err.response?.data?.needs_verification) {
+        navigate("/verify-email", { state: { email: err.response.data.email } });
+        return;
+      }
       setStatus("error");
       setFormError(err.response?.data?.error || "Couldn't sign in. Check your details and try again.");
       setTimeout(() => setStatus("idle"), 1200);
