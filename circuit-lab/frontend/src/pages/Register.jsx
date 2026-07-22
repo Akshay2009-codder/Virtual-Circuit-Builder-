@@ -3,15 +3,19 @@ import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import FormField from "../components/FormField";
 import PowerButton from "../components/PowerButton";
+import OtpPanel from "../components/OtpPanel";
 import { useAuth } from "../context/AuthContext";
+
+const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
 
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", username: "", email: "", password: "" });
   const [status, setStatus] = useState("idle");
   const [formError, setFormError] = useState("");
+  const [awaitingOtp, setAwaitingOtp] = useState(false);
 
   function update(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -20,15 +24,38 @@ export default function Register() {
   async function handleSubmit(e) {
     e.preventDefault();
     setFormError("");
+
+    if (!USERNAME_RE.test(form.username)) {
+      setFormError("Username must be 3-20 characters: letters, numbers, and underscores only.");
+      return;
+    }
+
     setStatus("loading");
     try {
-      await register(form.name, form.email, form.password);
-      navigate("/verify-email", { state: { email: form.email } });
+      await register(form.name, form.username, form.email, form.password);
+      setAwaitingOtp(true);
+      setStatus("idle");
     } catch (err) {
       setStatus("error");
       setFormError(err.response?.data?.error || "Couldn't create your account. Try again.");
       setTimeout(() => setStatus("idle"), 1200);
     }
+  }
+
+  if (awaitingOtp) {
+    return (
+      <AuthLayout
+        eyebrow="Verify your email"
+        title="Check your inbox"
+        subtitle="We sent a 6-digit code to confirm it's really you."
+      >
+        <OtpPanel
+          email={form.email}
+          onVerified={() => navigate("/dashboard")}
+          onBack={() => setAwaitingOtp(false)}
+        />
+      </AuthLayout>
+    );
   }
 
   return (
@@ -45,6 +72,14 @@ export default function Register() {
           onChange={update("name")}
           placeholder="Ada Lovelace"
           autoComplete="name"
+        />
+        <FormField
+          label="Username"
+          required
+          value={form.username}
+          onChange={update("username")}
+          placeholder="ada_lovelace"
+          autoComplete="username"
         />
         <FormField
           label="Email"
