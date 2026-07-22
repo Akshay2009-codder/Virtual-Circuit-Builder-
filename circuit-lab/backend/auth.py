@@ -9,6 +9,7 @@ from email_utils import generate_otp, otp_expiry, send_otp_email, OTP_RESEND_COO
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+USERNAME_RE = re.compile(r"^[a-zA-Z0-9_]{3,20}$")
 
 
 def _now():
@@ -26,11 +27,14 @@ def _aware(dt):
 def register():
     data = request.get_json(silent=True) or {}
     name = (data.get("name") or "").strip()
+    username = (data.get("username") or "").strip().lower()
     email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
 
     if not name or len(name) < 2:
         return jsonify({"error": "Name must be at least 2 characters."}), 400
+    if not USERNAME_RE.match(username):
+        return jsonify({"error": "Username must be 3-20 characters: letters, numbers, and underscores only."}), 400
     if not EMAIL_RE.match(email):
         return jsonify({"error": "Enter a valid email address."}), 400
     if len(password) < 6:
@@ -40,18 +44,26 @@ def register():
     if existing and existing.is_verified:
         return jsonify({"error": "An account with this email already exists."}), 409
 
+    username_owner = User.query.filter_by(username=username).first()
+    if username_owner and username_owner.email != email:
+        return jsonify({"error": "That username is already taken."}), 409
+
     otp = generate_otp()
 
     if existing and not existing.is_verified:
         # they registered but never verified - let them try again with a fresh code
         existing.name = name
+        existing.username = username
         existing.set_password(password)
         existing.otp_code = otp
         existing.otp_expires_at = otp_expiry()
         existing.otp_last_sent_at = _now()
         user = existing
     else:
-        user = User(name=name, email=email, is_verified=False, otp_code=otp, otp_expires_at=otp_expiry(), otp_last_sent_at=_now())
+        user = User(
+            name=name, username=username, email=email, is_verified=False,
+            otp_code=otp, otp_expires_at=otp_expiry(), otp_last_sent_at=_now(),
+        )
         user.set_password(password)
         db.session.add(user)
 
@@ -116,12 +128,16 @@ def resend_otp():
 @auth_bp.post("/login")
 def login():
     data = request.get_json(silent=True) or {}
-    email = (data.get("email") or "").strip().lower()
+    identifier = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
 
-    user = User.query.filter_by(email=email).first()
+    if EMAIL_RE.match(identifier):
+        user = User.query.filter_by(email=identifier).first()
+    else:
+        user = User.query.filter_by(username=identifier).first()
+
     if not user or not user.check_password(password):
-        return jsonify({"error": "Invalid email or password."}), 401
+        return jsonify({"error": "Invalid email/username or password."}), 401
 
     if not user.is_verified:
         return jsonify({
