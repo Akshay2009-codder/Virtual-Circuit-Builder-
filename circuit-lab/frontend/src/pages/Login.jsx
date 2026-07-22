@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import FormField from "../components/FormField";
 import PowerButton from "../components/PowerButton";
+import OtpPanel from "../components/OtpPanel";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
@@ -12,6 +13,7 @@ export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [status, setStatus] = useState("idle"); // idle | loading | error
   const [formError, setFormError] = useState("");
+  const [verifyEmail, setVerifyEmail] = useState(null);
 
   function update(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -26,13 +28,33 @@ export default function Login() {
       navigate("/dashboard");
     } catch (err) {
       if (err.response?.data?.needs_verification) {
-        navigate("/verify-email", { state: { email: err.response.data.email } });
+        // Show the OTP step right here instead of bouncing to another page.
+        // Use the resolved email from the backend, not form.email - the
+        // person may have typed their username, which won't work for OTP lookup.
+        setVerifyEmail(err.response.data.email);
+        setStatus("idle");
         return;
       }
       setStatus("error");
       setFormError(err.response?.data?.error || "Couldn't sign in. Check your details and try again.");
       setTimeout(() => setStatus("idle"), 1200);
     }
+  }
+
+  if (verifyEmail) {
+    return (
+      <AuthLayout
+        eyebrow="Verify your email"
+        title="One more step"
+        subtitle="Your account isn't verified yet — enter the code we sent to finish signing in."
+      >
+        <OtpPanel
+          email={verifyEmail}
+          onVerified={() => navigate("/dashboard")}
+          onBack={() => setVerifyEmail(null)}
+        />
+      </AuthLayout>
+    );
   }
 
   return (
@@ -43,13 +65,12 @@ export default function Login() {
     >
       <form onSubmit={handleSubmit}>
         <FormField
-          label="Email"
-          type="email"
+          label="Email or username"
           required
           value={form.email}
           onChange={update("email")}
-          placeholder="you@example.com"
-          autoComplete="email"
+          placeholder="you@example.com or username"
+          autoComplete="username"
         />
         <FormField
           label="Password"
