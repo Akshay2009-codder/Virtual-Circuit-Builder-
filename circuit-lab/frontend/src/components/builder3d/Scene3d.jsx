@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, Grid, ContactShadows } from "@react-three/drei";
+import { OrbitControls, Grid, ContactShadows, Environment } from "@react-three/drei";
 import PlacedPart3D from "./PlacedPart3D";
 import Wire3D from "./Wire3D";
 
@@ -43,16 +43,25 @@ export default function Scene3D({
   }
 
   return (
-    <Canvas camera={{ position: [3.4, 3.6, 5], fov: 46 }} dpr={[1, 2]} shadows>
+    <Canvas camera={{ position: [3.4, 3.6, 5], fov: 46 }} dpr={[1, 2]} shadows gl={{ toneMappingExposure: 1.25 }}>
       <color attach="background" args={["#0a0e13"]} />
       <fog attach="fog" args={["#0a0e13", 9, 26]} />
 
-      <ambientLight intensity={0.55} />
-      <directionalLight position={[5, 8, 4]} intensity={1.15} castShadow />
-      <directionalLight position={[-4, 3, -3]} intensity={0.35} color="#ff6f5e" />
+      {/* hemisphere ambient reads far less flat than a single flat ambientLight */}
+      <hemisphereLight args={["#8fb8ff", "#1a120a", 0.6]} />
+      <directionalLight position={[5, 8, 4]} intensity={1.25} castShadow />
+      <directionalLight position={[-4, 3, -3]} intensity={0.4} color="#ff6f5e" />
       <pointLight position={[0, 3, 0]} intensity={0.25} color="#2fd66f" />
+      {/* soft fill from near the camera so the face we're looking at isn't underlit */}
+      <pointLight position={[2, 2, 4]} intensity={0.35} color="#ffffff" />
 
       <CameraCapture cameraRef={cameraRef} />
+
+      <Suspense fallback={null}>
+        {/* gives metal/glossy part materials (leads, pins, terminals) something
+            to actually reflect - without this they render flat and dull */}
+        <Environment preset="city" background={false} />
+      </Suspense>
 
       {/* wooden workbench desk beneath everything */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
