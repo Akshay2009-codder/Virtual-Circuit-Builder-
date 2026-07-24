@@ -33,6 +33,7 @@ export default function Builder() {
   const [shareOpen, setShareOpen] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [isDropTarget, setIsDropTarget] = useState(false);
 
   // Load the component catalog for the palette
   useEffect(() => {
@@ -67,10 +68,16 @@ export default function Builder() {
   function onDragOver(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
+    if (!isDropTarget) setIsDropTarget(true);
+  }
+
+  function onDragLeave() {
+    setIsDropTarget(false);
   }
 
   function onDrop(e) {
     e.preventDefault();
+    setIsDropTarget(false);
     const raw = e.dataTransfer.getData("application/circuitlab-component");
     if (!raw || !cameraRef.current || !wrapperRef.current) return;
     const component = JSON.parse(raw);
@@ -201,119 +208,162 @@ export default function Builder() {
 
   return (
     <>
+      <style>{GLOBAL_CSS}</style>
       <AppShell>
-      <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 65px)" }}>
-        <div style={styles.toolbar}>
-          <div style={{ display: "flex", alignItems: "center", gap: 16, flex: 1, minWidth: 0 }}>
-            <input
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              style={styles.nameInput}
-              placeholder="Untitled Circuit"
-            />
-            <button style={styles.detailsToggle} onClick={() => setShowDetails((s) => !s)}>
-              {showDetails ? "Hide details" : description ? "Edit details" : "+ Add details"}
-            </button>
-            <span style={styles.statText}>
-              {nodes.length} components · {edges.length} connections
+        <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 65px)" }}>
+          <div style={styles.toolbar} className="cl-toolbar">
+            <div style={{ display: "flex", alignItems: "center", gap: 16, flex: 1, minWidth: 0 }}>
+              <div className="cl-name-wrap">
+                <input
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  style={styles.nameInput}
+                  placeholder="Untitled Circuit"
+                  className="cl-name-input"
+                />
+                <span className="cl-name-underline" />
+              </div>
+              <button
+                style={styles.detailsToggle}
+                onClick={() => setShowDetails((s) => !s)}
+                className="cl-btn cl-btn-ghost"
+              >
+                {showDetails ? "Hide details" : description ? "Edit details" : "+ Add details"}
+              </button>
+              <span style={styles.statText} className="cl-stat">
+                <span className="cl-stat-dot" />
+                {nodes.length} components · {edges.length} connections
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <SaveStatus state={saveState} />
+              <button onClick={handleSave} style={styles.saveBtn} className="cl-btn cl-btn-save">
+                Save circuit
+              </button>
+              <button
+                onClick={handleRunCircuit}
+                style={styles.runBtn}
+                disabled={simRunning}
+                className={`cl-btn cl-btn-run ${simRunning ? "cl-btn-run-active" : "cl-btn-run-pulse"}`}
+              >
+                <span className={`cl-run-icon ${simRunning ? "cl-spin" : ""}`}>{simRunning ? "◐" : "▶"}</span>
+                {simRunning ? "Running…" : "Run circuit"}
+              </button>
+              <button
+                onClick={() => (projectId ? setShareOpen(true) : handleSave().then(() => setShareOpen(true)))}
+                style={styles.shareBtn}
+                title={projectId ? "Share with teammates" : "Save first, then share"}
+                className="cl-btn cl-btn-ghost"
+              >
+                👥 Share
+              </button>
+              <button
+                onClick={handleTogglePublic}
+                disabled={publishing}
+                style={{
+                  ...styles.publishBtn,
+                  borderColor: isPublic ? "var(--primary)" : "var(--border-bright)",
+                  color: isPublic ? "var(--primary)" : "var(--text-dim)",
+                }}
+                title={isPublic ? "Visible in the community gallery - click to make private" : "Publish to the community gallery"}
+                className={`cl-btn cl-btn-ghost ${isPublic ? "cl-btn-public" : ""}`}
+              >
+                {isPublic ? "🌐 Public" : "🔒 Private"}
+              </button>
+            </div>
+          </div>
+
+          {showDetails && (
+            <div style={styles.detailsBar} className="cl-details-bar">
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What does this circuit do? e.g. 'ESP32-based temperature monitor that lights an LED above 30°C.'"
+                style={styles.descInput}
+                rows={2}
+                className="cl-textarea"
+              />
+            </div>
+          )}
+
+          <div style={styles.hintBar}>
+            <span style={styles.hint}>
+              Drag a part onto the board · drag a placed part to move it · click two glowing terminal dots
+              to wire them · drag empty space to orbit, scroll to zoom
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <SaveStatus state={saveState} />
-            <button onClick={handleSave} style={styles.saveBtn}>
-              Save circuit
-            </button>
-            <button onClick={handleRunCircuit} style={styles.runBtn} disabled={simRunning}>
-              {simRunning ? "Running…" : "▶ Run circuit"}
-            </button>
-            <button
-              onClick={() => (projectId ? setShareOpen(true) : handleSave().then(() => setShareOpen(true)))}
-              style={styles.shareBtn}
-              title={projectId ? "Share with teammates" : "Save first, then share"}
+
+          {simResult && (
+            <div
+              key={simResult.status + (simResult.message || "")}
+              style={{ ...styles.resultBar, ...RESULT_STYLE[simResult.status] }}
+              className={`cl-result-bar ${simResult.status === "short" ? "cl-result-alert" : ""}`}
             >
-              👥 Share
-            </button>
-            <button
-              onClick={handleTogglePublic}
-              disabled={publishing}
-              style={{
-                ...styles.publishBtn,
-                borderColor: isPublic ? "var(--primary)" : "var(--border-bright)",
-                color: isPublic ? "var(--primary)" : "var(--text-dim)",
-              }}
-              title={isPublic ? "Visible in the community gallery - click to make private" : "Publish to the community gallery"}
+              <span className={simResult.status === "complete" ? "cl-icon-pop" : ""}>
+                {RESULT_ICON[simResult.status] || "ℹ"}
+              </span>
+              <span>{simResult.message}</span>
+            </div>
+          )}
+
+          {simResult?.suggestions?.length > 0 && (
+            <div style={styles.suggestionsBar}>
+              {simResult.suggestions.map((s, i) => (
+                <div
+                  key={i}
+                  style={{ ...styles.suggestionRow, animationDelay: `${i * 70}ms` }}
+                  className="cl-suggestion-row"
+                >
+                  <span style={{ color: "var(--gold)" }}>💡</span>
+                  <span>{s}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+            <div
+              ref={wrapperRef}
+              style={{ flex: 1, position: "relative" }}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              className={isDropTarget ? "cl-drop-target" : ""}
             >
-              {isPublic ? "🌐 Public" : "🔒 Private"}
-            </button>
+              {!loading && (
+                <Scene3D
+                  nodes={nodes}
+                  edges={edges}
+                  draggingId={draggingId}
+                  onDragStart={handleDragStart}
+                  onDragMove={handleDragMove}
+                  onDragEnd={handleDragEnd}
+                  onTerminalClick={handleTerminalClick}
+                  onToggle={handleToggle}
+                  selectedTerminal={selectedTerminal}
+                  onRemove={handleRemove}
+                  cameraRef={cameraRef}
+                  poweredIds={simResult ? new Set(simResult.poweredIds) : null}
+                  readings={simResult?.readings || null}
+                />
+              )}
+
+              {loading && (
+                <div className="cl-loading-overlay">
+                  <span className="cl-loading-spinner" />
+                  <span className="cl-loading-text">Loading circuit…</span>
+                </div>
+              )}
+
+              {simResult?.readings && Object.keys(simResult.readings).length > 0 && (
+                <ReadingsPanel readings={simResult.readings} nodes={nodes} />
+              )}
+            </div>
+
+            <ComponentPalette components={components} loading={loading} />
           </div>
         </div>
-
-        {showDetails && (
-          <div style={styles.detailsBar}>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What does this circuit do? e.g. 'ESP32-based temperature monitor that lights an LED above 30°C.'"
-              style={styles.descInput}
-              rows={2}
-            />
-          </div>
-        )}
-
-        <div style={styles.hintBar}>
-          <span style={styles.hint}>
-            Drag a part onto the board · drag a placed part to move it · click two glowing terminal dots
-            to wire them · drag empty space to orbit, scroll to zoom
-          </span>
-        </div>
-
-        {simResult && (
-          <div style={{ ...styles.resultBar, ...RESULT_STYLE[simResult.status] }}>
-            <span>{RESULT_ICON[simResult.status] || "ℹ"}</span>
-            <span>{simResult.message}</span>
-          </div>
-        )}
-
-        {simResult?.suggestions?.length > 0 && (
-          <div style={styles.suggestionsBar}>
-            {simResult.suggestions.map((s, i) => (
-              <div key={i} style={styles.suggestionRow}>
-                <span style={{ color: "var(--gold)" }}>💡</span>
-                <span>{s}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
-          <div ref={wrapperRef} style={{ flex: 1, position: "relative" }} onDragOver={onDragOver} onDrop={onDrop}>
-            {!loading && (
-              <Scene3D
-                nodes={nodes}
-                edges={edges}
-                draggingId={draggingId}
-                onDragStart={handleDragStart}
-                onDragMove={handleDragMove}
-                onDragEnd={handleDragEnd}
-                onTerminalClick={handleTerminalClick}
-                onToggle={handleToggle}
-                selectedTerminal={selectedTerminal}
-                onRemove={handleRemove}
-                cameraRef={cameraRef}
-                poweredIds={simResult ? new Set(simResult.poweredIds) : null}
-                readings={simResult?.readings || null}
-              />
-            )}
-
-            {simResult?.readings && Object.keys(simResult.readings).length > 0 && (
-              <ReadingsPanel readings={simResult.readings} nodes={nodes} />
-            )}
-          </div>
-
-          <ComponentPalette components={components} loading={loading} />
-        </div>
-      </div>
-    </AppShell>
+      </AppShell>
       <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} projectId={projectId} />
     </>
   );
@@ -323,8 +373,10 @@ function SaveStatus({ state }) {
   if (state === "idle") return null;
   const label = { saving: "Saving…", saved: "Saved", error: "Couldn't save" }[state];
   const color = state === "error" ? "var(--danger)" : "var(--primary)";
+  const icon = { saving: "○", saved: "✓", error: "✕" }[state];
   return (
-    <span className="mono" style={{ fontSize: 12, color }}>
+    <span className="mono cl-save-status" style={{ fontSize: 12, color }}>
+      <span className={state === "saving" ? "cl-spin-slow" : "cl-icon-pop"}>{icon}</span>
       {label}
     </span>
   );
@@ -339,8 +391,10 @@ function ReadingsPanel({ readings, nodes }) {
 
   if (rows.length === 0) return null;
 
+  const maxCurrent = Math.max(...rows.map((r) => r.current_mA), 1);
+
   return (
-    <div style={styles.readingsPanel}>
+    <div style={styles.readingsPanel} className="cl-readings-panel">
       <div className="eyebrow" style={{ marginBottom: 8 }}>
         Live readings
       </div>
@@ -350,14 +404,25 @@ function ReadingsPanel({ readings, nodes }) {
         <span>mA</span>
         <span>mW</span>
       </div>
-      {rows.map((r) => (
-        <div key={r.id} style={styles.readingsRow}>
+      {rows.map((r, i) => (
+        <div
+          key={r.id}
+          style={{ ...styles.readingsRow, animationDelay: `${i * 45}ms` }}
+          className="cl-readings-row"
+        >
           <span style={styles.readingsName}>{r.name}</span>
           <span className="mono">{r.voltage.toFixed(2)}</span>
           <span className="mono" style={{ color: r.current_mA > 1000 ? "var(--danger)" : "var(--text)" }}>
             {r.current_mA.toFixed(1)}
           </span>
           <span className="mono">{r.power_mW.toFixed(1)}</span>
+          <span
+            className="cl-readings-bar"
+            style={{
+              width: `${Math.max(6, (r.current_mA / maxCurrent) * 100)}%`,
+              background: r.current_mA > 1000 ? "var(--danger)" : "var(--primary)",
+            }}
+          />
         </div>
       ))}
     </div>
@@ -415,6 +480,9 @@ const styles = {
     fontSize: 12,
     fontFamily: "var(--font-display)",
     whiteSpace: "nowrap",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
   },
   saveBtn: {
     background: "var(--primary)",
@@ -435,6 +503,9 @@ const styles = {
     fontSize: 13.5,
     fontWeight: 600,
     cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
   },
   shareBtn: {
     background: "transparent",
@@ -530,6 +601,7 @@ const styles = {
     borderBottom: "1px solid var(--border)",
   },
   readingsRow: {
+    position: "relative",
     display: "grid",
     gridTemplateColumns: "1.4fr 0.7fr 0.8fr 0.8fr",
     gap: 6,
@@ -543,3 +615,182 @@ const styles = {
     color: "var(--text-dim)",
   },
 };
+
+/* ---------------------------------------------------------------------
+   Animation + micro-interaction layer. Kept separate from the inline
+   style objects above (which React needs for static layout) since
+   hover states, keyframes, and pseudo-elements aren't expressible
+   inline. Everything here is additive polish — no layout changes.
+------------------------------------------------------------------------ */
+const GLOBAL_CSS = `
+@keyframes cl-fade-slide-down {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes cl-fade-slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes cl-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes cl-pop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes cl-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes cl-run-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 190, 90, 0); }
+  50%      { box-shadow: 0 0 0 5px rgba(255, 190, 90, 0.08); }
+}
+@keyframes cl-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-3px); }
+  40%      { transform: translateX(3px); }
+  60%      { transform: translateX(-2px); }
+  80%      { transform: translateX(2px); }
+}
+@keyframes cl-dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.8); }
+}
+@keyframes cl-bar-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.cl-toolbar { position: relative; }
+
+/* project name field: animated underline on focus */
+.cl-name-wrap { position: relative; }
+.cl-name-input { transition: color 0.15s ease; }
+.cl-name-underline {
+  position: absolute;
+  left: 0; right: 0; bottom: -3px;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+.cl-name-input:focus ~ .cl-name-underline { transform: scaleX(1); }
+
+.cl-stat-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--primary);
+  animation: cl-dot-pulse 2.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+/* buttons: consistent, subtle lift + glow */
+.cl-btn {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease,
+    background 0.2s ease, border-color 0.2s ease, opacity 0.15s ease;
+  will-change: transform;
+}
+.cl-btn:hover:not(:disabled) { transform: translateY(-1px); }
+.cl-btn:active:not(:disabled) { transform: translateY(0) scale(0.97); }
+.cl-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+.cl-btn-save:hover:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(47, 214, 111, 0.35);
+}
+
+.cl-btn-ghost:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary) !important;
+}
+
+.cl-btn-run:hover:not(:disabled) {
+  box-shadow: 0 4px 16px rgba(255, 190, 90, 0.25);
+  background: rgba(255, 190, 90, 0.08);
+}
+.cl-btn-run-pulse { animation: cl-run-pulse 2.6s ease-in-out infinite; }
+.cl-btn-run-active { border-color: var(--accent); opacity: 0.9; }
+.cl-run-icon { display: inline-block; font-size: 11px; }
+.cl-spin { animation: cl-spin 0.9s linear infinite; display: inline-block; }
+.cl-spin-slow { animation: cl-spin 1.1s linear infinite; display: inline-block; }
+
+.cl-btn-public {
+  box-shadow: 0 0 0 3px rgba(47, 214, 111, 0.1);
+}
+
+.cl-save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  animation: cl-fade-in 0.2s ease;
+}
+.cl-icon-pop { display: inline-block; animation: cl-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+.cl-details-bar { animation: cl-fade-slide-down 0.2s ease; }
+.cl-textarea { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.cl-textarea:focus { border-color: var(--primary) !important; box-shadow: 0 0 0 3px rgba(47, 214, 111, 0.08); }
+
+.cl-result-bar {
+  animation: cl-fade-slide-down 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cl-result-alert { animation: cl-fade-slide-down 0.25s cubic-bezier(0.4, 0, 0.2, 1), cl-shake 0.4s ease 0.25s; }
+
+.cl-suggestion-row {
+  animation: cl-fade-slide-up 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.cl-drop-target { box-shadow: inset 0 0 0 2px rgba(47, 214, 111, 0.35); transition: box-shadow 0.15s ease; }
+
+.cl-readings-panel {
+  animation: cl-fade-slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cl-readings-row {
+  animation: cl-fade-slide-up 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
+  overflow: hidden;
+  transition: background 0.15s ease;
+  border-radius: 4px;
+}
+.cl-readings-row:hover { background: rgba(255, 255, 255, 0.03); }
+.cl-readings-bar {
+  position: absolute;
+  left: 0; bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  transform-origin: left;
+  animation: cl-bar-grow 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+  opacity: 0.6;
+}
+
+.cl-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-faint);
+  font-size: 12px;
+  animation: cl-fade-in 0.2s ease;
+}
+.cl-loading-spinner {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border-bright);
+  border-top-color: var(--primary);
+  animation: cl-spin 0.7s linear infinite;
+}
+.cl-loading-text { font-family: var(--font-display); letter-spacing: 0.03em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-toolbar *, .cl-result-bar, .cl-suggestion-row, .cl-readings-panel,
+  .cl-readings-row, .cl-details-bar, .cl-btn, .cl-stat-dot, .cl-spin,
+  .cl-spin-slow, .cl-icon-pop, .cl-loading-spinner {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+`;
