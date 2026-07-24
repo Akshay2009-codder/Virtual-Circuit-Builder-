@@ -237,6 +237,7 @@ export default function Builder() {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <SaveStatus state={saveState} />
+              <PowerIndicator status={simResult?.status} running={simRunning} />
               <button onClick={handleSave} style={styles.saveBtn} className="cl-btn cl-btn-save">
                 Save circuit
               </button>
@@ -328,8 +329,15 @@ export default function Builder() {
               onDragOver={onDragOver}
               onDragLeave={onDragLeave}
               onDrop={onDrop}
-              className={isDropTarget ? "cl-drop-target" : ""}
+              className={`cl-bench ${isDropTarget ? "cl-drop-target" : ""}`}
             >
+              <div className="cl-bench-grid" />
+              <span className="cl-corner cl-corner-tl" />
+              <span className="cl-corner cl-corner-tr" />
+              <span className="cl-corner cl-corner-bl" />
+              <span className="cl-corner cl-corner-br" />
+              <div className="cl-bench-scanline" />
+
               {!loading && (
                 <Scene3D
                   nodes={nodes}
@@ -382,6 +390,30 @@ function SaveStatus({ state }) {
   );
 }
 
+function PowerIndicator({ status, running }) {
+  // off = no sim yet, otherwise reflect the health of the last run — like the
+  // power LED on a real bench supply.
+  const map = {
+    complete: { color: "#2fd66f", label: "Powered", cls: "cl-led-on" },
+    open: { color: "#ffc94d", label: "Open loop", cls: "cl-led-amber" },
+    short: { color: "#ff4757", label: "Short circuit", cls: "cl-led-short" },
+    no_source: { color: "#7a8a99", label: "No source", cls: "cl-led-dim" },
+    error: { color: "#ff4757", label: "Fault", cls: "cl-led-amber" },
+  };
+  const cfg = running ? { color: "#ffc94d", label: "Testing…", cls: "cl-led-testing" } : map[status];
+  const dim = !running && !status;
+
+  return (
+    <span className="cl-power-indicator" title={cfg?.label || "No test run yet"}>
+      <span
+        className={`cl-led ${dim ? "cl-led-dim" : cfg.cls}`}
+        style={{ "--led-color": dim ? "#3a4650" : cfg.color }}
+      />
+      <span className="cl-power-label">{dim ? "Idle" : cfg.label}</span>
+    </span>
+  );
+}
+
 function ReadingsPanel({ readings, nodes }) {
   const nodeById = Object.fromEntries(nodes.map((n) => [n.id, n]));
   const rows = Object.entries(readings)
@@ -392,12 +424,52 @@ function ReadingsPanel({ readings, nodes }) {
   if (rows.length === 0) return null;
 
   const maxCurrent = Math.max(...rows.map((r) => r.current_mA), 1);
+  const totalCurrentMA = rows.reduce((sum, r) => sum + r.current_mA, 0);
+  const totalPowerMW = rows.reduce((sum, r) => sum + r.power_mW, 0);
+  const railVoltage = Math.max(...rows.map((r) => r.voltage), 0);
+  const totalParts = nodes.length;
+  const poweredParts = rows.length;
+  const loadPct = Math.min(100, (totalCurrentMA / 1000) * 100); // relative to a 1A reference rail
 
   return (
     <div style={styles.readingsPanel} className="cl-readings-panel">
-      <div className="eyebrow" style={{ marginBottom: 8 }}>
-        Live readings
+      <div className="cl-diag-header">
+        <span className="eyebrow">Circuit diagnostics</span>
+        <span className="cl-diag-live-dot" />
       </div>
+
+      {/* summary readout — styled like a bench multimeter */}
+      <div className="cl-diag-summary">
+        <div className="cl-diag-stat">
+          <span className="cl-diag-value mono">{railVoltage.toFixed(2)}<small>V</small></span>
+          <span className="cl-diag-label">Rail</span>
+        </div>
+        <div className="cl-diag-stat">
+          <span className="cl-diag-value mono">{totalCurrentMA.toFixed(0)}<small>mA</small></span>
+          <span className="cl-diag-label">Draw</span>
+        </div>
+        <div className="cl-diag-stat">
+          <span className="cl-diag-value mono">{totalPowerMW.toFixed(0)}<small>mW</small></span>
+          <span className="cl-diag-label">Power</span>
+        </div>
+        <div className="cl-diag-stat">
+          <span className="cl-diag-value mono">
+            {poweredParts}<small>/{totalParts}</small>
+          </span>
+          <span className="cl-diag-label">Live</span>
+        </div>
+      </div>
+
+      <div className="cl-diag-load-track" title={`${loadPct.toFixed(0)}% of reference 1A rail`}>
+        <div
+          className="cl-diag-load-fill"
+          style={{
+            width: `${loadPct}%`,
+            background: loadPct > 80 ? "var(--danger)" : loadPct > 50 ? "var(--gold)" : "var(--primary)",
+          }}
+        />
+      </div>
+
       <div style={styles.readingsHeader}>
         <span>Part</span>
         <span>V</span>
@@ -580,7 +652,7 @@ const styles = {
     position: "absolute",
     bottom: 16,
     left: 16,
-    width: 230,
+    width: 268,
     background: "rgba(16,22,29,0.92)",
     backdropFilter: "blur(6px)",
     border: "1px solid var(--border)",
@@ -785,10 +857,138 @@ const GLOBAL_CSS = `
 }
 .cl-loading-text { font-family: var(--font-display); letter-spacing: 0.03em; }
 
+/* ---- power LED (toolbar) ---- */
+@keyframes cl-led-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.25; }
+}
+.cl-power-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.cl-led {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--led-color, #3a4650);
+  box-shadow: 0 0 0 rgba(0,0,0,0);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+.cl-led-on { box-shadow: 0 0 6px 2px var(--led-color), 0 0 1px var(--led-color); }
+.cl-led-amber { box-shadow: 0 0 5px 2px var(--led-color); animation: cl-led-blink 1.6s ease-in-out infinite; }
+.cl-led-short { box-shadow: 0 0 6px 2px var(--led-color); animation: cl-led-blink 0.35s ease-in-out infinite; }
+.cl-led-testing { box-shadow: 0 0 4px 1px var(--led-color); animation: cl-led-blink 0.6s ease-in-out infinite; }
+.cl-led-dim { box-shadow: none; }
+.cl-power-label {
+  font-size: 10.5px;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+/* ---- 3D bench / HUD frame ---- */
+.cl-bench { overflow: hidden; }
+.cl-bench-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image:
+    linear-gradient(rgba(47, 214, 111, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(47, 214, 111, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse at center, black 55%, transparent 92%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 55%, transparent 92%);
+}
+.cl-bench-scanline {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.35);
+}
+.cl-corner {
+  position: absolute;
+  width: 22px; height: 22px;
+  border-color: var(--border-bright);
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 3;
+  transition: border-color 0.2s ease, opacity 0.2s ease;
+}
+.cl-corner-tl { top: 10px; left: 10px; border-top: 2px solid; border-left: 2px solid; border-radius: 3px 0 0 0; }
+.cl-corner-tr { top: 10px; right: 10px; border-top: 2px solid; border-right: 2px solid; border-radius: 0 3px 0 0; }
+.cl-corner-bl { bottom: 10px; left: 10px; border-bottom: 2px solid; border-left: 2px solid; border-radius: 0 0 0 3px; }
+.cl-corner-br { bottom: 10px; right: 10px; border-bottom: 2px solid; border-right: 2px solid; border-radius: 0 0 3px 0; }
+.cl-drop-target .cl-corner { border-color: var(--primary); opacity: 1; }
+
+/* ---- diagnostics panel ---- */
+.cl-diag-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.cl-diag-live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 5px 1px var(--primary);
+  animation: cl-dot-pulse 1.8s ease-in-out infinite;
+}
+.cl-diag-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 8px 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.cl-diag-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.cl-diag-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  text-shadow: 0 0 8px rgba(47, 214, 111, 0.35);
+}
+.cl-diag-value small { font-size: 8.5px; font-weight: 600; margin-left: 1px; opacity: 0.75; }
+.cl-diag-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  font-family: var(--font-display);
+}
+.cl-diag-load-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.cl-diag-load-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cl-toolbar *, .cl-result-bar, .cl-suggestion-row, .cl-readings-panel,
   .cl-readings-row, .cl-details-bar, .cl-btn, .cl-stat-dot, .cl-spin,
-  .cl-spin-slow, .cl-icon-pop, .cl-loading-spinner {
+  .cl-spin-slow, .cl-icon-pop, .cl-loading-spinner, .cl-led-amber,
+  .cl-led-short, .cl-led-testing, .cl-diag-live-dot {
     animation: none !important;
     transition: none !important;
   }
