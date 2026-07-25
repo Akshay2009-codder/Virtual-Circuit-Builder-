@@ -52,6 +52,47 @@ export default function Scene3D({
       <directionalLight position={[-4, 3, -3]} intensity={0.35} color="#ff6f5e" />
       <pointLight position={[0, 3, 0]} intensity={0.25} color="#2fd66f" />
 
+      {/* corner accent lights — angled in from all four corners so every
+          placed component gets lit from the sides and stays clearly
+          visible no matter which way the camera is orbited. These are
+          additive to the lighting above, not a replacement for it. */}
+      <spotLight
+        position={[5.5, 3.4, 5.5]}
+        target-position={[0, 0, 0]}
+        angle={0.55}
+        penumbra={0.75}
+        intensity={0.7}
+        distance={17}
+        color="#ffffff"
+      />
+      <spotLight
+        position={[-5.5, 3.4, 5.5]}
+        target-position={[0, 0, 0]}
+        angle={0.55}
+        penumbra={0.75}
+        intensity={0.7}
+        distance={17}
+        color="#ffffff"
+      />
+      <spotLight
+        position={[5.5, 3.4, -5.5]}
+        target-position={[0, 0, 0]}
+        angle={0.55}
+        penumbra={0.75}
+        intensity={0.55}
+        distance={17}
+        color="#dceeff"
+      />
+      <spotLight
+        position={[-5.5, 3.4, -5.5]}
+        target-position={[0, 0, 0]}
+        angle={0.55}
+        penumbra={0.75}
+        intensity={0.55}
+        distance={17}
+        color="#dceeff"
+      />
+
       <CameraCapture cameraRef={cameraRef} />
 
       {/* wooden workbench desk beneath everything */}
