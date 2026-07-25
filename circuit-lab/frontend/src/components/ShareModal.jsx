@@ -5,7 +5,7 @@ import client from "../api/client";
 export default function ShareModal({ open, onClose, projectId }) {
   const [collaborators, setCollaborators] = useState([]);
   const [pendingInvites, setPendingInvites] = useState([]);
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
@@ -26,13 +26,13 @@ export default function ShareModal({ open, onClose, projectId }) {
 
   async function handleSend(e) {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!username.trim()) return;
     setSending(true);
     setError("");
     try {
-      const res = await client.post(`/projects/${projectId}/invites`, { email: email.trim() });
+      const res = await client.post(`/projects/${projectId}/invites`, { username: username.trim() });
       setPendingInvites((inv) => [res.data.invite, ...inv.filter((i) => i.id !== res.data.invite.id)]);
-      setEmail("");
+      setUsername("");
     } catch (err) {
       setError(err.response?.data?.error || "Couldn't send that request.");
     } finally {
@@ -70,10 +70,10 @@ export default function ShareModal({ open, onClose, projectId }) {
 
             <form onSubmit={handleSend} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="teammate@email.com"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="their_username"
                 style={styles.input}
               />
               <button type="submit" disabled={sending} style={styles.addBtn}>
@@ -94,7 +94,7 @@ export default function ShareModal({ open, onClose, projectId }) {
                     <div key={i.id} style={styles.collabRow}>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 600 }}>{i.to_name}</div>
-                        <div style={{ fontSize: 11.5, color: "var(--text-faint)" }}>{i.to_email}</div>
+                        <div style={{ fontSize: 11.5, color: "var(--text-faint)" }}>@{i.to_username}</div>
                       </div>
                       <span style={{ fontSize: 11.5, color: "var(--gold)" }}>⏳ Pending</span>
                     </div>
@@ -114,7 +114,7 @@ export default function ShareModal({ open, onClose, projectId }) {
                 <div key={c.id} style={styles.collabRow}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600 }}>{c.name}</div>
-                    <div style={{ fontSize: 11.5, color: "var(--text-faint)" }}>{c.email}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--text-faint)" }}>@{c.username}</div>
                   </div>
                   <button onClick={() => handleRemove(c.id)} style={styles.removeBtn}>
                     Remove
