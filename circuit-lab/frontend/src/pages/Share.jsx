@@ -20,16 +20,42 @@ const STATUS_COLOR = {
 const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const cardVariants = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
 
+// Demo circuit shown alongside real community submissions. Uses a
+// "demo-" id so toggleLike updates it locally instead of hitting the
+// API — there's no backend row for it.
+const DEMO_PROJECTS = [
+  {
+    id: "demo-yash-desai-1",
+    name: "ESP32 Weather Station",
+    description: "Reads a DHT22 sensor and lights an LED indicator whenever the temperature crosses 30°C.",
+    owner_name: "Yash_Desai",
+    last_run_status: "complete",
+    liked_by_me: false,
+    like_count: 24,
+    comment_count: 5,
+    component_count: 12,
+  },
+];
+
 export default function Share() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
 
+  function matchesQuery(p, q) {
+    if (!q) return true;
+    const needle = q.toLowerCase();
+    return p.name.toLowerCase().includes(needle) || (p.description || "").toLowerCase().includes(needle);
+  }
+
   function load(q = "") {
     setLoading(true);
     client
       .get("/community/projects", { params: q ? { q } : {} })
-      .then((res) => setProjects(res.data.projects))
+      .then((res) => {
+        const demo = DEMO_PROJECTS.filter((p) => matchesQuery(p, q));
+        setProjects([...demo, ...res.data.projects]);
+      })
       .finally(() => setLoading(false));
   }
 
@@ -46,6 +72,16 @@ export default function Share() {
   async function toggleLike(e, projectId) {
     e.preventDefault();
     e.stopPropagation();
+    if (String(projectId).startsWith("demo-")) {
+      setProjects((ps) =>
+        ps.map((p) =>
+          p.id === projectId
+            ? { ...p, liked_by_me: !p.liked_by_me, like_count: p.like_count + (p.liked_by_me ? -1 : 1) }
+            : p
+        )
+      );
+      return;
+    }
     const res = await client.post(`/community/projects/${projectId}/like`);
     setProjects((ps) =>
       ps.map((p) => (p.id === projectId ? { ...p, liked_by_me: res.data.liked, like_count: res.data.like_count } : p))
