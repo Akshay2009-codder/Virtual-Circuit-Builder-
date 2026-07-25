@@ -22,7 +22,10 @@ const cardVariants = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, 
 
 // Demo circuit shown alongside real community submissions. Uses a
 // "demo-" id so toggleLike updates it locally instead of hitting the
-// API — there's no backend row for it.
+// API — there's no backend row for it. circuit_json below is a real,
+// wired circuit (not just a name/description): a 9V battery through a
+// switch and resistor lights an LED, with the ESP32 + DHT22 sensor
+// tapped off the same rail — so it's an actual loop, not a placeholder.
 const DEMO_PROJECTS = [
   {
     id: "demo-yash-desai-1",
@@ -33,7 +36,94 @@ const DEMO_PROJECTS = [
     liked_by_me: false,
     like_count: 24,
     comment_count: 5,
-    component_count: 12,
+    component_count: 6,
+    circuit_json: {
+      nodes: [
+        {
+          id: "d1",
+          key: "battery_9v",
+          name: "9V Battery",
+          category: "power",
+          unit: "V",
+          default_value: 9,
+          component_id: 101,
+          modelType: "battery",
+          x: -1.5,
+          z: 0,
+        },
+        {
+          id: "d2",
+          key: "switch",
+          name: "Toggle Switch",
+          category: "control",
+          unit: null,
+          default_value: null,
+          component_id: 102,
+          modelType: "switch",
+          on: true,
+          x: -0.5,
+          z: 0,
+        },
+        {
+          id: "d3",
+          key: "resistor",
+          name: "Resistor",
+          category: "passive",
+          unit: "Ω",
+          default_value: 220,
+          component_id: 103,
+          modelType: "resistor",
+          x: 0.5,
+          z: 0,
+        },
+        {
+          id: "d4",
+          key: "led",
+          name: "LED Indicator",
+          category: "output",
+          unit: null,
+          default_value: null,
+          component_id: 104,
+          modelType: "led",
+          x: 1.5,
+          z: 0,
+        },
+        {
+          id: "d5",
+          key: "esp32",
+          name: "ESP32 Dev Board",
+          category: "ic",
+          unit: null,
+          default_value: null,
+          component_id: 105,
+          modelType: "esp32",
+          x: -1.5,
+          z: 1.2,
+        },
+        {
+          id: "d6",
+          key: "dht22",
+          name: "DHT22 Sensor",
+          category: "sensor",
+          unit: "°C",
+          default_value: null,
+          component_id: 106,
+          modelType: "dht22",
+          x: -0.5,
+          z: 1.2,
+        },
+      ],
+      edges: [
+        { id: "de1", sourceId: "d1", sourceTerminal: "a", targetId: "d2", targetTerminal: "a" },
+        { id: "de2", sourceId: "d2", sourceTerminal: "b", targetId: "d3", targetTerminal: "a" },
+        { id: "de3", sourceId: "d3", sourceTerminal: "b", targetId: "d4", targetTerminal: "a" },
+        { id: "de4", sourceId: "d4", sourceTerminal: "b", targetId: "d1", targetTerminal: "b" },
+        { id: "de5", sourceId: "d5", sourceTerminal: "a", targetId: "d1", targetTerminal: "a" },
+        { id: "de6", sourceId: "d5", sourceTerminal: "b", targetId: "d1", targetTerminal: "b" },
+        { id: "de7", sourceId: "d6", sourceTerminal: "a", targetId: "d5", targetTerminal: "a" },
+        { id: "de8", sourceId: "d6", sourceTerminal: "b", targetId: "d5", targetTerminal: "b" },
+      ],
+    },
   },
 ];
 
