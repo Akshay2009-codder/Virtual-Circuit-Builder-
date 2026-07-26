@@ -44,7 +44,6 @@ export default function Register() {
       return;
     }
     const password = form.password.trim();
-    console.log("DEBUG password from state:", JSON.stringify(password), "length:", password.length);
     if (!PASSWORD_RE.test(password)) {
       setFormError(`Password must be ${PASSWORD_HINT}`);
       return;
