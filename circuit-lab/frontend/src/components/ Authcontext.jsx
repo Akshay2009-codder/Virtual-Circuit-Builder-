@@ -28,8 +28,6 @@ export function AuthProvider({ children }) {
   }
 
   async function register(name, username, password) {
-    // Account is created and verified immediately - no email/OTP step.
-    // Backend returns a token straight away, same as login.
     const res = await client.post("/auth/register", { name, username, password });
     localStorage.setItem("cl_token", res.data.token);
     setUser(res.data.user);
