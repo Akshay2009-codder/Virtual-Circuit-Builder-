@@ -36,6 +36,12 @@ export default function AppShell({ children }) {
         </nav>
 
         <div style={styles.userArea}>
+          <NavLink to="/people" style={styles.iconBtn} title="Find people">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+          </NavLink>
           <NotificationBell />
           <span style={{ color: "var(--text-dim)", fontSize: 13.5 }}>{user?.name}</span>
           <button onClick={logout} style={styles.logoutBtn}>
@@ -88,6 +94,16 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: 14,
+  },
+  iconBtn: {
+    display: "grid",
+    placeItems: "center",
+    width: 34,
+    height: 34,
+    borderRadius: "var(--radius-sm)",
+    border: "1px solid var(--border-bright)",
+    color: "var(--text-dim)",
+    textDecoration: "none",
   },
   logoutBtn: {
     background: "transparent",
