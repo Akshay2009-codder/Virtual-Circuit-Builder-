@@ -65,6 +65,7 @@ def _run_solve(nodes, edges):
     same status/message/readings shape the frontend already expects."""
     node_by_id = {n["id"]: n for n in nodes}
     result = solve_circuit(nodes, edges)
+    pin_voltages = result.get("board_pin_voltages", {})
 
     if not result["ok"]:
         status = "no_source"
@@ -99,7 +100,7 @@ def _run_solve(nodes, edges):
             message = "Open circuit — there's no complete path back to the power source, so no current flows. Check your wiring."
 
     suggestions = build_suggestions(status, nodes, edges, readings)
-    return status, message, readings, powered_ids, suggestions
+    return status, message, readings, powered_ids, suggestions, pin_voltages
 
 
 @simulate_bp.post("/<int:project_id>/simulate")
@@ -116,7 +117,7 @@ def simulate_circuit(project_id):
     nodes = circuit.get("nodes", [])
     edges = circuit.get("edges", [])
 
-    status, message, readings, powered_ids, suggestions = _run_solve(nodes, edges)
+    status, message, readings, powered_ids, suggestions, pin_voltages = _run_solve(nodes, edges)
 
     project.last_run_status = status
     project.last_run_at = datetime.now(timezone.utc)
@@ -129,6 +130,7 @@ def simulate_circuit(project_id):
         "poweredIds": powered_ids,
         "suggestions": suggestions,
         "readings": readings,
+        "pinVoltages": pin_voltages,
     }), 200
 
 
@@ -152,7 +154,7 @@ def simulate_live(project_id):
     nodes = data.get("nodes") or []
     edges = data.get("edges") or []
 
-    status, message, readings, powered_ids, suggestions = _run_solve(nodes, edges)
+    status, message, readings, powered_ids, suggestions, pin_voltages = _run_solve(nodes, edges)
 
     return jsonify({
         "status": status,
@@ -160,4 +162,5 @@ def simulate_live(project_id):
         "poweredIds": powered_ids,
         "suggestions": suggestions,
         "readings": readings,
+        "pinVoltages": pin_voltages,
     }), 200
