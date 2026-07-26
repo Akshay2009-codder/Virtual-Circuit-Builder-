@@ -4,6 +4,9 @@ import { OrbitControls, Grid, ContactShadows } from "@react-three/drei";
 import PlacedPart3D from "./PlacedPart3D";
 import Wire3D from "./Wire3D";
 
+const BOARD_X_OFFSET = 0.85;
+const BOARD_PIN_PITCH = 0.16;
+
 function CameraCapture({ cameraRef }) {
   const { camera } = useThree();
   useEffect(() => {
@@ -21,6 +24,7 @@ export default function Scene3D({
   onDragEnd,
   onTerminalClick,
   onToggle,
+  onOpenCode,
   selectedTerminal,
   onRemove,
   cameraRef,
@@ -30,6 +34,21 @@ export default function Scene3D({
   function terminalWorldPos(nodeId, terminal) {
     const n = nodes.find((x) => x.id === nodeId);
     if (!n) return [0, 0.12, 0];
+
+    // Multi-pin board (ESP32 etc) - mirror PlacedPart3D's pin layout math
+    // so wires land exactly on the pin dot instead of the old fixed a/b spot.
+    if (Array.isArray(n.pins) && n.pins.length > 0) {
+      const pin = n.pins.find((p) => p.terminal === terminal);
+      if (pin) {
+        const col = n.pins.filter((p) => p.side === pin.side);
+        const count = col.length;
+        const idxInCol = pin.order ?? col.findIndex((p) => p.terminal === pin.terminal);
+        const z = n.z + (idxInCol - (count - 1) / 2) * BOARD_PIN_PITCH;
+        const x = n.x + (pin.side === "left" ? -BOARD_X_OFFSET : BOARD_X_OFFSET);
+        return [x, 0.1, z];
+      }
+    }
+
     const dx = terminal === "a" ? -0.55 : 0.55;
     return [n.x + dx, 0.12, n.z];
   }
@@ -140,6 +159,7 @@ export default function Scene3D({
           onRemove={onRemove}
           onTerminalClick={onTerminalClick}
           onToggle={onToggle}
+          onOpenCode={onOpenCode}
           powered={poweredIds ? poweredIds.has(n.id) : false}
           reading={readings ? readings[n.id] : null}
           isTerminalSelected={(id, t) =>
