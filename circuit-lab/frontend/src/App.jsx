@@ -13,6 +13,7 @@ import Builder from "./pages/Builder";
 import Tutorials from "./pages/Tutorials";
 import Share from "./pages/Share";
 import CircuitView from "./pages/CircuitView";
+import Profile from "./pages/Profile";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -77,6 +78,14 @@ function AnimatedRoutes() {
           element={
             <ProtectedRoute>
               <PageTransition><CircuitView /></PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/u/:username"
+          element={
+            <ProtectedRoute>
+              <PageTransition><Profile /></PageTransition>
             </ProtectedRoute>
           }
         />
