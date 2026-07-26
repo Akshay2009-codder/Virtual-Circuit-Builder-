@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import ComponentPalette from "../components/builder/ComponentPalette";
 import Scene3D from "../components/builder3d/Scene3D";
@@ -13,6 +13,7 @@ const nextId = () => `n${idCounter++}`;
 export default function Builder() {
   const { id } = useParams(); // undefined => new project
   const navigate = useNavigate();
+  const location = useLocation();
   const wrapperRef = useRef(null);
   const cameraRef = useRef(null);
 
@@ -40,7 +41,7 @@ export default function Builder() {
     client.get("/components").then((res) => setComponents(res.data.components));
   }, []);
 
-  // Load an existing project if editing one
+  // Load an existing saved project if editing one (real numeric id)
   useEffect(() => {
     if (!id) {
       setLoading(false);
@@ -59,6 +60,25 @@ export default function Builder() {
       })
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Load a shared/demo circuit opened from the community page (e.g. Share.jsx
+  // navigating to /builder with state instead of a real /projects/:id route -
+  // demo circuits have no backend row, so there's nothing to fetch by id).
+  useEffect(() => {
+    const shared = location.state;
+    if (!shared?.fromShared || !shared.circuit) return;
+
+    setProjectName(shared.projectName || "Untitled Circuit");
+    setNodes(shared.circuit.nodes || []);
+    setEdges(shared.circuit.edges || []);
+    setProjectId(null); // treat as a fresh, unsaved project - "Save circuit" creates a new one
+    setLoading(false);
+
+    // Clear the navigation state so refreshing or coming back here later
+    // doesn't reload the shared circuit again over the user's own edits.
+    navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // any edit invalidates the last simulation result
   useEffect(() => {
@@ -391,8 +411,6 @@ function SaveStatus({ state }) {
 }
 
 function PowerIndicator({ status, running }) {
-  // off = no sim yet, otherwise reflect the health of the last run — like the
-  // power LED on a real bench supply.
   const map = {
     complete: { color: "#2fd66f", label: "Powered", cls: "cl-led-on" },
     open: { color: "#ffc94d", label: "Open loop", cls: "cl-led-amber" },
@@ -429,7 +447,7 @@ function ReadingsPanel({ readings, nodes }) {
   const railVoltage = Math.max(...rows.map((r) => r.voltage), 0);
   const totalParts = nodes.length;
   const poweredParts = rows.length;
-  const loadPct = Math.min(100, (totalCurrentMA / 1000) * 100); // relative to a 1A reference rail
+  const loadPct = Math.min(100, (totalCurrentMA / 1000) * 100);
 
   return (
     <div style={styles.readingsPanel} className="cl-readings-panel">
@@ -438,7 +456,6 @@ function ReadingsPanel({ readings, nodes }) {
         <span className="cl-diag-live-dot" />
       </div>
 
-      {/* summary readout — styled like a bench multimeter */}
       <div className="cl-diag-summary">
         <div className="cl-diag-stat">
           <span className="cl-diag-value mono">{railVoltage.toFixed(2)}<small>V</small></span>
@@ -688,12 +705,6 @@ const styles = {
   },
 };
 
-/* ---------------------------------------------------------------------
-   Animation + micro-interaction layer. Kept separate from the inline
-   style objects above (which React needs for static layout) since
-   hover states, keyframes, and pseudo-elements aren't expressible
-   inline. Everything here is additive polish — no layout changes.
------------------------------------------------------------------------- */
 const GLOBAL_CSS = `
 @keyframes cl-fade-slide-down {
   from { opacity: 0; transform: translateY(-6px); }
@@ -737,7 +748,6 @@ const GLOBAL_CSS = `
 
 .cl-toolbar { position: relative; }
 
-/* project name field: animated underline on focus */
 .cl-name-wrap { position: relative; }
 .cl-name-input { transition: color 0.15s ease; }
 .cl-name-underline {
@@ -760,7 +770,6 @@ const GLOBAL_CSS = `
   flex-shrink: 0;
 }
 
-/* buttons: consistent, subtle lift + glow */
 .cl-btn {
   transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease,
     background 0.2s ease, border-color 0.2s ease, opacity 0.15s ease;
@@ -857,7 +866,6 @@ const GLOBAL_CSS = `
 }
 .cl-loading-text { font-family: var(--font-display); letter-spacing: 0.03em; }
 
-/* ---- power LED (toolbar) ---- */
 @keyframes cl-led-blink {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.25; }
@@ -892,7 +900,6 @@ const GLOBAL_CSS = `
   white-space: nowrap;
 }
 
-/* ---- 3D bench / HUD frame ---- */
 .cl-bench { overflow: hidden; }
 .cl-bench-grid {
   position: absolute;
@@ -928,7 +935,6 @@ const GLOBAL_CSS = `
 .cl-corner-br { bottom: 10px; right: 10px; border-bottom: 2px solid; border-right: 2px solid; border-radius: 0 0 3px 0; }
 .cl-drop-target .cl-corner { border-color: var(--primary); opacity: 1; }
 
-/* ---- diagnostics panel ---- */
 .cl-diag-header {
   display: flex;
   align-items: center;
