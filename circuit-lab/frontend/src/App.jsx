@@ -14,6 +14,7 @@ import Tutorials from "./pages/Tutorials";
 import Share from "./pages/Share";
 import CircuitView from "./pages/CircuitView";
 import Profile from "./pages/Profile";
+import PeopleSearch from "./components/PeopleSearch";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -86,6 +87,14 @@ function AnimatedRoutes() {
           element={
             <ProtectedRoute>
               <PageTransition><Profile /></PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/people"
+          element={
+            <ProtectedRoute>
+              <PageTransition><PeopleSearch /></PageTransition>
             </ProtectedRoute>
           }
         />
