@@ -182,10 +182,10 @@ class ProjectInvite(db.Model):
             "project_name": project.name if project else "Untitled Circuit",
             "from_user_id": self.from_user_id,
             "from_name": sender.name if sender else "Unknown",
-            "from_email": sender.email if sender else "",
+            "from_username": sender.username if sender else "",
             "to_user_id": self.to_user_id,
             "to_name": recipient.name if recipient else "Unknown",
-            "to_email": recipient.email if recipient else "",
+            "to_username": recipient.username if recipient else "",
             "status": self.status,
             "created_at": self.created_at.isoformat(),
         }

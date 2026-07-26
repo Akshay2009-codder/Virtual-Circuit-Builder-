@@ -4,17 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="18ec7e2b-695b-4e0a-9aa1-5df37d72c61a" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/Virtual Circuit Builder.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Virtual Circuit Builder.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/File_structure.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/et --hard 0d2cc3d" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/project.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/register.json" beforeDir="false" />
-    </list>
+    <list default="true" id="18ec7e2b-695b-4e0a-9aa1-5df37d72c61a" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
