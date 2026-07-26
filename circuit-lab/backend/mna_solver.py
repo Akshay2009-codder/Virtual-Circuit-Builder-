@@ -12,6 +12,12 @@ SPICE clone):
     on/off check, not full Newton-Raphson iteration
   - Transistors, MOSFETs, and ICs aren't behaviorally simulated - they
     simply don't conduct (see electrical_models.py)
+  - A microcontroller board (ESP32, Arduino, etc) is expanded into several
+    independent ideal voltage sources - one per powered/driven pin, all
+    referenced to the board's own ground pin(s) - rather than modeled as a
+    single two-terminal element. An undriven GPIO pin (no pin_states entry
+    for it) is treated as floating/open, not as 0V, until code is actually
+    running on the board and calling digitalWrite/pinMode.
 
 Terminology: a "net" is a set of terminal points that are all electrically
 the same node (joined by wires or zero-resistance parts) - equivalent to a
@@ -21,7 +27,7 @@ node in SPICE.
 import numpy as np
 from collections import defaultdict, deque
 
-from electrical_models import classify, resistor_ohms, diode_forward_voltage, source_volts
+from electrical_models import classify, resistor_ohms, diode_forward_voltage, source_volts, board_pins
 
 
 class _UnionFind:
@@ -53,6 +59,16 @@ def solve_circuit(nodes, edges):
     for n in nodes:
         if classify(n) == "zero":
             uf.union((n["id"], "a"), (n["id"], "b"))
+
+    # A board's own ground pins (there can be more than one, e.g. the ESP32
+    # has two GND pins) are always the same net on the board itself, even
+    # before any wire connects them - merge those up front.
+    for n in nodes:
+        if classify(n) == "board":
+            gnd_terms = [p["terminal"] for p in board_pins(n) if p.get("role") == "ground"]
+            for t in gnd_terms[1:]:
+                uf.union((n["id"], t), (n["id"], gnd_terms[0]))
+
     for e in edges:
         uf.union((e["sourceId"], e["sourceTerminal"]), (e["targetId"], e["targetTerminal"]))
 
@@ -62,6 +78,8 @@ def solve_circuit(nodes, edges):
     resistors, diodes, sources = [], [], []
     for n in nodes:
         kind = classify(n)
+        if kind == "board":
+            continue  # handled separately below - a board isn't a two-terminal element
         a, b = net(n["id"], "a"), net(n["id"], "b")
         if kind == "resistor":
             ohms = resistor_ohms(n)
@@ -71,6 +89,30 @@ def solve_circuit(nodes, edges):
             diodes.append({"id": n["id"], "anode": a, "cathode": b, "vf": diode_forward_voltage(n)})
         elif kind == "source":
             sources.append({"id": n["id"], "pos": a, "neg": b, "volts": source_volts(n)})
+
+    # Expand each board into independent sources: one per powered pin
+    # (3V3/VIN) and one per GPIO pin that's actively being driven, all
+    # referenced to that board's own ground net. An undriven GPIO is left
+    # out entirely - it floats, exactly like a real input-mode/unconfigured
+    # pin, rather than pulling to 0V.
+    for n in nodes:
+        if classify(n) != "board":
+            continue
+        pins = board_pins(n)
+        gnd_terms = [p["terminal"] for p in pins if p.get("role") == "ground"]
+        if not gnd_terms:
+            continue
+        board_gnd = net(n["id"], gnd_terms[0])
+        pin_states = n.get("pin_states") or {}
+
+        for p in pins:
+            role = p.get("role")
+            term = p["terminal"]
+            if role == "power":
+                volts = p.get("volts") or n.get("default_value") or 3.3
+                sources.append({"id": f'{n["id"]}::{term}', "pos": net(n["id"], term), "neg": board_gnd, "volts": volts})
+            elif role == "gpio" and term in pin_states:
+                sources.append({"id": f'{n["id"]}::{term}', "pos": net(n["id"], term), "neg": board_gnd, "volts": pin_states[term]})
 
     if not sources:
         return {"ok": False}
