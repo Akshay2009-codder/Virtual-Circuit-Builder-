@@ -13,6 +13,7 @@ class User(db.Model):
     username = db.Column(db.String(30), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
+    bio = db.Column(db.Text, default="")
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Email verification via OTP - unverified accounts can't log in yet.
@@ -33,8 +34,45 @@ class User(db.Model):
             "name": self.name,
             "username": self.username,
             "email": self.email,
+            "bio": self.bio or "",
             "created_at": self.created_at.isoformat(),
         }
+
+    def to_public_dict(self, viewer_id=None):
+        # Used on profile pages / search results / follower lists -
+        # deliberately leaves out email, unlike to_dict().
+        follower_count = Follow.query.filter_by(followee_id=self.id).count()
+        following_count = Follow.query.filter_by(follower_id=self.id).count()
+        project_count = Project.query.filter_by(user_id=self.id, is_public=True).count()
+        is_following = (
+            viewer_id is not None
+            and Follow.query.filter_by(follower_id=int(viewer_id), followee_id=self.id).first() is not None
+        )
+        return {
+            "id": self.id,
+            "name": self.name,
+            "username": self.username,
+            "bio": self.bio or "",
+            "follower_count": follower_count,
+            "following_count": following_count,
+            "project_count": project_count,
+            "is_following": is_following,
+            "is_me": viewer_id is not None and int(viewer_id) == self.id,
+            "created_at": self.created_at.isoformat(),
+        }
+
+
+# --- Following: lets one user follow another. Directional - if A follows B,
+# that does not mean B follows A. ---
+
+class Follow(db.Model):
+    __tablename__ = "follows"
+    __table_args__ = (db.UniqueConstraint("follower_id", "followee_id", name="uq_follow_pair"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    follower_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    followee_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 # --- Project: circuits users build. circuit_json holds the react-flow graph. ---
@@ -87,6 +125,7 @@ class Project(db.Model):
             "name": self.name,
             "description": self.description or "",
             "owner_name": owner.name if owner else "Unknown",
+            "owner_username": owner.username if owner else "",
             "component_count": len((self.circuit_json or {}).get("nodes", [])),
             "last_run_status": self.last_run_status,
             "like_count": ProjectLike.query.filter_by(project_id=self.id).count(),
