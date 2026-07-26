@@ -32,7 +32,11 @@ export default function AppShell({ children }) {
 
         <div style={styles.userArea}>
           <NotificationBell />
-          <span style={{ color: "var(--text-dim)", fontSize: 13.5 }}>{user?.name}</span>
+          {user?.username && (
+            <NavLink to={`/u/${user.username}`} style={styles.profileLink} title="Your profile">
+              <span style={{ color: "var(--text-dim)", fontSize: 13.5 }}>{user?.name}</span>
+            </NavLink>
+          )}
           <button onClick={logout} style={styles.logoutBtn}>
             Sign out
           </button>
@@ -83,6 +87,9 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: 14,
+  },
+  profileLink: {
+    textDecoration: "none",
   },
   logoutBtn: {
     background: "transparent",
