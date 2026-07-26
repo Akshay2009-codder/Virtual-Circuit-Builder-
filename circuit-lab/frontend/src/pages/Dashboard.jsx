@@ -257,11 +257,21 @@ export default function Dashboard() {
 
   const [toast, setToast] = useState(null);
 
-  useEffect(() => {
+  function loadProjects() {
     client
       .get("/projects")
       .then((res) => setProjects(res.data.projects))
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadProjects();
+
+    // NotificationBell lives in AppShell and stays mounted across page
+    // navigation, so accepting an invite there won't otherwise trigger
+    // this component to refetch - listen for its event instead.
+    window.addEventListener("project-invite-accepted", loadProjects);
+    return () => window.removeEventListener("project-invite-accepted", loadProjects);
   }, []);
 
   useEffect(() => {
