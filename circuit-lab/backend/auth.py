@@ -33,13 +33,14 @@ def register():
     data = request.get_json(silent=True) or {}
     name = (data.get("name") or "").strip()
     username = (data.get("username") or "").strip().lower()
-    password = data.get("password") or ""
+    password = (data.get("password") or "").strip()
 
     if not name or len(name) < 2:
         return jsonify({"error": "Name must be at least 2 characters."}), 400
     if not USERNAME_RE.match(username):
         return jsonify({"error": "Username must be 3-20 characters: letters, numbers, and underscores only."}), 400
     if not PASSWORD_RE.match(password):
+        print(f"[register] password failed regex — repr={password!r} len={len(password)}")
         return jsonify({"error": PASSWORD_HINT}), 400
 
     existing = User.query.filter_by(username=username).first()
