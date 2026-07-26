@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import AppShell from "../components/AppShell";
 import client from "../api/client";
@@ -28,14 +28,14 @@ const cardVariants = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, 
 // resistor — a genuine, buildable dual-LED emergency torch circuit.
 const DEMO_PROJECTS = [
   {
-    id: "demo-yash10-1",
+    id: "demo-yash11-1",
     name: "Dual-LED Emergency Torch",
     description: "A 9V battery drives two LEDs in series, each protected by its own current-limiting resistor, switched on/off with a toggle — a simple, real emergency flashlight circuit.",
-    owner_name: "Yash_10",
+    owner_name: "Yash_11",
     last_run_status: "complete",
     liked_by_me: false,
-    like_count: 12,
-    comment_count: 2,
+    like_count: 132,
+    comment_count: 18,
     component_count: 5,
     circuit_json: {
       nodes: [
@@ -126,9 +126,30 @@ const DEMO_PROJECTS = [
 ];
 
 export default function Share() {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+
+  // Demo circuits (id starts with "demo-") have no backend row, so
+  // /circuits/:id would 404 against the API ("isn't public, or doesn't
+  // exist"). For those we skip the detail page entirely and open the
+  // circuit_json straight in the builder via router navigation state.
+  // Real community projects still go through the normal detail route.
+  function openProject(e, p) {
+    if (String(p.id).startsWith("demo-")) {
+      e.preventDefault();
+      navigate("/builder", {
+        state: {
+          fromShared: true,
+          projectName: p.name,
+          ownerName: p.owner_name,
+          circuit: p.circuit_json,
+        },
+      });
+    }
+    // otherwise let the <Link> navigate normally to /circuits/:id
+  }
 
   function matchesQuery(p, q) {
     if (!q) return true;
@@ -209,7 +230,7 @@ export default function Share() {
           <motion.div style={styles.grid} variants={gridVariants} initial="hidden" animate="show">
             {projects.map((p) => (
               <motion.div key={p.id} variants={cardVariants}>
-                <Link to={`/circuits/${p.id}`} style={styles.card}>
+                <Link to={`/circuits/${p.id}`} onClick={(e) => openProject(e, p)} style={styles.card}>
                   <div style={styles.cardTop}>
                     <span style={styles.cardName}>{p.name}</span>
                     {p.last_run_status && (
