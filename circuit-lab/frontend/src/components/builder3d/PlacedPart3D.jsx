@@ -43,6 +43,7 @@ export default function PlacedPart3D({
   onRemove,
   onTerminalClick,
   onToggle,
+  onOpenCode,
   isTerminalSelected,
   powered,
   reading,
@@ -62,6 +63,7 @@ export default function PlacedPart3D({
   // time from the catalog component's spec.pins. Everything else keeps the
   // original simple two-terminal a/b layout.
   const hasBoardPins = Array.isArray(node.pins) && node.pins.length > 0;
+  const isCodeable = node.category === "board" && typeof onOpenCode === "function";
 
   return (
     <group position={[node.x, 0, node.z]}>
@@ -75,7 +77,8 @@ export default function PlacedPart3D({
       {powered && isLed && <pointLight position={[0, 0.9, 0]} intensity={1.4} distance={2.2} color="#ff5555" />}
       {powered && !isLed && <pointLight position={[0, 0.7, 0]} intensity={0.35} distance={1.6} color="#3ddc84" />}
 
-      {/* invisible drag handle beneath the part - also toggles switches on click */}
+      {/* invisible drag handle beneath the part - also toggles switches on
+          click, and opens the code editor on double-click for boards */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0.015, 0]}
@@ -87,6 +90,12 @@ export default function PlacedPart3D({
           if (isToggleable) {
             e.stopPropagation();
             onToggle(node.id);
+          }
+        }}
+        onDoubleClick={(e) => {
+          if (isCodeable) {
+            e.stopPropagation();
+            onOpenCode(node.id);
           }
         }}
         onPointerOver={(e) => {
@@ -187,6 +196,18 @@ export default function PlacedPart3D({
               )
             )}
           </div>
+          {isCodeable && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenCode(node.id);
+              }}
+              title="Edit code"
+              style={{ marginRight: 2 }}
+            >
+              {"</>"}
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
