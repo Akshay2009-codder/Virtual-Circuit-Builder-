@@ -6,6 +6,17 @@ import { CATEGORY_COLOR } from "../../constants/categoryColors";
 const SCALE = 0.34;
 const TERMINAL_OFFSET = 0.55;
 
+// Boards (ESP32 etc) have many pins laid out in two columns instead of the
+// simple left/right pair every other part uses.
+const BOARD_X_OFFSET = 0.85;
+const BOARD_PIN_PITCH = 0.16;
+
+const PIN_ROLE_COLOR = {
+  power: "#ff4757",
+  ground: "#4a4a4a",
+  gpio: "#45d8c4",
+};
+
 // Parts where terminal order actually matters in real life. Terminal "a"
 // (left) is treated as positive/anode, "b" (right) as negative/cathode -
 // matches real red/black wire convention and gives a visual +/- marker.
@@ -47,11 +58,16 @@ export default function PlacedPart3D({
   const ringColor = powered ? "#3ddc84" : accent;
   const ringOpacity = powered ? 0.85 : lifted ? 0.55 : isToggleable && !isOn ? 0.06 : 0.18;
 
+  // Multi-pin board (ESP32 etc) - pins were copied onto the node at drop
+  // time from the catalog component's spec.pins. Everything else keeps the
+  // original simple two-terminal a/b layout.
+  const hasBoardPins = Array.isArray(node.pins) && node.pins.length > 0;
+
   return (
     <group position={[node.x, 0, node.z]}>
       {/* soft colored ring on the floor - grounds the part, brightens on hover/drag/power, dims when a switch is off */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]}>
-        <ringGeometry args={[0.58, 0.66, 32]} />
+        <ringGeometry args={[hasBoardPins ? 0.95 : 0.58, hasBoardPins ? 1.03 : 0.66, 32]} />
         <meshBasicMaterial color={ringColor} transparent opacity={ringOpacity} />
       </mesh>
 
@@ -79,7 +95,7 @@ export default function PlacedPart3D({
         }}
         onPointerOut={() => setHovered(false)}
       >
-        <circleGeometry args={[0.72, 24]} />
+        <circleGeometry args={[hasBoardPins ? 1.1 : 0.72, 24]} />
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
 
@@ -87,38 +103,72 @@ export default function PlacedPart3D({
         {Model && <Model lit={isLed ? powered : undefined} on={isToggleable ? isOn : undefined} />}
       </group>
 
-      {/* terminals - click one, then another part's terminal, to wire them */}
-      {["a", "b"].map((t, i) => {
-        const selected = isTerminalSelected(node.id, t);
-        const isPositive = t === "a";
-        const termColor = isPolarized ? (isPositive ? "#ff4757" : "#4a90e2") : accent;
-        const pos = [i === 0 ? -TERMINAL_OFFSET : TERMINAL_OFFSET, 0.12, 0];
-        return (
-          <group key={t}>
-            <mesh
-              position={pos}
-              onClick={(e) => {
-                e.stopPropagation();
-                onTerminalClick(node.id, t);
-              }}
-            >
-              <sphereGeometry args={[0.078, 16, 16]} />
-              <meshStandardMaterial
-                color={selected ? "#ffffff" : termColor}
-                emissive={termColor}
-                emissiveIntensity={selected ? 1.6 : 0.7}
-              />
-            </mesh>
-            {isPolarized && (
-              <Html position={[pos[0], pos[1] + 0.22, pos[2]]} center distanceFactor={10} occlude>
-                <span className="part3d-polarity" style={{ color: termColor }}>
-                  {isPositive ? "+" : "−"}
-                </span>
-              </Html>
-            )}
-          </group>
-        );
-      })}
+      {/* terminals */}
+      {hasBoardPins
+        ? node.pins.map((pin) => {
+            const selected = isTerminalSelected(node.id, pin.terminal);
+            const col = pin.side === "left" ? node.pins.filter((p) => p.side === "left") : node.pins.filter((p) => p.side === "right");
+            const count = col.length;
+            const idxInCol = pin.order ?? col.findIndex((p) => p.terminal === pin.terminal);
+            const zPos = (idxInCol - (count - 1) / 2) * BOARD_PIN_PITCH;
+            const xPos = pin.side === "left" ? -BOARD_X_OFFSET : BOARD_X_OFFSET;
+            const termColor = PIN_ROLE_COLOR[pin.role] || accent;
+            const pos = [xPos, 0.1, zPos];
+            return (
+              <group key={pin.terminal}>
+                <mesh
+                  position={pos}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTerminalClick(node.id, pin.terminal);
+                  }}
+                >
+                  <sphereGeometry args={[0.052, 12, 12]} />
+                  <meshStandardMaterial
+                    color={selected ? "#ffffff" : termColor}
+                    emissive={termColor}
+                    emissiveIntensity={selected ? 1.6 : 0.7}
+                  />
+                </mesh>
+                <Html position={[pos[0] + (pin.side === "left" ? -0.16 : 0.16), pos[1], pos[2]]} center distanceFactor={12} occlude>
+                  <span className="part3d-pin-label" style={{ color: termColor }}>
+                    {pin.label}
+                  </span>
+                </Html>
+              </group>
+            );
+          })
+        : ["a", "b"].map((t, i) => {
+            const selected = isTerminalSelected(node.id, t);
+            const isPositive = t === "a";
+            const termColor = isPolarized ? (isPositive ? "#ff4757" : "#4a90e2") : accent;
+            const pos = [i === 0 ? -TERMINAL_OFFSET : TERMINAL_OFFSET, 0.12, 0];
+            return (
+              <group key={t}>
+                <mesh
+                  position={pos}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTerminalClick(node.id, t);
+                  }}
+                >
+                  <sphereGeometry args={[0.078, 16, 16]} />
+                  <meshStandardMaterial
+                    color={selected ? "#ffffff" : termColor}
+                    emissive={termColor}
+                    emissiveIntensity={selected ? 1.6 : 0.7}
+                  />
+                </mesh>
+                {isPolarized && (
+                  <Html position={[pos[0], pos[1] + 0.22, pos[2]]} center distanceFactor={10} occlude>
+                    <span className="part3d-polarity" style={{ color: termColor }}>
+                      {isPositive ? "+" : "−"}
+                    </span>
+                  </Html>
+                )}
+              </group>
+            );
+          })}
 
       <Html position={[0, 1.15, 0]} center distanceFactor={8} occlude>
         <div className="part3d-label" style={{ borderColor: powered ? "#3ddc84" : accent }}>
