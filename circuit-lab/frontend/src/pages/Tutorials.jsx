@@ -2,10 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   motion,
   AnimatePresence,
-  useMotionValue,
-  useSpring,
-  useTransform,
-  useScroll,
   useReducedMotion,
 } from "framer-motion";
 import AppShell from "../components/AppShell";
@@ -359,307 +355,6 @@ const ICONS = {
     </g>
   ),
 };
-
-/* Slow, ambient drifting glow field — sits behind the whole page for atmosphere.
-   Deliberately slow (28-46s loops) so it registers as mood, not motion. */
-function AmbientField({ reduceMotion }) {
-  if (reduceMotion) return null;
-  const blobs = [
-    { color: "var(--primary)", size: 480, top: "-8%", left: "6%", dur: 34, delay: 0 },
-    { color: "var(--accent)", size: 420, top: "18%", left: "72%", dur: 40, delay: 4 },
-    { color: "var(--gold)", size: 360, top: "62%", left: "18%", dur: 46, delay: 8 },
-  ];
-  return (
-    <div style={styles.ambientField} aria-hidden="true">
-      {blobs.map((b, i) => (
-        <motion.div
-          key={i}
-          style={{
-            position: "absolute",
-            top: b.top,
-            left: b.left,
-            width: b.size,
-            height: b.size,
-            borderRadius: "50%",
-            background: `radial-gradient(circle, color-mix(in srgb, ${b.color} 14%, transparent) 0%, transparent 70%)`,
-            filter: "blur(10px)",
-          }}
-          animate={{
-            x: [0, 40, -20, 0],
-            y: [0, -30, 20, 0],
-            scale: [1, 1.08, 0.96, 1],
-          }}
-          transition={{
-            duration: b.dur,
-            delay: b.delay,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function LessonIcon({ id, color, size = 44 }) {
-  const glyph = ICONS[id] || ICONS.bulb;
-  return (
-    <motion.div
-      className="lesson-icon-glow"
-      whileHover={{ rotate: [-1, 1, -1, 0], scale: 1.06 }}
-      transition={{ duration: 0.45 }}
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 12,
-        background: `color-mix(in srgb, ${color} 16%, var(--surface-2))`,
-        display: "grid",
-        placeItems: "center",
-        flexShrink: 0,
-      }}
-    >
-      <svg width={size * 0.52} height={size * 0.52} viewBox="0 0 24 24">
-        {glyph(color)}
-      </svg>
-    </motion.div>
-  );
-}
-
-function DifficultyMeter({ level, color, label }) {
-  return (
-    <span style={styles.meter} role="img" aria-label={`Difficulty: ${label}`} title={label}>
-      {[1, 2, 3].map((i) => (
-        <motion.span
-          key={i}
-          initial={{ scaleY: 0 }}
-          animate={{ scaleY: 1 }}
-          transition={{ delay: i * 0.06, duration: 0.3, ease: "easeOut" }}
-          style={{
-            ...styles.meterBar,
-            height: 6 + i * 3,
-            background: i <= level ? color : "var(--border)",
-            transformOrigin: "bottom",
-          }}
-        />
-      ))}
-    </span>
-  );
-}
-
-/* Animated count-up readout, used in the header stats row */
-function StatReadout({ value, label, color }) {
-  const [display, setDisplay] = useState(0);
-  const ref = useRef(null);
-  const started = useRef(false);
-  const reduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !started.current) {
-            started.current = true;
-            if (reduceMotion) {
-              setDisplay(value);
-              return;
-            }
-            const start = performance.now();
-            const duration = 800;
-            const tick = (now) => {
-              const p = Math.min(1, (now - start) / duration);
-              const eased = 1 - Math.pow(1 - p, 3);
-              setDisplay(Math.round(eased * value));
-              if (p < 1) requestAnimationFrame(tick);
-            };
-            requestAnimationFrame(tick);
-          }
-        });
-      },
-      { threshold: 0.4 }
-    );
-    obs.observe(node);
-    return () => obs.disconnect();
-  }, [value, reduceMotion]);
-
-  return (
-    <div ref={ref} style={styles.statBlock}>
-      <span style={{ ...styles.statNumber, color }}>{display}</span>
-      <span style={styles.statLabel}>{label}</span>
-    </div>
-  );
-}
-
-/* Card with pointer-driven tilt + cursor spotlight — disabled under reduced motion */
-function TiltCard({ children, onClick, style, layoutId, reduceMotion, ...rest }) {
-  const rx = useMotionValue(0);
-  const ry = useMotionValue(0);
-  const mx = useMotionValue(50);
-  const my = useMotionValue(50);
-  const srx = useSpring(rx, { stiffness: 220, damping: 20 });
-  const sry = useSpring(ry, { stiffness: 220, damping: 20 });
-  const spotlight = useTransform([mx, my], ([x, y]) => `radial-gradient(220px circle at ${x}% ${y}%, color-mix(in srgb, var(--primary) 12%, transparent), transparent 70%)`);
-
-  function handleMove(e) {
-    if (reduceMotion) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const px = (e.clientX - rect.left) / rect.width;
-    const py = (e.clientY - rect.top) / rect.height;
-    ry.set((px - 0.5) * 7);
-    rx.set((py - 0.5) * -7);
-    mx.set(px * 100);
-    my.set(py * 100);
-  }
-  function handleLeave() {
-    rx.set(0);
-    ry.set(0);
-  }
-
-  return (
-    <motion.div
-      layout
-      layoutId={layoutId}
-      onClick={onClick}
-      onMouseMove={handleMove}
-      onMouseLeave={handleLeave}
-      style={{
-        ...style,
-        rotateX: reduceMotion ? 0 : srx,
-        rotateY: reduceMotion ? 0 : sry,
-        transformPerspective: 800,
-        position: "relative",
-      }}
-      initial="hidden"
-      animate="show"
-      exit="exit"
-      whileHover={reduceMotion ? undefined : { y: -7, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } }}
-      whileTap={{ scale: 0.985 }}
-      {...rest}
-    >
-      {!reduceMotion && (
-        <motion.div style={{ ...styles.spotlight, background: spotlight }} aria-hidden="true" />
-      )}
-      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 14, height: "100%" }}>
-        {children}
-      </div>
-    </motion.div>
-  );
-}
-
-/* Floating back-to-top control — only appears once there's real scroll
-   distance behind you, so the page never feels as long as its word count. */
-function BackToTop({ scrollYProgress, reduceMotion }) {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    return scrollYProgress.on("change", (v) => setShow(v > 0.08));
-  }, [scrollYProgress]);
-
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.button
-          style={styles.backToTop}
-          className={reduceMotion ? "" : "back-to-top-bob"}
-          onClick={() => window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" })}
-          initial={{ opacity: 0, scale: 0.7, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.7, y: 10 }}
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
-          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          aria-label="Back to top"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24">
-            <path d="M12 19V6M6 11l6-6 6 6" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </motion.button>
-      )}
-    </AnimatePresence>
-  );
-}
-
-/* Fixed side rail of category dots — gives constant orientation through a long
-   page, and doubles as a quick-jump nav. Desktop only (hidden on narrow viewports
-   via inline media query check on mount). */
-function CategoryRail({ sections, reduceMotion }) {
-  const [active, setActive] = useState(sections[0]?.tag);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    setVisible(window.innerWidth >= 980);
-    function onResize() {
-      setVisible(window.innerWidth >= 980);
-    }
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  useEffect(() => {
-    const els = sections
-      .map((s) => document.getElementById(`section-${s.tag}`))
-      .filter(Boolean);
-    if (!els.length) return;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const tag = entry.target.getAttribute("data-tag");
-            if (tag) setActive(tag);
-          }
-        });
-      },
-      { rootMargin: "-15% 0px -70% 0px", threshold: 0 }
-    );
-    els.forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, [sections]);
-
-  if (!visible || sections.length < 2) return null;
-
-  return (
-    <motion.div
-      style={styles.categoryRail}
-      initial={{ opacity: 0, x: -8 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.6, delay: 0.3 }}
-    >
-      {sections.map((s) => {
-        const isActive = active === s.tag;
-        return (
-          <button
-            key={s.tag}
-            onClick={() => {
-              document.getElementById(`section-${s.tag}`)?.scrollIntoView({
-                behavior: reduceMotion ? "auto" : "smooth",
-                block: "start",
-              });
-            }}
-            style={styles.railItem}
-            aria-label={`Jump to ${s.tag}`}
-            aria-current={isActive}
-          >
-            <motion.span
-              style={{
-                ...styles.railDot,
-                background: isActive ? s.color : "var(--border)",
-              }}
-              animate={{ scale: isActive ? 1.4 : 1 }}
-              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            />
-            <motion.span
-              style={{ ...styles.railLabel, color: isActive ? s.color : "var(--text-faint)" }}
-              animate={{ opacity: isActive ? 1 : 0, x: isActive ? 0 : -4 }}
-              transition={{ duration: 0.25 }}
-            >
-              {s.tag}
-            </motion.span>
-          </button>
-        );
-      })}
-    </motion.div>
-  );
-}
 
 /* ---------------- Lesson content ---------------- */
 const TOPICS = [
@@ -1348,60 +1043,90 @@ One limitation worth knowing: a voltage divider's output isn't a strong, stiff v
 
 const CATEGORY_ORDER = Object.keys(TAG_COLOR);
 
-const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.09 } } };
+const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const cardVariants = {
-  hidden: { opacity: 0, y: 30, scale: 0.97, filter: "blur(6px)" },
-  show: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    filter: "blur(0px)",
-    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] },
-  },
-  exit: { opacity: 0, y: -14, scale: 0.96, filter: "blur(4px)", transition: { duration: 0.18 } },
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } },
 };
 
-const heroVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
-};
-const heroItem = {
-  hidden: { opacity: 0, y: 18, filter: "blur(4px)" },
-  show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.85, ease: [0.16, 1, 0.3, 1] } },
-};
+function LessonIcon({ id, color, size = 40 }) {
+  const glyph = ICONS[id] || ICONS.bulb;
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: 10,
+        background: `color-mix(in srgb, ${color} 14%, var(--surface-2))`,
+        display: "grid",
+        placeItems: "center",
+        flexShrink: 0,
+      }}
+    >
+      <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24">
+        {glyph(color)}
+      </svg>
+    </div>
+  );
+}
+
+function DifficultyMeter({ level, color, label }) {
+  return (
+    <span style={styles.meter} role="img" aria-label={`Difficulty: ${label}`} title={label}>
+      {[1, 2, 3].map((i) => (
+        <span
+          key={i}
+          style={{
+            ...styles.meterBar,
+            height: 5 + i * 3,
+            background: i <= level ? color : "var(--border)",
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
+/* Simple, calm card - a border and a lift on hover. No tilt, no spotlight. */
+function LessonCard({ topic, onClick }) {
+  const tagColor = TAG_COLOR[topic.tag] || "var(--primary)";
+  return (
+    <motion.button
+      layout
+      layoutId={`card-${TOPICS.indexOf(topic)}`}
+      onClick={onClick}
+      variants={cardVariants}
+      whileHover={{ y: -3 }}
+      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      className="lesson-card"
+      style={styles.card}
+    >
+      <div style={styles.cardTop}>
+        <LessonIcon id={topic.icon} color={tagColor} />
+        <DifficultyMeter
+          level={DIFFICULTY_LEVEL[topic.difficulty]}
+          color={DIFFICULTY_COLOR[topic.difficulty]}
+          label={topic.difficulty}
+        />
+      </div>
+      <div style={styles.cardTitle}>{topic.title}</div>
+      <div style={styles.cardSummary}>{topic.summary}</div>
+      <div style={{ ...styles.cardFooter, color: tagColor }}>
+        Read lesson
+        <svg width="12" height="12" viewBox="0 0 24 24" className="card-arrow">
+          <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+    </motion.button>
+  );
+}
 
 export default function Tutorials() {
   const [query, setQuery] = useState("");
   const [activeTag, setActiveTag] = useState("All");
-  const [activeTopic, setActiveTopic] = useState(null); // global index or null
+  const [activeTopic, setActiveTopic] = useState(null);
   const reduceMotion = useReducedMotion();
-  const { scrollYProgress } = useScroll();
-  const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
-
-  const heroMX = useMotionValue(0);
-  const heroMY = useMotionValue(0);
-  const heroSpringX = useSpring(heroMX, { stiffness: 40, damping: 20 });
-  const heroSpringY = useSpring(heroMY, { stiffness: 40, damping: 20 });
-
-  function handleHeroMove(e) {
-    if (reduceMotion) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    heroMX.set(((e.clientX - rect.left) / rect.width - 0.5) * 16);
-    heroMY.set(((e.clientY - rect.top) / rect.height - 0.5) * 10);
-  }
-  function handleHeroLeave() {
-    heroMX.set(0);
-    heroMY.set(0);
-  }
-
-  // A single "keep exploring" pick — stable across a browser day, not a
-  // full-random shuffle, so it feels like a deliberate daily nudge rather
-  // than noise on every reload.
-  const featured = useMemo(() => {
-    const dayIndex = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
-    return TOPICS[dayIndex % TOPICS.length];
-  }, []);
-  const featuredIndex = TOPICS.indexOf(featured);
+  const modalRef = useRef(null);
 
   useEffect(() => {
     function onKey(e) {
@@ -1418,6 +1143,10 @@ export default function Tutorials() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  useEffect(() => {
+    if (modalRef.current) modalRef.current.scrollTop = 0;
+  }, [activeTopic]);
 
   const filtered = useMemo(() => {
     return TOPICS.filter((t) => {
@@ -1438,23 +1167,7 @@ export default function Tutorials() {
   }, [filtered]);
 
   const openTopic = activeTopic !== null ? TOPICS[activeTopic] : null;
-  const modalRef = useRef(null);
-  const [modalProgress, setModalProgress] = useState(0);
-
-  useEffect(() => {
-    if (modalRef.current) modalRef.current.scrollTop = 0;
-    setModalProgress(0);
-  }, [activeTopic]);
-
-  function handleModalScroll(e) {
-    const el = e.currentTarget;
-    const max = el.scrollHeight - el.clientHeight;
-    setModalProgress(max > 0 ? el.scrollTop / max : 0);
-  }
-  const openParagraphs = useMemo(
-    () => (openTopic ? openTopic.body.split(/\n\n+/) : []),
-    [openTopic]
-  );
+  const openParagraphs = useMemo(() => (openTopic ? openTopic.body.split(/\n\n+/) : []), [openTopic]);
   const readingMinutes = useMemo(() => {
     if (!openTopic) return 1;
     const words = openTopic.body.trim().split(/\s+/).length;
@@ -1463,87 +1176,47 @@ export default function Tutorials() {
 
   return (
     <AppShell>
-      <AmbientField reduceMotion={reduceMotion} />
-      {/* Scroll progress rail */}
-      <motion.div style={{ ...styles.progressRail, width: progressWidth }} aria-hidden="true" />
-
-      {/* ---------------- Compact header ---------------- */}
-      <section style={styles.hero} onMouseMove={handleHeroMove} onMouseLeave={handleHeroLeave}>
+      {/* ---------------- Header ---------------- */}
+      <section style={styles.hero}>
         <motion.div
-          style={{ ...styles.heroBg, x: heroSpringX, y: heroSpringY }}
-          aria-hidden="true"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         >
-          <svg viewBox="0 0 1200 260" style={styles.heroSvg} preserveAspectRatio="xMidYMid slice">
-            <defs>
-              <linearGradient id="traceFade" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.5" />
-                <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.12" />
-              </linearGradient>
-            </defs>
-            {[
-              "M-50 40 H260 V140 H560 V70 H900 V180",
-              "M-50 210 H180 V120 H480 V220 H820 V90 H1260",
-            ].map((d, i) => (
-              <path key={i} d={d} stroke="url(#traceFade)" strokeWidth="1.4" fill="none" className="circuit-path" style={{ animationDelay: `${i * 0.6}s` }} />
-            ))}
-            <circle r="3" fill="var(--primary)" className="circuit-pulse circuit-pulse-0" />
-            <circle r="3" fill="var(--accent)" className="circuit-pulse circuit-pulse-1" />
-            <circle r="2.4" fill="var(--gold)" className="circuit-pulse circuit-pulse-2" />
-          </svg>
-        </motion.div>
-
-        <motion.div
-          style={styles.heroContent}
-          variants={heroVariants}
-          initial="hidden"
-          animate="show"
-        >
-          <motion.div style={styles.eyebrowRow} variants={heroItem}>
-            <span style={styles.powerDot} className={reduceMotion ? "" : "power-dot-pulse"} />
-            <span className="eyebrow" style={{ margin: 0 }}>Learn</span>
-          </motion.div>
-          <motion.h1 style={styles.heroTitle} variants={heroItem}>
-            Master <span className="gradient-text gradient-text-anim">circuit design</span>
-          </motion.h1>
-          <motion.p style={styles.heroSubtitle} variants={heroItem}>
+          <div className="eyebrow">Learn</div>
+          <h1 style={styles.heroTitle}>
+            Master <span className="gradient-text">circuit design</span>
+          </h1>
+          <p style={styles.heroSubtitle}>
             {TOPICS.length} short, practical lessons — the exact concepts behind everything CircuitLab
             checks for you when you hit Run.
-          </motion.p>
+          </p>
 
-          <motion.div style={styles.statsRow} variants={heroItem}>
-            <StatReadout value={TOPICS.length} label="Lessons" color="var(--primary)" />
+          <div style={styles.statsRow}>
+            <div style={styles.statBlock}>
+              <span style={{ ...styles.statNumber, color: "var(--primary)" }}>{TOPICS.length}</span>
+              <span style={styles.statLabel}>Lessons</span>
+            </div>
             <div style={styles.statDivider} />
-            <StatReadout value={CATEGORY_ORDER.length} label="Categories" color="var(--accent)" />
+            <div style={styles.statBlock}>
+              <span style={{ ...styles.statNumber, color: "var(--accent)" }}>{CATEGORY_ORDER.length}</span>
+              <span style={styles.statLabel}>Categories</span>
+            </div>
             <div style={styles.statDivider} />
-            <StatReadout value={3} label="Skill levels" color="var(--gold)" />
-          </motion.div>
-
-          {featured && (
-            <motion.button
-              style={styles.featuredStrip}
-              className={reduceMotion ? "" : "featured-shimmer"}
-              variants={heroItem}
-              onClick={() => setActiveTopic(featuredIndex)}
-              whileHover={reduceMotion ? undefined : { x: 4 }}
-              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <span style={{ ...styles.featuredDot, background: TAG_COLOR[featured.tag] }} className={reduceMotion ? "" : "power-dot-pulse"} />
-              <span style={styles.featuredLabel}>Pick up today</span>
-              <span style={styles.featuredTitle}>{featured.title}</span>
-              <svg width="13" height="13" viewBox="0 0 24 24" style={{ flexShrink: 0, opacity: 0.7 }}>
-                <path d="M5 12h14M13 6l6 6-6 6" stroke={TAG_COLOR[featured.tag]} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </motion.button>
-          )}
+            <div style={styles.statBlock}>
+              <span style={{ ...styles.statNumber, color: "var(--gold)" }}>3</span>
+              <span style={styles.statLabel}>Skill levels</span>
+            </div>
+          </div>
         </motion.div>
       </section>
 
       {/* ---------------- Toolbar ---------------- */}
       <motion.div
         style={styles.toolbar}
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.15 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
       >
         <div style={styles.toolbarInner}>
           <div style={styles.searchWrap}>
@@ -1564,13 +1237,10 @@ export default function Tutorials() {
               const color = TAG_COLOR[tag] || "var(--text-dim)";
               const count = tag === "All" ? TOPICS.length : TOPICS.filter((t) => t.tag === tag).length;
               return (
-                <motion.button
+                <button
                   key={tag}
                   onClick={() => setActiveTag(tag)}
                   aria-pressed={active}
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.94 }}
-                  layout
                   style={{
                     ...styles.chip,
                     borderColor: active ? color : "var(--border)",
@@ -1580,7 +1250,7 @@ export default function Tutorials() {
                 >
                   {tag !== "All" && <span style={{ ...styles.chipSwatch, background: color }} />}
                   {tag} <span style={{ opacity: 0.55 }}>{count}</span>
-                </motion.button>
+                </button>
               );
             })}
           </div>
@@ -1588,79 +1258,39 @@ export default function Tutorials() {
       </motion.div>
 
       {/* ---------------- Lesson sections ---------------- */}
-      <CategoryRail sections={sections} reduceMotion={reduceMotion} />
-      <div style={{ padding: "10px 6vw 90px", position: "relative" }}>
-        <div style={styles.dotGrid} aria-hidden="true" />
+      <div style={{ padding: "10px 6vw 90px" }}>
         {sections.length === 0 ? (
-          <motion.div
-            style={styles.emptyState}
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-          >
+          <div style={styles.emptyState}>
             <p style={{ color: "var(--text)", fontSize: 14, fontWeight: 600, margin: 0 }}>
               No lessons match "{query}"
             </p>
             <p style={{ color: "var(--text-faint)", fontSize: 12.5, margin: "4px 0 0" }}>
               Try a different term, or clear the {activeTag !== "All" ? `${activeTag} filter` : "search"}.
             </p>
-          </motion.div>
+          </div>
         ) : (
-          sections.map((section, sIdx) => (
-            <div key={section.tag} id={`section-${section.tag}`} data-tag={section.tag} style={styles.section}>
-              <motion.div
-                style={styles.sectionHeader}
-                initial={{ opacity: 0, x: -16, filter: "blur(3px)" }}
-                whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: Math.min(sIdx, 3) * 0.05 }}
-              >
-                <span style={{ ...styles.sectionDot, background: section.color }} className={reduceMotion ? "" : "section-dot-pulse"} />
+          sections.map((section) => (
+            <div key={section.tag} style={styles.section}>
+              <div style={styles.sectionHeader}>
+                <span style={{ ...styles.sectionDot, background: section.color }} />
                 <h2 style={styles.sectionTitle}>{section.tag}</h2>
                 <span style={styles.sectionCount}>{section.items.length}</span>
-                <span style={{ ...styles.sectionRule, background: `color-mix(in srgb, ${section.color} 30%, var(--border))` }} className={reduceMotion ? "" : "section-rule"} />
-              </motion.div>
+                <span style={styles.sectionRule} />
+              </div>
 
               <motion.div
                 style={styles.cardGrid}
                 variants={gridVariants}
                 initial="hidden"
                 whileInView="show"
-                viewport={{ once: true, margin: "-80px" }}
+                viewport={{ once: true, margin: "-60px" }}
               >
-                <AnimatePresence mode="popLayout">
-                  {section.items.map((topic) => {
-                    const globalIndex = TOPICS.indexOf(topic);
-                    const tagColor = TAG_COLOR[topic.tag] || "var(--primary)";
-                    return (
-                      <TiltCard
-                        key={topic.title}
-                        layoutId={`card-${globalIndex}`}
-                        onClick={() => setActiveTopic(globalIndex)}
-                        reduceMotion={reduceMotion}
-                        style={styles.card}
-                        variants={cardVariants}
-                        className="tutorial-card"
-                      >
-                        <div style={styles.cardTop}>
-                          <LessonIcon id={topic.icon} color={tagColor} />
-                          <DifficultyMeter
-                            level={DIFFICULTY_LEVEL[topic.difficulty]}
-                            color={DIFFICULTY_COLOR[topic.difficulty]}
-                            label={topic.difficulty}
-                          />
-                        </div>
-                        <div style={styles.cardTitle}>{topic.title}</div>
-                        <div style={styles.cardSummary}>{topic.summary}</div>
-                        <div style={{ ...styles.cardFooter, color: tagColor }}>
-                          Read lesson
-                          <motion.svg width="13" height="13" viewBox="0 0 24 24" className="footer-arrow">
-                            <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                          </motion.svg>
-                        </div>
-                      </TiltCard>
-                    );
-                  })}
-                </AnimatePresence>
+                {section.items.map((topic) => {
+                  const globalIndex = TOPICS.indexOf(topic);
+                  return (
+                    <LessonCard key={topic.title} topic={topic} onClick={() => setActiveTopic(globalIndex)} />
+                  );
+                })}
               </motion.div>
             </div>
           ))
@@ -1677,6 +1307,7 @@ export default function Tutorials() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
               onClick={() => setActiveTopic(null)}
             />
             <div style={styles.modalWrap}>
@@ -1686,21 +1317,11 @@ export default function Tutorials() {
                 role="dialog"
                 aria-modal="true"
                 aria-label={openTopic.title}
-                transition={{ type: "spring", stiffness: 210, damping: 28 }}
+                transition={{ type: "spring", stiffness: 260, damping: 30 }}
                 ref={modalRef}
-                onScroll={handleModalScroll}
               >
-                <div style={styles.modalProgressTrack} aria-hidden="true">
-                  <motion.div
-                    style={{
-                      ...styles.modalProgressFill,
-                      background: TAG_COLOR[openTopic.tag],
-                      scaleX: modalProgress,
-                    }}
-                  />
-                </div>
                 <div style={styles.modalHeader}>
-                  <LessonIcon id={openTopic.icon} color={TAG_COLOR[openTopic.tag]} size={52} />
+                  <LessonIcon id={openTopic.icon} color={TAG_COLOR[openTopic.tag]} size={48} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={styles.metaRow}>
                       <span style={{ ...styles.tagPill, color: TAG_COLOR[openTopic.tag], borderColor: TAG_COLOR[openTopic.tag] }}>
@@ -1715,26 +1336,19 @@ export default function Tutorials() {
                     </div>
                     <div style={styles.modalTitle}>{openTopic.title}</div>
                   </div>
-                  <motion.button
-                    style={styles.closeBtn}
-                    onClick={() => setActiveTopic(null)}
-                    aria-label="Close lesson"
-                    whileHover={{ rotate: 90, scale: 1.06 }}
-                    whileTap={{ scale: 0.9 }}
-                    transition={{ duration: 0.2 }}
-                  >
+                  <button style={styles.closeBtn} onClick={() => setActiveTopic(null)} aria-label="Close lesson">
                     <svg width="16" height="16" viewBox="0 0 24 24">
                       <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                     </svg>
-                  </motion.button>
+                  </button>
                 </div>
                 <div style={styles.modalBody}>
                   {openParagraphs.map((para, i) => (
                     <motion.p
                       key={i}
                       style={styles.modalParagraph}
-                      initial={{ opacity: 0, y: 10, filter: "blur(3px)" }}
-                      animate={{ opacity: 1, y: 0, filter: "blur(0px)", transition: { delay: 0.12 + i * 0.09, duration: 0.55, ease: [0.16, 1, 0.3, 1] } }}
+                      initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0, transition: { delay: 0.08 + i * 0.05, duration: 0.35 } }}
                     >
                       {para}
                     </motion.p>
@@ -1767,97 +1381,22 @@ export default function Tutorials() {
         )}
       </AnimatePresence>
 
-      <BackToTop scrollYProgress={scrollYProgress} reduceMotion={reduceMotion} />
-
       <style>{`
-        .power-dot-pulse { animation: powerPulse 3.2s ease-in-out infinite; }
-        @keyframes powerPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
-        .circuit-path { stroke-dasharray: 14 10; animation: dashFlow 11s linear infinite; }
-        @keyframes dashFlow { to { stroke-dashoffset: -240; } }
-        .circuit-pulse { opacity: 0.85; filter: drop-shadow(0 0 4px var(--primary)); }
-        .circuit-pulse-0 { offset-path: path("M-50 40 H260 V140 H560 V70 H900 V180"); animation: travel 11s linear infinite; }
-        .circuit-pulse-1 { offset-path: path("M-50 210 H180 V120 H480 V220 H820 V90 H1260"); animation: travel 14s linear infinite; animation-delay: 3s; }
-        .circuit-pulse-2 { offset-path: path("M-50 40 H260 V140 H560 V70 H900 V180"); animation: travel 11s linear infinite; animation-delay: 5.5s; }
-        @keyframes travel { from { offset-distance: 0%; } to { offset-distance: 100%; } }
-        .gradient-text-anim { background-size: 200% auto; animation: gradientShift 8s ease-in-out infinite; }
-        @keyframes gradientShift { 0%, 100% { background-position: 0% center; } 50% { background-position: 100% center; } }
-        .section-dot-pulse { animation: sectionDotPulse 3.6s ease-in-out infinite; }
-        @keyframes sectionDotPulse { 0%, 100% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.3); filter: brightness(1.3); } }
-        .section-rule { transform-origin: left; animation: ruleDraw 1.1s cubic-bezier(0.16,1,0.3,1) both; }
-        @keyframes ruleDraw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-        .tutorial-card { cursor: pointer; transition: border-color 0.4s ease, box-shadow 0.5s ease; }
-        .tutorial-card:hover { border-color: var(--text-faint); box-shadow: 0 18px 40px color-mix(in srgb, #000 20%, transparent); }
-        .tutorial-card:hover .footer-arrow { transform: translateX(4px); }
-        .footer-arrow { transition: transform 0.35s cubic-bezier(0.16,1,0.3,1); }
-        .tutorial-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-        .lesson-icon-glow { transition: box-shadow 0.5s ease, transform 0.5s ease; }
-        .tutorial-card:hover .lesson-icon-glow { box-shadow: 0 0 0 5px color-mix(in srgb, var(--primary) 10%, transparent); }
-        .featured-shimmer { position: relative; overflow: hidden; }
-        .featured-shimmer::after {
-          content: ""; position: absolute; inset: 0; pointer-events: none;
-          background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--text) 6%, transparent) 50%, transparent 70%);
-          background-size: 220% 100%;
-          animation: shimmerSweep 7s ease-in-out infinite;
-        }
-        @keyframes shimmerSweep { 0% { background-position: 140% 0; } 45%, 100% { background-position: -60% 0; } }
-        .back-to-top-bob { animation: backToTopBob 4s ease-in-out infinite; }
-        @keyframes backToTopBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-        @media (prefers-reduced-motion: reduce) {
-          .power-dot-pulse, .circuit-path, .circuit-pulse-0, .circuit-pulse-1, .circuit-pulse-2,
-          .gradient-text-anim, .section-dot-pulse, .section-rule, .featured-shimmer::after,
-          .back-to-top-bob { animation: none; }
-        }
+        .lesson-card { text-align: left; cursor: pointer; transition: border-color 0.25s ease, box-shadow 0.25s ease; }
+        .lesson-card:hover { border-color: var(--text-faint); box-shadow: 0 12px 28px color-mix(in srgb, #000 16%, transparent); }
+        .lesson-card:hover .card-arrow { transform: translateX(3px); }
+        .card-arrow { transition: transform 0.25s ease; }
+        .lesson-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
       `}</style>
     </AppShell>
-
   );
 }
 
 const styles = {
-  progressRail: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    height: 2,
-    background: "linear-gradient(90deg, var(--primary), var(--accent))",
-    zIndex: 60,
-  },
   hero: {
-    position: "relative",
-    overflow: "hidden",
-    padding: "44px 6vw 30px",
+    padding: "48px 6vw 32px",
     borderBottom: "1px solid var(--border)",
-  },
-  heroBg: {
-    position: "absolute",
-    inset: 0,
-    overflow: "hidden",
-    pointerEvents: "none",
-  },
-  heroSvg: {
-    position: "absolute",
-    inset: 0,
-    width: "100%",
-    height: "100%",
-    opacity: 0.45,
-  },
-  heroContent: {
-    position: "relative",
-    zIndex: 1,
     maxWidth: 680,
-  },
-  eyebrowRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 2,
-  },
-  powerDot: {
-    width: 6,
-    height: 6,
-    borderRadius: "50%",
-    background: "var(--primary)",
-    display: "inline-block",
   },
   heroTitle: {
     margin: "8px 0 0",
@@ -1897,7 +1436,7 @@ const styles = {
     position: "sticky",
     top: 0,
     zIndex: 20,
-    background: "color-mix(in srgb, var(--surface) 85%, transparent)",
+    background: "color-mix(in srgb, var(--surface) 90%, transparent)",
     backdropFilter: "blur(10px)",
     borderBottom: "1px solid var(--border)",
     padding: "16px 6vw",
@@ -1968,24 +1507,23 @@ const styles = {
   section: {
     maxWidth: 1180,
     margin: "0 auto",
-    padding: "44px 0 8px",
-    position: "relative",
+    padding: "40px 0 8px",
   },
   sectionHeader: {
     display: "flex",
     alignItems: "center",
     gap: 10,
-    marginBottom: 20,
+    marginBottom: 18,
   },
   sectionDot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: "50%",
     flexShrink: 0,
   },
   sectionTitle: {
     fontFamily: "var(--font-display)",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 600,
     color: "var(--text)",
     margin: 0,
@@ -2001,23 +1539,25 @@ const styles = {
   sectionRule: {
     flex: 1,
     height: 1,
+    background: "var(--border)",
   },
   cardGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-    gap: 18,
+    gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+    gap: 14,
   },
   card: {
     background: "var(--surface)",
     border: "1px solid var(--border)",
     borderRadius: "var(--radius)",
-    padding: "24px",
-    overflow: "hidden",
-  },
-  spotlight: {
-    position: "absolute",
-    inset: 0,
-    pointerEvents: "none",
+    padding: "20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    textAlign: "left",
+    font: "inherit",
+    color: "inherit",
+    width: "100%",
   },
   cardTop: {
     display: "flex",
@@ -2036,39 +1576,30 @@ const styles = {
     display: "inline-block",
   },
   cardTitle: {
-    fontSize: 17,
-    fontWeight: 700,
+    fontSize: 15.5,
+    fontWeight: 600,
     color: "var(--text)",
     lineHeight: 1.35,
   },
   cardSummary: {
-    fontSize: 13.5,
+    fontSize: 13,
     color: "var(--text-faint)",
-    lineHeight: 1.55,
+    lineHeight: 1.5,
     flex: 1,
   },
   cardFooter: {
     display: "flex",
     alignItems: "center",
     gap: 6,
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: 600,
     fontFamily: "var(--font-display)",
-  },
-  dotGrid: {
-    position: "absolute",
-    inset: 0,
-    backgroundImage: "radial-gradient(color-mix(in srgb, var(--text-faint) 30%, transparent) 1px, transparent 1px)",
-    backgroundSize: "26px 26px",
-    opacity: 0.25,
-    pointerEvents: "none",
-    zIndex: 0,
   },
   backdrop: {
     position: "fixed",
     inset: 0,
     background: "color-mix(in srgb, #000 55%, transparent)",
-    backdropFilter: "blur(4px)",
+    backdropFilter: "blur(3px)",
     zIndex: 70,
   },
   modalWrap: {
@@ -2144,23 +1675,6 @@ const styles = {
     lineHeight: 1.8,
     margin: "0 0 16px",
   },
-  modalProgressTrack: {
-    position: "sticky",
-    top: 0,
-    marginTop: -28,
-    marginLeft: -28,
-    marginRight: -28,
-    marginBottom: 18,
-    width: "calc(100% + 56px)",
-    height: 3,
-    background: "var(--border)",
-    zIndex: 2,
-  },
-  modalProgressFill: {
-    height: "100%",
-    transformOrigin: "left",
-    transition: "transform 0.08s linear",
-  },
   modalFooter: {
     display: "flex",
     alignItems: "center",
@@ -2186,91 +1700,5 @@ const styles = {
     fontSize: 11,
     color: "var(--text-faint)",
     fontFamily: "var(--font-display)",
-  },
-  ambientField: {
-    position: "fixed",
-    inset: 0,
-    overflow: "hidden",
-    pointerEvents: "none",
-    zIndex: -1,
-  },
-  categoryRail: {
-    position: "fixed",
-    left: 22,
-    top: "50%",
-    transform: "translateY(-50%)",
-    zIndex: 15,
-    display: "flex",
-    flexDirection: "column",
-    gap: 14,
-  },
-  railItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    background: "none",
-    border: "none",
-    cursor: "pointer",
-    padding: 2,
-  },
-  railDot: {
-    width: 7,
-    height: 7,
-    borderRadius: "50%",
-    display: "inline-block",
-    flexShrink: 0,
-  },
-  railLabel: {
-    fontSize: 10.5,
-    fontFamily: "var(--font-display)",
-    whiteSpace: "nowrap",
-  },
-  featuredStrip: {
-    marginTop: 22,
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 10,
-    background: "var(--surface-2)",
-    border: "1px solid var(--border)",
-    borderRadius: 24,
-    padding: "8px 16px 8px 10px",
-    cursor: "pointer",
-    maxWidth: "100%",
-  },
-  featuredDot: {
-    width: 6,
-    height: 6,
-    borderRadius: "50%",
-    flexShrink: 0,
-  },
-  featuredLabel: {
-    fontSize: 10.5,
-    fontFamily: "var(--font-display)",
-    color: "var(--text-faint)",
-    whiteSpace: "nowrap",
-  },
-  featuredTitle: {
-    fontSize: 12.5,
-    color: "var(--text)",
-    fontWeight: 600,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  backToTop: {
-    position: "fixed",
-    right: 24,
-    bottom: 24,
-    width: 42,
-    height: 42,
-    borderRadius: "50%",
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    color: "var(--text-dim)",
-    display: "grid",
-    placeItems: "center",
-    cursor: "pointer",
-    zIndex: 30,
-    boxShadow: "0 8px 22px color-mix(in srgb, #000 20%, transparent)",
   },
 };
