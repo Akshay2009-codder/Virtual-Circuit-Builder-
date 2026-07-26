@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import ComponentPalette from "../components/builder/ComponentPalette";
 import Scene3D from "../components/builder3d/Scene3D";
 import { screenToGround } from "../components/builder3d/raycast";
 import ShareModal from "../components/ShareModal";
+import ESP32CodeEditor from "../components/builder/ESP32CodeEditor";
 import client from "../api/client";
 
 let idCounter = 1;
 const nextId = () => `n${idCounter++}`;
 
+const LIVE_TICK_MS = 150;
+
 export default function Builder() {
   const { id } = useParams(); // undefined => new project
   const navigate = useNavigate();
-  const location = useLocation();
   const wrapperRef = useRef(null);
   const cameraRef = useRef(null);
 
@@ -36,12 +38,22 @@ export default function Builder() {
   const [publishing, setPublishing] = useState(false);
   const [isDropTarget, setIsDropTarget] = useState(false);
 
+  // Which board (ESP32 etc) has its code editor open, if any
+  const [codeEditorNodeId, setCodeEditorNodeId] = useState(null);
+  // Latest per-pin voltages from the last live-code tick, keyed "nodeId::terminal"
+  const pinVoltagesRef = useRef({});
+  const liveTickTimerRef = useRef(null);
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+  nodesRef.current = nodes;
+  edgesRef.current = edges;
+
   // Load the component catalog for the palette
   useEffect(() => {
     client.get("/components").then((res) => setComponents(res.data.components));
   }, []);
 
-  // Load an existing saved project if editing one (real numeric id)
+  // Load an existing project if editing one
   useEffect(() => {
     if (!id) {
       setLoading(false);
@@ -61,29 +73,16 @@ export default function Builder() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // Load a shared/demo circuit opened from the community page (e.g. Share.jsx
-  // navigating to /builder with state instead of a real /projects/:id route -
-  // demo circuits have no backend row, so there's nothing to fetch by id).
-  useEffect(() => {
-    const shared = location.state;
-    if (!shared?.fromShared || !shared.circuit) return;
-
-    setProjectName(shared.projectName || "Untitled Circuit");
-    setNodes(shared.circuit.nodes || []);
-    setEdges(shared.circuit.edges || []);
-    setProjectId(null); // treat as a fresh, unsaved project - "Save circuit" creates a new one
-    setLoading(false);
-
-    // Clear the navigation state so refreshing or coming back here later
-    // doesn't reload the shared circuit again over the user's own edits.
-    navigate(location.pathname, { replace: true, state: null });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // any edit invalidates the last simulation result
   useEffect(() => {
     setSimResult(null);
   }, [nodes, edges]);
+
+  useEffect(() => {
+    return () => {
+      if (liveTickTimerRef.current) clearInterval(liveTickTimerRef.current);
+    };
+  }, []);
 
   function onDragOver(e) {
     e.preventDefault();
@@ -115,6 +114,7 @@ export default function Builder() {
         default_value: component.default_value,
         component_id: component.id,
         modelType: component.model_type,
+        pins: component.spec?.pins || undefined,
         on: component.key === "switch" || component.key === "dip_switch" ? true : undefined,
         x: Math.round(x / 0.5) * 0.5,
         z: Math.round(z / 0.5) * 0.5,
@@ -140,6 +140,7 @@ export default function Builder() {
     setNodes((nds) => nds.filter((n) => n.id !== nodeId));
     setEdges((eds) => eds.filter((e) => e.sourceId !== nodeId && e.targetId !== nodeId));
     setSelectedTerminal((sel) => (sel && sel.nodeId === nodeId ? null : sel));
+    if (codeEditorNodeId === nodeId) setCodeEditorNodeId(null);
   }
 
   function handleToggle(nodeId) {
@@ -214,6 +215,7 @@ export default function Builder() {
       if (!pid) return;
       const res = await client.post(`/projects/${pid}/simulate`);
       setSimResult(res.data);
+      pinVoltagesRef.current = res.data.pinVoltages || {};
     } catch (err) {
       setSimResult({
         status: "error",
@@ -225,6 +227,35 @@ export default function Builder() {
       setSimRunning(false);
     }
   }
+
+  function handleSaveCode(nodeId, code) {
+    setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, code } : n)));
+  }
+
+  function getLivePinVoltage(nodeId, terminal) {
+    return pinVoltagesRef.current[`${nodeId}::${terminal}`] || 0;
+  }
+
+  // Called ~every 150ms while a board's code is running (see
+  // ESP32CodeEditor). Solves the circuit with that board's current
+  // pin_states patched in, WITHOUT touching the saved project - this hits
+  // /simulate/live, not /simulate, so it never bumps run_count or saves.
+  async function handleLivePinsChange(nodeId, pinStates) {
+    if (!projectId) return; // save the project first before running code
+    const patchedNodes = nodesRef.current.map((n) => (n.id === nodeId ? { ...n, pin_states: pinStates } : n));
+    try {
+      const res = await client.post(`/projects/${projectId}/simulate/live`, {
+        nodes: patchedNodes,
+        edges: edgesRef.current,
+      });
+      setSimResult(res.data);
+      pinVoltagesRef.current = res.data.pinVoltages || {};
+    } catch {
+      // transient network hiccup during a live tick - ignore, next tick will retry
+    }
+  }
+
+  const codeEditorNode = codeEditorNodeId ? nodes.find((n) => n.id === codeEditorNodeId) : null;
 
   return (
     <>
@@ -310,7 +341,7 @@ export default function Builder() {
           <div style={styles.hintBar}>
             <span style={styles.hint}>
               Drag a part onto the board · drag a placed part to move it · click two glowing terminal dots
-              to wire them · drag empty space to orbit, scroll to zoom
+              to wire them · double-click a dev board to write code · drag empty space to orbit, scroll to zoom
             </span>
           </div>
 
@@ -368,6 +399,7 @@ export default function Builder() {
                   onDragEnd={handleDragEnd}
                   onTerminalClick={handleTerminalClick}
                   onToggle={handleToggle}
+                  onOpenCode={(nodeId) => setCodeEditorNodeId(nodeId)}
                   selectedTerminal={selectedTerminal}
                   onRemove={handleRemove}
                   cameraRef={cameraRef}
@@ -392,6 +424,17 @@ export default function Builder() {
           </div>
         </div>
       </AppShell>
+
+      {codeEditorNode && (
+        <ESP32CodeEditor
+          node={codeEditorNode}
+          onClose={() => setCodeEditorNodeId(null)}
+          onSaveCode={handleSaveCode}
+          onLivePinsChange={handleLivePinsChange}
+          getLivePinVoltage={getLivePinVoltage}
+        />
+      )}
+
       <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} projectId={projectId} />
     </>
   );
@@ -411,6 +454,8 @@ function SaveStatus({ state }) {
 }
 
 function PowerIndicator({ status, running }) {
+  // off = no sim yet, otherwise reflect the health of the last run — like the
+  // power LED on a real bench supply.
   const map = {
     complete: { color: "#2fd66f", label: "Powered", cls: "cl-led-on" },
     open: { color: "#ffc94d", label: "Open loop", cls: "cl-led-amber" },
@@ -447,7 +492,7 @@ function ReadingsPanel({ readings, nodes }) {
   const railVoltage = Math.max(...rows.map((r) => r.voltage), 0);
   const totalParts = nodes.length;
   const poweredParts = rows.length;
-  const loadPct = Math.min(100, (totalCurrentMA / 1000) * 100);
+  const loadPct = Math.min(100, (totalCurrentMA / 1000) * 100); // relative to a 1A reference rail
 
   return (
     <div style={styles.readingsPanel} className="cl-readings-panel">
@@ -456,6 +501,7 @@ function ReadingsPanel({ readings, nodes }) {
         <span className="cl-diag-live-dot" />
       </div>
 
+      {/* summary readout — styled like a bench multimeter */}
       <div className="cl-diag-summary">
         <div className="cl-diag-stat">
           <span className="cl-diag-value mono">{railVoltage.toFixed(2)}<small>V</small></span>
@@ -705,6 +751,12 @@ const styles = {
   },
 };
 
+/* ---------------------------------------------------------------------
+   Animation + micro-interaction layer. Kept separate from the inline
+   style objects above (which React needs for static layout) since
+   hover states, keyframes, and pseudo-elements aren't expressible
+   inline. Everything here is additive polish — no layout changes.
+------------------------------------------------------------------------ */
 const GLOBAL_CSS = `
 @keyframes cl-fade-slide-down {
   from { opacity: 0; transform: translateY(-6px); }
@@ -748,6 +800,7 @@ const GLOBAL_CSS = `
 
 .cl-toolbar { position: relative; }
 
+/* project name field: animated underline on focus */
 .cl-name-wrap { position: relative; }
 .cl-name-input { transition: color 0.15s ease; }
 .cl-name-underline {
@@ -770,6 +823,7 @@ const GLOBAL_CSS = `
   flex-shrink: 0;
 }
 
+/* buttons: consistent, subtle lift + glow */
 .cl-btn {
   transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease,
     background 0.2s ease, border-color 0.2s ease, opacity 0.15s ease;
@@ -866,6 +920,7 @@ const GLOBAL_CSS = `
 }
 .cl-loading-text { font-family: var(--font-display); letter-spacing: 0.03em; }
 
+/* ---- power LED (toolbar) ---- */
 @keyframes cl-led-blink {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.25; }
@@ -900,6 +955,7 @@ const GLOBAL_CSS = `
   white-space: nowrap;
 }
 
+/* ---- 3D bench / HUD frame ---- */
 .cl-bench { overflow: hidden; }
 .cl-bench-grid {
   position: absolute;
@@ -935,6 +991,7 @@ const GLOBAL_CSS = `
 .cl-corner-br { bottom: 10px; right: 10px; border-bottom: 2px solid; border-right: 2px solid; border-radius: 0 0 3px 0; }
 .cl-drop-target .cl-corner { border-color: var(--primary); opacity: 1; }
 
+/* ---- diagnostics panel ---- */
 .cl-diag-header {
   display: flex;
   align-items: center;
