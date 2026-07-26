@@ -31,9 +31,11 @@ def _placeholder_email(username):
 @auth_bp.post("/register")
 def register():
     data = request.get_json(silent=True) or {}
+    print(f"[register] raw data received: {data!r}")
     name = (data.get("name") or "").strip()
     username = (data.get("username") or "").strip().lower()
     password = (data.get("password") or "").strip()
+    print(f"[register] parsed -> name={name!r} username={username!r} password={password!r}")
 
     if not name or len(name) < 2:
         return jsonify({"error": "Name must be at least 2 characters."}), 400
