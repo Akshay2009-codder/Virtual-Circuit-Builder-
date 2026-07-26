@@ -7,6 +7,10 @@ import PowerButton from "../components/PowerButton";
 import { useAuth } from "../context/AuthContext";
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
+// 8-20 chars, at least one uppercase, one lowercase, one number, one special char
+const PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,20}$/;
+const PASSWORD_HINT =
+  "8-20 characters, with an uppercase letter, a lowercase letter, a number, and a special character.";
 
 // Staggered "power-on" entrance — each field lights up a beat after the
 // last, like current reaching successive nodes on a rail.
@@ -37,6 +41,10 @@ export default function Register() {
 
     if (!USERNAME_RE.test(form.username)) {
       setFormError("Username must be 3-20 characters: letters, numbers, and underscores only.");
+      return;
+    }
+    if (!PASSWORD_RE.test(form.password)) {
+      setFormError(`Password must be ${PASSWORD_HINT}`);
       return;
     }
 
@@ -92,9 +100,10 @@ export default function Register() {
             required
             value={form.password}
             onChange={update("password")}
-            placeholder="At least 6 characters"
+            placeholder="8-20 characters"
             autoComplete="new-password"
           />
+          <p style={{ color: "var(--text-faint)", fontSize: 11.5, margin: "-8px 0 14px" }}>{PASSWORD_HINT}</p>
         </motion.div>
 
         {formError && (
