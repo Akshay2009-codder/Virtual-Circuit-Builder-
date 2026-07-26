@@ -20,30 +20,18 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function login(email, password) {
-    // throws with err.response.data.needs_verification === true if the
-    // account exists but hasn't verified its email yet - callers should
-    // check for that and route to the verify-email flow.
-    const res = await client.post("/auth/login", { email, password });
+  async function login(username, password) {
+    const res = await client.post("/auth/login", { username, password });
     localStorage.setItem("cl_token", res.data.token);
     setUser(res.data.user);
+    return res.data;
   }
 
-  async function register(name, username, email, password) {
-    // No token comes back here anymore - registering only sends an OTP.
-    // The caller must route to /verify-email and call verifyOtp() to
-    // actually finish signing in.
-    await client.post("/auth/register", { name, username, email, password });
-  }
-
-  async function verifyOtp(email, otp) {
-    const res = await client.post("/auth/verify-otp", { email, otp });
+  async function register(name, username, password) {
+    const res = await client.post("/auth/register", { name, username, password });
     localStorage.setItem("cl_token", res.data.token);
     setUser(res.data.user);
-  }
-
-  async function resendOtp(email) {
-    await client.post("/auth/resend-otp", { email });
+    return res.data;
   }
 
   function logout() {
@@ -52,7 +40,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, verifyOtp, resendOtp, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
