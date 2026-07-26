@@ -28,15 +28,16 @@ export default function AppShell({ children }) {
           <NavLink to="/share" style={navStyle}>
             Share
           </NavLink>
+          {user?.username && (
+            <NavLink to={`/u/${user.username}`} style={navStyle}>
+              Profile
+            </NavLink>
+          )}
         </nav>
 
         <div style={styles.userArea}>
           <NotificationBell />
-          {user?.username && (
-            <NavLink to={`/u/${user.username}`} style={styles.profileLink} title="Your profile">
-              <span style={{ color: "var(--text-dim)", fontSize: 13.5 }}>{user?.name}</span>
-            </NavLink>
-          )}
+          <span style={{ color: "var(--text-dim)", fontSize: 13.5 }}>{user?.name}</span>
           <button onClick={logout} style={styles.logoutBtn}>
             Sign out
           </button>
@@ -87,9 +88,6 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: 14,
-  },
-  profileLink: {
-    textDecoration: "none",
   },
   logoutBtn: {
     background: "transparent",
