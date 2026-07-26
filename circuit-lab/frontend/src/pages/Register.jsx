@@ -43,14 +43,15 @@ export default function Register() {
       setFormError("Username must be 3-20 characters: letters, numbers, and underscores only.");
       return;
     }
-    if (!PASSWORD_RE.test(form.password)) {
+    const password = form.password.trim();
+    if (!PASSWORD_RE.test(password)) {
       setFormError(`Password must be ${PASSWORD_HINT}`);
       return;
     }
 
     setStatus("loading");
     try {
-      await register(form.name, form.username, form.password);
+      await register(form.name, form.username, password);
       navigate("/dashboard");
     } catch (err) {
       setStatus("error");
