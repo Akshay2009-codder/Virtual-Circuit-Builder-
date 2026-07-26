@@ -27,6 +27,12 @@ export default function NotificationBell() {
     try {
       await client.post(`/invites/${inviteId}/${action}`);
       setInvites((inv) => inv.filter((i) => i.id !== inviteId));
+      if (action === "accept") {
+        // Let other mounted pages (e.g. Dashboard) know a new shared
+        // project may exist, so they can refetch instead of showing
+        // stale data until the next full page load.
+        window.dispatchEvent(new Event("project-invite-accepted"));
+      }
     } finally {
       setRespondingId(null);
     }
