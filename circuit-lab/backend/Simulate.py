@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from models import db, Project, ProjectCollaborator
@@ -59,19 +59,11 @@ def build_suggestions(status, nodes, edges, readings):
     return suggestions[:3]
 
 
-@simulate_bp.post("/<int:project_id>/simulate")
-@jwt_required()
-def simulate_circuit(project_id):
-    user_id = get_jwt_identity()
-    project = _accessible_project(project_id, user_id)
-    if not project:
-        return jsonify({"error": "Project not found."}), 404
-
-    circuit = project.circuit_json or {"nodes": [], "edges": []}
-    nodes = circuit.get("nodes", [])
-    edges = circuit.get("edges", [])
+def _run_solve(nodes, edges):
+    """Shared by both the persisted 'Run circuit' endpoint and the live tick
+    endpoint - solves the graph and turns the raw solver output into the
+    same status/message/readings shape the frontend already expects."""
     node_by_id = {n["id"]: n for n in nodes}
-
     result = solve_circuit(nodes, edges)
 
     if not result["ok"]:
@@ -107,11 +99,60 @@ def simulate_circuit(project_id):
             message = "Open circuit — there's no complete path back to the power source, so no current flows. Check your wiring."
 
     suggestions = build_suggestions(status, nodes, edges, readings)
+    return status, message, readings, powered_ids, suggestions
+
+
+@simulate_bp.post("/<int:project_id>/simulate")
+@jwt_required()
+def simulate_circuit(project_id):
+    """One-shot 'Run circuit' - reads the saved project, solves it, and
+    records the result (last_run_status/run_count) like a real test run."""
+    user_id = get_jwt_identity()
+    project = _accessible_project(project_id, user_id)
+    if not project:
+        return jsonify({"error": "Project not found."}), 404
+
+    circuit = project.circuit_json or {"nodes": [], "edges": []}
+    nodes = circuit.get("nodes", [])
+    edges = circuit.get("edges", [])
+
+    status, message, readings, powered_ids, suggestions = _run_solve(nodes, edges)
 
     project.last_run_status = status
     project.last_run_at = datetime.now(timezone.utc)
     project.run_count = (project.run_count or 0) + 1
     db.session.commit()
+
+    return jsonify({
+        "status": status,
+        "message": message,
+        "poweredIds": powered_ids,
+        "suggestions": suggestions,
+        "readings": readings,
+    }), 200
+
+
+@simulate_bp.post("/<int:project_id>/simulate/live")
+@jwt_required()
+def simulate_live(project_id):
+    """High-frequency tick used while ESP32 code is actually running in the
+    browser interpreter. Takes the CURRENT in-memory nodes/edges straight
+    from the request body (not the last saved version - the interpreter
+    updates a board node's pin_states many times a second, far faster than
+    anyone would want to autosave), solves once, and returns readings.
+    Deliberately does NOT touch last_run_status/run_count/db.session.commit -
+    only the explicit 'Run circuit' button counts as a real test run.
+    """
+    user_id = get_jwt_identity()
+    project = _accessible_project(project_id, user_id)
+    if not project:
+        return jsonify({"error": "Project not found."}), 404
+
+    data = request.get_json(silent=True) or {}
+    nodes = data.get("nodes") or []
+    edges = data.get("edges") or []
+
+    status, message, readings, powered_ids, suggestions = _run_solve(nodes, edges)
 
     return jsonify({
         "status": status,
