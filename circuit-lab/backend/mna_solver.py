@@ -144,6 +144,7 @@ def solve_circuit(nodes, edges):
             "source_currents_mA": source_currents_mA,
             "any_source_current": True,
             "max_source_current_mA": DEAD_SHORT_MA,
+            "board_pin_voltages": {},
         }
     if not sources:
         return {"ok": False}
@@ -306,10 +307,31 @@ def solve_circuit(nodes, edges):
     max_source_mA = max(source_currents_mA.values()) if source_currents_mA else 0.0
     any_current = any(c > 1e-3 for c in source_currents_mA.values())
 
+    # Raw per-pin voltages for every board (relative to that board's own
+    # ground) - not just the ones with an active source. This is what lets
+    # analogRead()/digitalRead() see an externally-applied signal (e.g. a
+    # potentiometer wiper wired into a GPIO) rather than only ever reading
+    # back what the code itself just wrote.
+    board_pin_voltages = {}
+    for n in nodes:
+        if classify(n) != "board":
+            continue
+        pins = board_pins(n)
+        gnd_terms = [p["terminal"] for p in pins if p.get("role") == "ground"]
+        if not gnd_terms:
+            continue
+        board_gnd = net(n["id"], gnd_terms[0])
+        gnd_v = voltages.get(board_gnd, 0.0)
+        for p in pins:
+            term = p["terminal"]
+            pin_net = net(n["id"], term)
+            board_pin_voltages[f'{n["id"]}::{term}'] = round(voltages.get(pin_net, gnd_v) - gnd_v, 4)
+
     return {
         "ok": True,
         "readings": readings,
         "source_currents_mA": source_currents_mA,
         "any_source_current": any_current,
         "max_source_current_mA": max_source_mA,
+        "board_pin_voltages": board_pin_voltages,
     }
