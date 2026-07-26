@@ -7,6 +7,7 @@ from models import db
 from auth import auth_bp
 from components import components_bp
 from projects import projects_bp
+from invites import invites_bp
 from Simulate import simulate_bp
 from community import community_bp
 from component_model import Component  # noqa: F401 - registers table with SQLAlchemy
@@ -24,6 +25,7 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(components_bp)
     app.register_blueprint(projects_bp)
+    app.register_blueprint(invites_bp)
     app.register_blueprint(simulate_bp)
     app.register_blueprint(community_bp)
 
