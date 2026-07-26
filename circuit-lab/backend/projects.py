@@ -158,13 +158,14 @@ def send_invite(project_id):
         return jsonify({"error": "Project not found."}), 404
 
     data = request.get_json(silent=True) or {}
-    email = (data.get("email") or "").strip().lower()
-    if not email:
-        return jsonify({"error": "Enter an email address."}), 400
+    # ShareModal.jsx sends { username }, not { email } - match that here.
+    username = (data.get("username") or "").strip().lower()
+    if not username:
+        return jsonify({"error": "Enter a username."}), 400
 
-    target = User.query.filter_by(email=email).first()
+    target = User.query.filter(db.func.lower(User.username) == username).first()
     if not target:
-        return jsonify({"error": "No CircuitLab account with that email. They need to register first."}), 404
+        return jsonify({"error": "No CircuitLab account with that username. They need to register first."}), 404
     if str(target.id) == str(user_id):
         return jsonify({"error": "That's your own account."}), 400
 
