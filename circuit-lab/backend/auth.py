@@ -9,6 +9,12 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9_]{3,20}$")
+# 8-20 chars, at least one uppercase, one lowercase, one number, one special char
+PASSWORD_RE = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,20}$")
+PASSWORD_HINT = (
+    "Password must be 8-20 characters and include an uppercase letter, "
+    "a lowercase letter, a number, and a special character."
+)
 
 # Registration no longer collects a real email address, but the users
 # table still requires a unique, non-null email (other features like
@@ -33,8 +39,8 @@ def register():
         return jsonify({"error": "Name must be at least 2 characters."}), 400
     if not USERNAME_RE.match(username):
         return jsonify({"error": "Username must be 3-20 characters: letters, numbers, and underscores only."}), 400
-    if len(password) < 6:
-        return jsonify({"error": "Password must be at least 6 characters."}), 400
+    if not PASSWORD_RE.match(password):
+        return jsonify({"error": PASSWORD_HINT}), 400
 
     existing = User.query.filter_by(username=username).first()
     if existing:
