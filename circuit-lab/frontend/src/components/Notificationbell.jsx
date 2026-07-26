@@ -10,7 +10,10 @@ export default function NotificationBell() {
   const [respondingId, setRespondingId] = useState(null);
 
   function load() {
-    client.get("/invites").then((res) => setInvites(res.data.invites));
+    client
+      .get("/invites")
+      .then((res) => setInvites(res.data.invites))
+      .catch((err) => console.error("Failed to load invites:", err));
   }
 
   useEffect(() => {
@@ -29,6 +32,8 @@ export default function NotificationBell() {
     }
   }
 
+  const hasPending = invites.length > 0;
+
   return (
     <div style={{ position: "relative" }}>
       <button onClick={() => setOpen((o) => !o)} style={styles.bellBtn} title="Share requests">
@@ -36,7 +41,7 @@ export default function NotificationBell() {
           <path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Z" />
           <path d="M10 20a2 2 0 0 0 4 0" />
         </svg>
-        {invites.length > 0 && <span style={styles.badge}>{invites.length}</span>}
+        {hasPending && <span style={styles.dot} />}
       </button>
 
       <AnimatePresence>
@@ -105,21 +110,15 @@ const styles = {
     placeItems: "center",
     cursor: "pointer",
   },
-  badge: {
+  dot: {
     position: "absolute",
-    top: -5,
-    right: -5,
+    top: -2,
+    right: -2,
+    width: 9,
+    height: 9,
+    borderRadius: "50%",
     background: "var(--danger)",
-    color: "#fff",
-    fontSize: 10,
-    fontFamily: "var(--font-display)",
-    fontWeight: 700,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    display: "grid",
-    placeItems: "center",
-    padding: "0 3px",
+    border: "2px solid var(--surface)",
   },
   clickCatcher: {
     position: "fixed",
