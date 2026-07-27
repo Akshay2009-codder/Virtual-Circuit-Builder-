@@ -16,7 +16,7 @@ import requests
 # ---- CONFIG ----
 API_BASE = "http://127.0.0.1:5000/api"
 USERNAME = "akshay_07"
-PASSWORD = "CHANGE_ME"
+PASSWORD = "Akshay@07"
 PROJECT_FILE = "thermal_alarm_panel.json"
 # -----------------
 
