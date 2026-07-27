@@ -5,7 +5,7 @@ import ComponentPalette from "../components/builder/ComponentPalette";
 import Scene3D from "../components/builder3d/Scene3D";
 import { screenToGround } from "../components/builder3d/raycast";
 import ShareModal from "../components/ShareModal";
-import ESP32CodeEditor from "../components/builder/ESP32CodeEditor";
+import BoardCodeEditor from "../components/builder/BoardCodeEditor";
 import client from "../api/client";
 
 let idCounter = 1;
@@ -237,7 +237,7 @@ export default function Builder() {
   }
 
   // Called ~every 150ms while a board's code is running (see
-  // ESP32CodeEditor). Solves the circuit with that board's current
+  // BoardCodeEditor). Solves the circuit with that board's current
   // pin_states patched in, WITHOUT touching the saved project - this hits
   // /simulate/live, not /simulate, so it never bumps run_count or saves.
   async function handleLivePinsChange(nodeId, pinStates) {
@@ -426,7 +426,7 @@ export default function Builder() {
       </AppShell>
 
       {codeEditorNode && (
-        <ESP32CodeEditor
+        <BoardCodeEditor
           node={codeEditorNode}
           onClose={() => setCodeEditorNodeId(null)}
           onSaveCode={handleSaveCode}
