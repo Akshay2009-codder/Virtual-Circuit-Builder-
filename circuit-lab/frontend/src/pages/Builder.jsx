@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import ComponentPalette from "../components/builder/ComponentPalette";
 import Scene3D from "../components/builder3d/Scene3D";
@@ -16,6 +16,8 @@ const LIVE_TICK_MS = 150;
 export default function Builder() {
   const { id } = useParams(); // undefined => new project
   const navigate = useNavigate();
+  const location = useLocation();
+  const sharedState = location.state?.fromShared ? location.state : null;
   const wrapperRef = useRef(null);
   const cameraRef = useRef(null);
 
@@ -53,8 +55,21 @@ export default function Builder() {
     client.get("/components").then((res) => setComponents(res.data.components));
   }, []);
 
-  // Load an existing project if editing one
+  // Load an existing project if editing one, OR a demo/shared circuit
+  // passed via router state from Share.jsx (which has no real project id
+  // to fetch - see DEMO_PROJECTS in Share.jsx). Without this, navigating
+  // here from a shared demo card opened an empty Builder.
   useEffect(() => {
+    if (sharedState) {
+      setProjectName(sharedState.projectName || "Shared Circuit");
+      setDescription(sharedState.ownerName ? `Shared by ${sharedState.ownerName}` : "");
+      if (sharedState.ownerName) setShowDetails(true);
+      setNodes(sharedState.circuit?.nodes || []);
+      setEdges(sharedState.circuit?.edges || []);
+      setProjectId(null); // treat as a new, unsaved project - "Save circuit" will create your own copy
+      setLoading(false);
+      return;
+    }
     if (!id) {
       setLoading(false);
       return;
@@ -70,7 +85,13 @@ export default function Builder() {
         setNodes(p.circuit_json.nodes || []);
         setEdges(p.circuit_json.edges || []);
       })
+      .catch(() => {
+        setProjectName("Couldn't load this circuit");
+        setDescription("This circuit doesn't exist, or you don't have access to it.");
+        setShowDetails(true);
+      })
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // any edit invalidates the last simulation result
