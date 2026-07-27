@@ -1,208 +1,1059 @@
 import { useEffect, useRef, useState } from "react";
-import { ArduinoRuntime } from "../utils/arduinoRuntime";
+import { useNavigate, useParams } from "react-router-dom";
+import AppShell from "../components/AppShell";
+import ComponentPalette from "../components/builder/ComponentPalette";
+import Scene3D from "../components/builder3d/Scene3D";
+import { screenToGround } from "../components/builder3d/raycast";
+import ShareModal from "../components/ShareModal";
+import BoardCodeEditor from "../components/builder/BoardCodeEditor";
+import client from "../api/client";
 
-const DEFAULT_SKETCH = `void setup() {
-  pinMode(2, OUTPUT);
-}
+let idCounter = 1;
+const nextId = () => `n${idCounter++}`;
 
-void loop() {
-  digitalWrite(2, HIGH);
-  delay(500);
-  digitalWrite(2, LOW);
-  delay(500);
-}
-`;
+const LIVE_TICK_MS = 150;
 
-const TICK_MS = 150; // how often we re-solve the circuit against the backend while code is running
+export default function Builder() {
+  const { id } = useParams(); // undefined => new project
+  const navigate = useNavigate();
+  const wrapperRef = useRef(null);
+  const cameraRef = useRef(null);
 
-export default function ESP32CodeEditor({ node, onClose, onSaveCode, onLivePinsChange, getLivePinVoltage }) {
-  const [code, setCode] = useState(node.code || DEFAULT_SKETCH);
-  const [running, setRunning] = useState(false);
-  const [error, setError] = useState(null);
-  const [serialLines, setSerialLines] = useState([]);
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+  const [components, setComponents] = useState([]);
+  const [projectId, setProjectId] = useState(id ? Number(id) : null);
+  const [projectName, setProjectName] = useState("Untitled Circuit");
+  const [description, setDescription] = useState("");
+  const [showDetails, setShowDetails] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saveState, setSaveState] = useState("idle"); // idle | saving | saved | error
 
-  const runtimeRef = useRef(null);
-  const pinStatesRef = useRef({});
-  const tickIntervalRef = useRef(null);
-  const serialBufRef = useRef("");
+  const [draggingId, setDraggingId] = useState(null);
+  const [selectedTerminal, setSelectedTerminal] = useState(null);
+  const [simResult, setSimResult] = useState(null);
+  const [simRunning, setSimRunning] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [isDropTarget, setIsDropTarget] = useState(false);
+
+  // Which board (ESP32 etc) has its code editor open, if any
+  const [codeEditorNodeId, setCodeEditorNodeId] = useState(null);
+  // Latest per-pin voltages from the last live-code tick, keyed "nodeId::terminal"
+  const pinVoltagesRef = useRef({});
+  const liveTickTimerRef = useRef(null);
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+  nodesRef.current = nodes;
+  edgesRef.current = edges;
+
+  // Load the component catalog for the palette
+  useEffect(() => {
+    client.get("/components").then((res) => setComponents(res.data.components));
+  }, []);
+
+  // Load an existing project if editing one
+  useEffect(() => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+    client
+      .get(`/projects/${id}`)
+      .then((res) => {
+        const p = res.data.project;
+        setProjectName(p.name);
+        setDescription(p.description || "");
+        setIsPublic(!!p.is_public);
+        if (p.description) setShowDetails(true);
+        setNodes(p.circuit_json.nodes || []);
+        setEdges(p.circuit_json.edges || []);
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  // any edit invalidates the last simulation result
+  useEffect(() => {
+    setSimResult(null);
+  }, [nodes, edges]);
 
   useEffect(() => {
     return () => {
-      runtimeRef.current?.stop();
-      if (tickIntervalRef.current) clearInterval(tickIntervalRef.current);
+      if (liveTickTimerRef.current) clearInterval(liveTickTimerRef.current);
     };
   }, []);
 
-  function appendSerial(text) {
-    serialBufRef.current += text;
-    const parts = serialBufRef.current.split("\n");
-    serialBufRef.current = parts.pop();
-    if (parts.length === 0) return;
-    setSerialLines((lines) => [...lines, ...parts].slice(-200));
+  function onDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (!isDropTarget) setIsDropTarget(true);
   }
 
-  function handleRun() {
-    onSaveCode(node.id, code);
-    setError(null);
-    setSerialLines([]);
-    pinStatesRef.current = {};
-
-    const runtime = new ArduinoRuntime(node, {
-      onPinWrite: (terminal, volts) => {
-        pinStatesRef.current = { ...pinStatesRef.current, [terminal]: volts };
-      },
-      getPinVoltage: (terminal) => getLivePinVoltage(node.id, terminal),
-      onSerial: appendSerial,
-      onStatus: ({ running: r, error: e }) => {
-        setRunning(r);
-        if (e) setError(e);
-      },
-    });
-    runtimeRef.current = runtime;
-    runtime.start(code);
-
-    tickIntervalRef.current = setInterval(() => {
-      onLivePinsChange(node.id, pinStatesRef.current);
-    }, TICK_MS);
+  function onDragLeave() {
+    setIsDropTarget(false);
   }
 
-  function handleStop() {
-    runtimeRef.current?.stop();
-    if (tickIntervalRef.current) clearInterval(tickIntervalRef.current);
-    tickIntervalRef.current = null;
-    setRunning(false);
+  function onDrop(e) {
+    e.preventDefault();
+    setIsDropTarget(false);
+    const raw = e.dataTransfer.getData("application/circuitlab-component");
+    if (!raw || !cameraRef.current || !wrapperRef.current) return;
+    const component = JSON.parse(raw);
+
+    const rect = wrapperRef.current.getBoundingClientRect();
+    const { x, z } = screenToGround(e.clientX, e.clientY, rect, cameraRef.current);
+
+    setNodes((nds) =>
+      nds.concat({
+        id: nextId(),
+        key: component.key,
+        name: component.name,
+        category: component.category,
+        unit: component.unit,
+        default_value: component.default_value,
+        component_id: component.id,
+        modelType: component.model_type,
+        pins: component.spec?.pins || undefined,
+        on: component.key === "switch" || component.key === "dip_switch" ? true : undefined,
+        x: Math.round(x / 0.5) * 0.5,
+        z: Math.round(z / 0.5) * 0.5,
+      })
+    );
   }
+
+  function handleDragStart(nodeId) {
+    setDraggingId(nodeId);
+  }
+  function handleDragMove(nodeId, x, z) {
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === nodeId ? { ...n, x: Math.round(x / 0.25) * 0.25, z: Math.round(z / 0.25) * 0.25 } : n
+      )
+    );
+  }
+  function handleDragEnd() {
+    setDraggingId(null);
+  }
+
+  function handleRemove(nodeId) {
+    setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+    setEdges((eds) => eds.filter((e) => e.sourceId !== nodeId && e.targetId !== nodeId));
+    setSelectedTerminal((sel) => (sel && sel.nodeId === nodeId ? null : sel));
+    if (codeEditorNodeId === nodeId) setCodeEditorNodeId(null);
+  }
+
+  function handleToggle(nodeId) {
+    setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, on: !(n.on !== false) } : n)));
+  }
+
+  function handleTerminalClick(nodeId, terminal) {
+    if (!selectedTerminal) {
+      setSelectedTerminal({ nodeId, terminal });
+      return;
+    }
+    if (selectedTerminal.nodeId === nodeId && selectedTerminal.terminal === terminal) {
+      setSelectedTerminal(null); // clicked the same terminal again - deselect
+      return;
+    }
+    if (selectedTerminal.nodeId === nodeId) {
+      setSelectedTerminal({ nodeId, terminal }); // switch to the other terminal on the same part
+      return;
+    }
+    setEdges((eds) =>
+      eds.concat({
+        id: `e${Date.now()}`,
+        sourceId: selectedTerminal.nodeId,
+        sourceTerminal: selectedTerminal.terminal,
+        targetId: nodeId,
+        targetTerminal: terminal,
+      })
+    );
+    setSelectedTerminal(null);
+  }
+
+  async function handleSave() {
+    setSaveState("saving");
+    const circuit_json = { nodes, edges };
+    try {
+      let pid = projectId;
+      if (pid) {
+        await client.put(`/projects/${pid}`, { name: projectName, description, circuit_json });
+      } else {
+        const res = await client.post("/projects", { name: projectName, description, circuit_json });
+        pid = res.data.project.id;
+        setProjectId(pid);
+        navigate(`/builder/${pid}`, { replace: true });
+      }
+      setSaveState("saved");
+      setTimeout(() => setSaveState("idle"), 1500);
+      return pid;
+    } catch {
+      setSaveState("error");
+      setTimeout(() => setSaveState("idle"), 1500);
+      return null;
+    }
+  }
+
+  async function handleTogglePublic() {
+    const pid = projectId || (await handleSave());
+    if (!pid) return;
+    setPublishing(true);
+    try {
+      const res = await client.put(`/projects/${pid}`, { is_public: !isPublic });
+      setIsPublic(!!res.data.project.is_public);
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  async function handleRunCircuit() {
+    setSimRunning(true);
+    setSimResult(null);
+    try {
+      const pid = await handleSave(); // always save first so the simulation reads the current layout
+      if (!pid) return;
+      const res = await client.post(`/projects/${pid}/simulate`);
+      setSimResult(res.data);
+      pinVoltagesRef.current = res.data.pinVoltages || {};
+    } catch (err) {
+      setSimResult({
+        status: "error",
+        message: err.response?.data?.error || "Couldn't run the simulation. Try again.",
+        poweredIds: [],
+        suggestions: [],
+      });
+    } finally {
+      setSimRunning(false);
+    }
+  }
+
+  function handleSaveCode(nodeId, code) {
+    setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, code } : n)));
+  }
+
+  function getLivePinVoltage(nodeId, terminal) {
+    return pinVoltagesRef.current[`${nodeId}::${terminal}`] || 0;
+  }
+
+  // Called ~every 150ms while a board's code is running (see
+  // BoardCodeEditor). Solves the circuit with that board's current
+  // pin_states patched in, WITHOUT touching the saved project - this hits
+  // /simulate/live, not /simulate, so it never bumps run_count or saves.
+  async function handleLivePinsChange(nodeId, pinStates) {
+    if (!projectId) return; // save the project first before running code
+    const patchedNodes = nodesRef.current.map((n) => (n.id === nodeId ? { ...n, pin_states: pinStates } : n));
+    try {
+      const res = await client.post(`/projects/${projectId}/simulate/live`, {
+        nodes: patchedNodes,
+        edges: edgesRef.current,
+      });
+      setSimResult(res.data);
+      pinVoltagesRef.current = res.data.pinVoltages || {};
+    } catch {
+      // transient network hiccup during a live tick - ignore, next tick will retry
+    }
+  }
+
+  const codeEditorNode = codeEditorNodeId ? nodes.find((n) => n.id === codeEditorNodeId) : null;
 
   return (
-    <div style={styles.backdrop} onClick={onClose}>
-      <div style={styles.panel} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.header}>
-          <span style={{ fontWeight: 600, fontSize: 14 }}>{"</>"} {node.name} code</span>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {!running ? (
-              <button onClick={handleRun} style={styles.runBtn}>▶ Run</button>
-            ) : (
-              <button onClick={handleStop} style={styles.stopBtn}>■ Stop</button>
-            )}
-            <button onClick={onClose} style={styles.closeBtn}>✕</button>
+    <>
+      <style>{GLOBAL_CSS}</style>
+      <AppShell>
+        <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 65px)" }}>
+          <div style={styles.toolbar} className="cl-toolbar">
+            <div style={{ display: "flex", alignItems: "center", gap: 16, flex: 1, minWidth: 0 }}>
+              <div className="cl-name-wrap">
+                <input
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  style={styles.nameInput}
+                  placeholder="Untitled Circuit"
+                  className="cl-name-input"
+                />
+                <span className="cl-name-underline" />
+              </div>
+              <button
+                style={styles.detailsToggle}
+                onClick={() => setShowDetails((s) => !s)}
+                className="cl-btn cl-btn-ghost"
+              >
+                {showDetails ? "Hide details" : description ? "Edit details" : "+ Add details"}
+              </button>
+              <span style={styles.statText} className="cl-stat">
+                <span className="cl-stat-dot" />
+                {nodes.length} components · {edges.length} connections
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <SaveStatus state={saveState} />
+              <PowerIndicator status={simResult?.status} running={simRunning} />
+              <button onClick={handleSave} style={styles.saveBtn} className="cl-btn cl-btn-save">
+                Save circuit
+              </button>
+              <button
+                onClick={handleRunCircuit}
+                style={styles.runBtn}
+                disabled={simRunning}
+                className={`cl-btn cl-btn-run ${simRunning ? "cl-btn-run-active" : "cl-btn-run-pulse"}`}
+              >
+                <span className={`cl-run-icon ${simRunning ? "cl-spin" : ""}`}>{simRunning ? "◐" : "▶"}</span>
+                {simRunning ? "Running…" : "Run circuit"}
+              </button>
+              <button
+                onClick={() => (projectId ? setShareOpen(true) : handleSave().then(() => setShareOpen(true)))}
+                style={styles.shareBtn}
+                title={projectId ? "Share with teammates" : "Save first, then share"}
+                className="cl-btn cl-btn-ghost"
+              >
+                👥 Share
+              </button>
+              <button
+                onClick={handleTogglePublic}
+                disabled={publishing}
+                style={{
+                  ...styles.publishBtn,
+                  borderColor: isPublic ? "var(--primary)" : "var(--border-bright)",
+                  color: isPublic ? "var(--primary)" : "var(--text-dim)",
+                }}
+                title={isPublic ? "Visible in the community gallery - click to make private" : "Publish to the community gallery"}
+                className={`cl-btn cl-btn-ghost ${isPublic ? "cl-btn-public" : ""}`}
+              >
+                {isPublic ? "🌐 Public" : "🔒 Private"}
+              </button>
+            </div>
+          </div>
+
+          {showDetails && (
+            <div style={styles.detailsBar} className="cl-details-bar">
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What does this circuit do? e.g. 'ESP32-based temperature monitor that lights an LED above 30°C.'"
+                style={styles.descInput}
+                rows={2}
+                className="cl-textarea"
+              />
+            </div>
+          )}
+
+          <div style={styles.hintBar}>
+            <span style={styles.hint}>
+              Drag a part onto the board · drag a placed part to move it · click two glowing terminal dots
+              to wire them · double-click a dev board to write code · drag empty space to orbit, scroll to zoom
+            </span>
+          </div>
+
+          {simResult && (
+            <div
+              key={simResult.status + (simResult.message || "")}
+              style={{ ...styles.resultBar, ...RESULT_STYLE[simResult.status] }}
+              className={`cl-result-bar ${simResult.status === "short" ? "cl-result-alert" : ""}`}
+            >
+              <span className={simResult.status === "complete" ? "cl-icon-pop" : ""}>
+                {RESULT_ICON[simResult.status] || "ℹ"}
+              </span>
+              <span>{simResult.message}</span>
+            </div>
+          )}
+
+          {simResult?.suggestions?.length > 0 && (
+            <div style={styles.suggestionsBar}>
+              {simResult.suggestions.map((s, i) => (
+                <div
+                  key={i}
+                  style={{ ...styles.suggestionRow, animationDelay: `${i * 70}ms` }}
+                  className="cl-suggestion-row"
+                >
+                  <span style={{ color: "var(--gold)" }}>💡</span>
+                  <span>{s}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+            <div
+              ref={wrapperRef}
+              style={{ flex: 1, position: "relative" }}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              className={`cl-bench ${isDropTarget ? "cl-drop-target" : ""}`}
+            >
+              <div className="cl-bench-grid" />
+              <span className="cl-corner cl-corner-tl" />
+              <span className="cl-corner cl-corner-tr" />
+              <span className="cl-corner cl-corner-bl" />
+              <span className="cl-corner cl-corner-br" />
+              <div className="cl-bench-scanline" />
+
+              {!loading && (
+                <Scene3D
+                  nodes={nodes}
+                  edges={edges}
+                  draggingId={draggingId}
+                  onDragStart={handleDragStart}
+                  onDragMove={handleDragMove}
+                  onDragEnd={handleDragEnd}
+                  onTerminalClick={handleTerminalClick}
+                  onToggle={handleToggle}
+                  onOpenCode={(nodeId) => setCodeEditorNodeId(nodeId)}
+                  selectedTerminal={selectedTerminal}
+                  onRemove={handleRemove}
+                  cameraRef={cameraRef}
+                  poweredIds={simResult ? new Set(simResult.poweredIds) : null}
+                  readings={simResult?.readings || null}
+                />
+              )}
+
+              {loading && (
+                <div className="cl-loading-overlay">
+                  <span className="cl-loading-spinner" />
+                  <span className="cl-loading-text">Loading circuit…</span>
+                </div>
+              )}
+
+              {simResult?.readings && Object.keys(simResult.readings).length > 0 && (
+                <ReadingsPanel readings={simResult.readings} nodes={nodes} />
+              )}
+            </div>
+
+            <ComponentPalette components={components} loading={loading} />
           </div>
         </div>
+      </AppShell>
 
-        {error && <div style={styles.errorBar}>⚠ {error}</div>}
-
-        <textarea
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          spellCheck={false}
-          style={styles.textarea}
+      {codeEditorNode && (
+        <BoardCodeEditor
+          node={codeEditorNode}
+          onClose={() => setCodeEditorNodeId(null)}
+          onSaveCode={handleSaveCode}
+          onLivePinsChange={handleLivePinsChange}
+          getLivePinVoltage={getLivePinVoltage}
         />
+      )}
 
-        <div style={styles.serialHeader}>Serial monitor</div>
-        <div style={styles.serial}>
-          {serialLines.length === 0 && <span style={{ color: "var(--text-faint)" }}>No output yet.</span>}
-          {serialLines.map((line, i) => (
-            <div key={i}>{line}</div>
-          ))}
+      <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} projectId={projectId} />
+    </>
+  );
+}
+
+function SaveStatus({ state }) {
+  if (state === "idle") return null;
+  const label = { saving: "Saving…", saved: "Saved", error: "Couldn't save" }[state];
+  const color = state === "error" ? "var(--danger)" : "var(--primary)";
+  const icon = { saving: "○", saved: "✓", error: "✕" }[state];
+  return (
+    <span className="mono cl-save-status" style={{ fontSize: 12, color }}>
+      <span className={state === "saving" ? "cl-spin-slow" : "cl-icon-pop"}>{icon}</span>
+      {label}
+    </span>
+  );
+}
+
+function PowerIndicator({ status, running }) {
+  // off = no sim yet, otherwise reflect the health of the last run — like the
+  // power LED on a real bench supply.
+  const map = {
+    complete: { color: "#2fd66f", label: "Powered", cls: "cl-led-on" },
+    open: { color: "#ffc94d", label: "Open loop", cls: "cl-led-amber" },
+    short: { color: "#ff4757", label: "Short circuit", cls: "cl-led-short" },
+    no_source: { color: "#7a8a99", label: "No source", cls: "cl-led-dim" },
+    error: { color: "#ff4757", label: "Fault", cls: "cl-led-amber" },
+  };
+  const cfg = running ? { color: "#ffc94d", label: "Testing…", cls: "cl-led-testing" } : map[status];
+  const dim = !running && !status;
+
+  return (
+    <span className="cl-power-indicator" title={cfg?.label || "No test run yet"}>
+      <span
+        className={`cl-led ${dim ? "cl-led-dim" : cfg.cls}`}
+        style={{ "--led-color": dim ? "#3a4650" : cfg.color }}
+      />
+      <span className="cl-power-label">{dim ? "Idle" : cfg.label}</span>
+    </span>
+  );
+}
+
+function ReadingsPanel({ readings, nodes }) {
+  const nodeById = Object.fromEntries(nodes.map((n) => [n.id, n]));
+  const rows = Object.entries(readings)
+    .filter(([, r]) => r.state === "on")
+    .map(([id, r]) => ({ id, name: nodeById[id]?.name || id, ...r }))
+    .sort((a, b) => b.current_mA - a.current_mA);
+
+  if (rows.length === 0) return null;
+
+  const maxCurrent = Math.max(...rows.map((r) => r.current_mA), 1);
+  const totalCurrentMA = rows.reduce((sum, r) => sum + r.current_mA, 0);
+  const totalPowerMW = rows.reduce((sum, r) => sum + r.power_mW, 0);
+  const railVoltage = Math.max(...rows.map((r) => r.voltage), 0);
+  const totalParts = nodes.length;
+  const poweredParts = rows.length;
+  const loadPct = Math.min(100, (totalCurrentMA / 1000) * 100); // relative to a 1A reference rail
+
+  return (
+    <div style={styles.readingsPanel} className="cl-readings-panel">
+      <div className="cl-diag-header">
+        <span className="eyebrow">Circuit diagnostics</span>
+        <span className="cl-diag-live-dot" />
+      </div>
+
+      {/* summary readout — styled like a bench multimeter */}
+      <div className="cl-diag-summary">
+        <div className="cl-diag-stat">
+          <span className="cl-diag-value mono">{railVoltage.toFixed(2)}<small>V</small></span>
+          <span className="cl-diag-label">Rail</span>
+        </div>
+        <div className="cl-diag-stat">
+          <span className="cl-diag-value mono">{totalCurrentMA.toFixed(0)}<small>mA</small></span>
+          <span className="cl-diag-label">Draw</span>
+        </div>
+        <div className="cl-diag-stat">
+          <span className="cl-diag-value mono">{totalPowerMW.toFixed(0)}<small>mW</small></span>
+          <span className="cl-diag-label">Power</span>
+        </div>
+        <div className="cl-diag-stat">
+          <span className="cl-diag-value mono">
+            {poweredParts}<small>/{totalParts}</small>
+          </span>
+          <span className="cl-diag-label">Live</span>
         </div>
       </div>
+
+      <div className="cl-diag-load-track" title={`${loadPct.toFixed(0)}% of reference 1A rail`}>
+        <div
+          className="cl-diag-load-fill"
+          style={{
+            width: `${loadPct}%`,
+            background: loadPct > 80 ? "var(--danger)" : loadPct > 50 ? "var(--gold)" : "var(--primary)",
+          }}
+        />
+      </div>
+
+      <div style={styles.readingsHeader}>
+        <span>Part</span>
+        <span>V</span>
+        <span>mA</span>
+        <span>mW</span>
+      </div>
+      {rows.map((r, i) => (
+        <div
+          key={r.id}
+          style={{ ...styles.readingsRow, animationDelay: `${i * 45}ms` }}
+          className="cl-readings-row"
+        >
+          <span style={styles.readingsName}>{r.name}</span>
+          <span className="mono">{r.voltage.toFixed(2)}</span>
+          <span className="mono" style={{ color: r.current_mA > 1000 ? "var(--danger)" : "var(--text)" }}>
+            {r.current_mA.toFixed(1)}
+          </span>
+          <span className="mono">{r.power_mW.toFixed(1)}</span>
+          <span
+            className="cl-readings-bar"
+            style={{
+              width: `${Math.max(6, (r.current_mA / maxCurrent) * 100)}%`,
+              background: r.current_mA > 1000 ? "var(--danger)" : "var(--primary)",
+            }}
+          />
+        </div>
+      ))}
     </div>
   );
 }
 
+const RESULT_ICON = {
+  complete: "✓",
+  open: "⚠",
+  short: "⚡",
+  no_source: "ℹ",
+  error: "✕",
+};
+
+const RESULT_STYLE = {
+  complete: { background: "rgba(47,214,111,0.12)", color: "var(--primary)", borderColor: "var(--primary)" },
+  open: { background: "rgba(255,201,77,0.12)", color: "var(--gold)", borderColor: "var(--gold)" },
+  short: { background: "rgba(255,71,87,0.12)", color: "var(--danger)", borderColor: "var(--danger)" },
+  no_source: { background: "var(--surface-2)", color: "var(--text-dim)", borderColor: "var(--border-bright)" },
+  error: { background: "rgba(255,71,87,0.12)", color: "var(--danger)", borderColor: "var(--danger)" },
+};
+
 const styles = {
-  backdrop: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.6)",
+  toolbar: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
-    zIndex: 200,
-  },
-  panel: {
-    width: "min(720px, 92vw)",
-    maxHeight: "86vh",
-    background: "var(--surface)",
-    border: "1px solid var(--border-bright)",
-    borderRadius: "var(--radius)",
-    padding: 18,
-    display: "flex",
-    flexDirection: "column",
-    gap: 10,
-    boxShadow: "0 24px 70px rgba(0,0,0,0.5)",
-  },
-  header: {
-    display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
+    padding: "12px 20px",
+    borderBottom: "1px solid var(--border)",
+    background: "var(--surface)",
+    gap: 16,
   },
-  runBtn: {
-    background: "var(--primary)",
-    color: "#062011",
+  nameInput: {
+    background: "transparent",
     border: "none",
-    borderRadius: "var(--radius-sm)",
-    padding: "6px 14px",
-    fontSize: 12.5,
+    color: "var(--text)",
+    fontSize: 16,
     fontWeight: 600,
-    cursor: "pointer",
+    outline: "none",
+    fontFamily: "var(--font-body)",
+    minWidth: 160,
   },
-  stopBtn: {
-    background: "var(--danger)",
-    color: "#fff",
-    border: "none",
-    borderRadius: "var(--radius-sm)",
-    padding: "6px 14px",
-    fontSize: 12.5,
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  closeBtn: {
+  detailsToggle: {
     background: "transparent",
     border: "1px solid var(--border-bright)",
     color: "var(--text-dim)",
     borderRadius: "var(--radius-sm)",
-    width: 28,
-    height: 28,
+    padding: "5px 12px",
+    fontSize: 12,
+    cursor: "pointer",
+    flexShrink: 0,
+  },
+  statText: {
+    color: "var(--text-faint)",
+    fontSize: 12,
+    fontFamily: "var(--font-display)",
+    whiteSpace: "nowrap",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+  },
+  saveBtn: {
+    background: "var(--primary)",
+    color: "#062011",
+    border: "none",
+    borderRadius: "var(--radius-sm)",
+    padding: "8px 18px",
+    fontSize: 13.5,
+    fontWeight: 600,
     cursor: "pointer",
   },
-  errorBar: {
-    background: "rgba(255,71,87,0.12)",
-    border: "1px solid var(--danger)",
-    color: "var(--danger)",
+  runBtn: {
+    background: "transparent",
+    color: "var(--accent)",
+    border: "1.5px solid var(--accent)",
     borderRadius: "var(--radius-sm)",
-    padding: "6px 10px",
-    fontSize: 12,
+    padding: "7px 16px",
+    fontSize: 13.5,
+    fontWeight: 600,
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
   },
-  textarea: {
+  shareBtn: {
+    background: "transparent",
+    color: "var(--text-dim)",
+    border: "1.5px solid var(--border-bright)",
+    borderRadius: "var(--radius-sm)",
+    padding: "7px 14px",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  publishBtn: {
+    background: "transparent",
+    border: "1.5px solid",
+    borderRadius: "var(--radius-sm)",
+    padding: "7px 14px",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  resultBar: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "9px 20px",
+    borderBottom: "1px solid",
+    fontSize: 12.5,
+    fontWeight: 500,
+  },
+  suggestionsBar: {
+    padding: "8px 20px",
+    borderBottom: "1px solid var(--border)",
+    background: "var(--surface)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
+  suggestionRow: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 8,
+    fontSize: 12,
+    color: "var(--text-dim)",
+  },
+  detailsBar: {
+    padding: "10px 20px",
+    borderBottom: "1px solid var(--border)",
+    background: "var(--surface)",
+  },
+  descInput: {
     width: "100%",
-    height: 320,
-    background: "#0a0e13",
+    background: "var(--surface-2)",
     border: "1px solid var(--border)",
     borderRadius: "var(--radius-sm)",
-    color: "#d6ffe8",
-    fontFamily: "monospace",
+    padding: "8px 12px",
+    color: "var(--text)",
     fontSize: 13,
-    padding: 12,
+    fontFamily: "var(--font-body)",
     outline: "none",
     resize: "vertical",
-    tabSize: 2,
   },
-  serialHeader: {
-    fontSize: 11,
-    fontFamily: "var(--font-display)",
+  hintBar: {
+    padding: "7px 20px",
+    borderBottom: "1px solid var(--border)",
+    background: "var(--surface)",
+  },
+  hint: {
     color: "var(--text-faint)",
+    fontSize: 11.5,
+  },
+  readingsPanel: {
+    position: "absolute",
+    bottom: 16,
+    left: 16,
+    width: 268,
+    background: "rgba(16,22,29,0.92)",
+    backdropFilter: "blur(6px)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius)",
+    padding: "12px 14px",
+    zIndex: 5,
+  },
+  readingsHeader: {
+    display: "grid",
+    gridTemplateColumns: "1.4fr 0.7fr 0.8fr 0.8fr",
+    gap: 6,
+    fontSize: 9.5,
+    color: "var(--text-faint)",
+    fontFamily: "var(--font-display)",
     textTransform: "uppercase",
     letterSpacing: "0.04em",
+    paddingBottom: 6,
+    borderBottom: "1px solid var(--border)",
   },
-  serial: {
-    background: "#0a0e13",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius-sm)",
-    padding: 10,
-    height: 100,
-    overflowY: "auto",
-    fontFamily: "monospace",
-    fontSize: 12,
-    color: "#8fe6b0",
+  readingsRow: {
+    position: "relative",
+    display: "grid",
+    gridTemplateColumns: "1.4fr 0.7fr 0.8fr 0.8fr",
+    gap: 6,
+    fontSize: 11.5,
+    padding: "5px 0",
+  },
+  readingsName: {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    color: "var(--text-dim)",
   },
 };
+
+/* ---------------------------------------------------------------------
+   Animation + micro-interaction layer. Kept separate from the inline
+   style objects above (which React needs for static layout) since
+   hover states, keyframes, and pseudo-elements aren't expressible
+   inline. Everything here is additive polish — no layout changes.
+------------------------------------------------------------------------ */
+const GLOBAL_CSS = `
+@keyframes cl-fade-slide-down {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes cl-fade-slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes cl-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes cl-pop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes cl-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes cl-run-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 190, 90, 0); }
+  50%      { box-shadow: 0 0 0 5px rgba(255, 190, 90, 0.08); }
+}
+@keyframes cl-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-3px); }
+  40%      { transform: translateX(3px); }
+  60%      { transform: translateX(-2px); }
+  80%      { transform: translateX(2px); }
+}
+@keyframes cl-dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.8); }
+}
+@keyframes cl-bar-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.cl-toolbar { position: relative; }
+
+/* project name field: animated underline on focus */
+.cl-name-wrap { position: relative; }
+.cl-name-input { transition: color 0.15s ease; }
+.cl-name-underline {
+  position: absolute;
+  left: 0; right: 0; bottom: -3px;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+.cl-name-input:focus ~ .cl-name-underline { transform: scaleX(1); }
+
+.cl-stat-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--primary);
+  animation: cl-dot-pulse 2.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+/* buttons: consistent, subtle lift + glow */
+.cl-btn {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease,
+    background 0.2s ease, border-color 0.2s ease, opacity 0.15s ease;
+  will-change: transform;
+}
+.cl-btn:hover:not(:disabled) { transform: translateY(-1px); }
+.cl-btn:active:not(:disabled) { transform: translateY(0) scale(0.97); }
+.cl-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+.cl-btn-save:hover:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(47, 214, 111, 0.35);
+}
+
+.cl-btn-ghost:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary) !important;
+}
+
+.cl-btn-run:hover:not(:disabled) {
+  box-shadow: 0 4px 16px rgba(255, 190, 90, 0.25);
+  background: rgba(255, 190, 90, 0.08);
+}
+.cl-btn-run-pulse { animation: cl-run-pulse 2.6s ease-in-out infinite; }
+.cl-btn-run-active { border-color: var(--accent); opacity: 0.9; }
+.cl-run-icon { display: inline-block; font-size: 11px; }
+.cl-spin { animation: cl-spin 0.9s linear infinite; display: inline-block; }
+.cl-spin-slow { animation: cl-spin 1.1s linear infinite; display: inline-block; }
+
+.cl-btn-public {
+  box-shadow: 0 0 0 3px rgba(47, 214, 111, 0.1);
+}
+
+.cl-save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  animation: cl-fade-in 0.2s ease;
+}
+.cl-icon-pop { display: inline-block; animation: cl-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+.cl-details-bar { animation: cl-fade-slide-down 0.2s ease; }
+.cl-textarea { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.cl-textarea:focus { border-color: var(--primary) !important; box-shadow: 0 0 0 3px rgba(47, 214, 111, 0.08); }
+
+.cl-result-bar {
+  animation: cl-fade-slide-down 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cl-result-alert { animation: cl-fade-slide-down 0.25s cubic-bezier(0.4, 0, 0.2, 1), cl-shake 0.4s ease 0.25s; }
+
+.cl-suggestion-row {
+  animation: cl-fade-slide-up 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.cl-drop-target { box-shadow: inset 0 0 0 2px rgba(47, 214, 111, 0.35); transition: box-shadow 0.15s ease; }
+
+.cl-readings-panel {
+  animation: cl-fade-slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cl-readings-row {
+  animation: cl-fade-slide-up 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
+  overflow: hidden;
+  transition: background 0.15s ease;
+  border-radius: 4px;
+}
+.cl-readings-row:hover { background: rgba(255, 255, 255, 0.03); }
+.cl-readings-bar {
+  position: absolute;
+  left: 0; bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  transform-origin: left;
+  animation: cl-bar-grow 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+  opacity: 0.6;
+}
+
+.cl-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-faint);
+  font-size: 12px;
+  animation: cl-fade-in 0.2s ease;
+}
+.cl-loading-spinner {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border-bright);
+  border-top-color: var(--primary);
+  animation: cl-spin 0.7s linear infinite;
+}
+.cl-loading-text { font-family: var(--font-display); letter-spacing: 0.03em; }
+
+/* ---- power LED (toolbar) ---- */
+@keyframes cl-led-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.25; }
+}
+.cl-power-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.cl-led {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--led-color, #3a4650);
+  box-shadow: 0 0 0 rgba(0,0,0,0);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+.cl-led-on { box-shadow: 0 0 6px 2px var(--led-color), 0 0 1px var(--led-color); }
+.cl-led-amber { box-shadow: 0 0 5px 2px var(--led-color); animation: cl-led-blink 1.6s ease-in-out infinite; }
+.cl-led-short { box-shadow: 0 0 6px 2px var(--led-color); animation: cl-led-blink 0.35s ease-in-out infinite; }
+.cl-led-testing { box-shadow: 0 0 4px 1px var(--led-color); animation: cl-led-blink 0.6s ease-in-out infinite; }
+.cl-led-dim { box-shadow: none; }
+.cl-power-label {
+  font-size: 10.5px;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+/* ---- 3D bench / HUD frame ---- */
+.cl-bench { overflow: hidden; }
+.cl-bench-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image:
+    linear-gradient(rgba(47, 214, 111, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(47, 214, 111, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse at center, black 55%, transparent 92%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 55%, transparent 92%);
+}
+.cl-bench-scanline {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.35);
+}
+.cl-corner {
+  position: absolute;
+  width: 22px; height: 22px;
+  border-color: var(--border-bright);
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 3;
+  transition: border-color 0.2s ease, opacity 0.2s ease;
+}
+.cl-corner-tl { top: 10px; left: 10px; border-top: 2px solid; border-left: 2px solid; border-radius: 3px 0 0 0; }
+.cl-corner-tr { top: 10px; right: 10px; border-top: 2px solid; border-right: 2px solid; border-radius: 0 3px 0 0; }
+.cl-corner-bl { bottom: 10px; left: 10px; border-bottom: 2px solid; border-left: 2px solid; border-radius: 0 0 0 3px; }
+.cl-corner-br { bottom: 10px; right: 10px; border-bottom: 2px solid; border-right: 2px solid; border-radius: 0 0 3px 0; }
+.cl-drop-target .cl-corner { border-color: var(--primary); opacity: 1; }
+
+/* ---- diagnostics panel ---- */
+.cl-diag-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.cl-diag-live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 5px 1px var(--primary);
+  animation: cl-dot-pulse 1.8s ease-in-out infinite;
+}
+.cl-diag-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 8px 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.cl-diag-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.cl-diag-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  text-shadow: 0 0 8px rgba(47, 214, 111, 0.35);
+}
+.cl-diag-value small { font-size: 8.5px; font-weight: 600; margin-left: 1px; opacity: 0.75; }
+.cl-diag-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  font-family: var(--font-display);
+}
+.cl-diag-load-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.cl-diag-load-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-toolbar *, .cl-result-bar, .cl-suggestion-row, .cl-readings-panel,
+  .cl-readings-row, .cl-details-bar, .cl-btn, .cl-stat-dot, .cl-spin,
+  .cl-spin-slow, .cl-icon-pop, .cl-loading-spinner, .cl-led-amber,
+  .cl-led-short, .cl-led-testing, .cl-diag-live-dot {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+`;
