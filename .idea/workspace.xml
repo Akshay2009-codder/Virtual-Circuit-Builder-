@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="18ec7e2b-695b-4e0a-9aa1-5df37d72c61a" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/circuit-lab/frontend/Create public project.py" beforeDir="false" afterPath="$PROJECT_DIR$/circuit-lab/frontend/create_public_project.py" afterDir="false" />
-    </list>
+    <list default="true" id="18ec7e2b-695b-4e0a-9aa1-5df37d72c61a" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

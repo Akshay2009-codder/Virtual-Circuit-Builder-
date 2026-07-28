@@ -148,6 +148,10 @@ def simulate_live(project_id):
     user_id = get_jwt_identity()
     project = _accessible_project(project_id, user_id)
     if not project:
+        # not owned/shared with this user - but anyone can test-run a public
+        # circuit read-only, same as viewing one (see CircuitView.jsx)
+        project = Project.query.filter_by(id=project_id, is_public=True).first()
+    if not project:
         return jsonify({"error": "Project not found."}), 404
 
     data = request.get_json(silent=True) or {}
