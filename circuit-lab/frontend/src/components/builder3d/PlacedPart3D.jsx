@@ -123,7 +123,7 @@ export default function PlacedPart3D({
             const xPos = pin.side === "left" ? -BOARD_X_OFFSET : BOARD_X_OFFSET;
             const termColor = PIN_ROLE_COLOR[pin.role] || accent;
             const pos = [xPos, 0.1, zPos];
-            const showLabel = selected || hovered;
+            const showLabel = selected;
             return (
               <group key={pin.terminal}>
                 <mesh
