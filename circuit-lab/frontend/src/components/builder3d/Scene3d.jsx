@@ -62,51 +62,68 @@ export default function Scene3D({
   }
 
   return (
-    <Canvas camera={{ position: [3.4, 3.6, 5], fov: 46 }} dpr={[1, 2]} shadows>
+    <Canvas camera={{ position: [3.4, 3.6, 5], fov: 46 }} dpr={[1, 2]} shadows="soft">
       <color attach="background" args={["#0a0e13"]} />
-      <fog attach="fog" args={["#0a0e13", 9, 26]} />
+      {/* fog pushed further out - previously started at 9 units, which
+          dimmed the bench itself on wider/zoomed-out views */}
+      <fog attach="fog" args={["#0a0e13", 13, 30]} />
 
-      <ambientLight intensity={0.68} />
-      <directionalLight position={[5, 8, 4]} intensity={0.95} castShadow />
-      <directionalLight position={[-4, 3, -3]} intensity={0.18} color="#ff6f5e" />
-      <pointLight position={[0, 3, 0]} intensity={0.12} color="#2fd66f" />
+      {/* Base fill: raised ambient + a hemisphere light (cool sky / warm
+          bench-desk "ground" bounce) so every side of a part reads clearly
+          instead of just the side facing the key light. This is the main
+          fix for the scene feeling dim overall. */}
+      <ambientLight intensity={0.85} />
+      <hemisphereLight args={["#cfe8ff", "#3a2a1c", 0.55]} />
 
-      {/* corner accent lights — kept subtle, just enough to avoid flat
-          shading on the sides of parts. Previously much brighter, which
-          gave the whole bench a neon/gamer look instead of a workbench. */}
+      {/* key light - brighter, crisper shadows */}
+      <directionalLight
+        position={[5, 8, 4]}
+        intensity={1.35}
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-bias={-0.0005}
+      />
+      {/* warm rim/fill from the opposite side, keeps shadowed edges from going flat black */}
+      <directionalLight position={[-4, 3, -3]} intensity={0.3} color="#ff6f5e" />
+      <pointLight position={[0, 3, 0]} intensity={0.16} color="#2fd66f" />
+
+      {/* corner accent lights - nudged up slightly from the previous pass so
+          the bench edges don't fall dark, while staying well short of the
+          old neon look */}
       <spotLight
         position={[5.5, 3.4, 5.5]}
         target-position={[0, 0, 0]}
-        angle={0.55}
+        angle={0.58}
         penumbra={0.85}
-        intensity={0.28}
+        intensity={0.4}
         distance={17}
         color="#ffffff"
       />
       <spotLight
         position={[-5.5, 3.4, 5.5]}
         target-position={[0, 0, 0]}
-        angle={0.55}
+        angle={0.58}
         penumbra={0.85}
-        intensity={0.28}
+        intensity={0.4}
         distance={17}
         color="#ffffff"
       />
       <spotLight
         position={[5.5, 3.4, -5.5]}
         target-position={[0, 0, 0]}
-        angle={0.55}
+        angle={0.58}
         penumbra={0.85}
-        intensity={0.2}
+        intensity={0.3}
         distance={17}
         color="#dceeff"
       />
       <spotLight
         position={[-5.5, 3.4, -5.5]}
         target-position={[0, 0, 0]}
-        angle={0.55}
+        angle={0.58}
         penumbra={0.85}
-        intensity={0.2}
+        intensity={0.3}
         distance={17}
         color="#dceeff"
       />
@@ -175,7 +192,7 @@ export default function Scene3D({
         />
       ))}
 
-      <ContactShadows position={[0, 0.008, 0]} opacity={0.45} scale={12} blur={2.2} far={4} />
+      <ContactShadows position={[0, 0.008, 0]} opacity={0.4} scale={12} blur={2.2} far={4} />
 
       <OrbitControls
         makeDefault
