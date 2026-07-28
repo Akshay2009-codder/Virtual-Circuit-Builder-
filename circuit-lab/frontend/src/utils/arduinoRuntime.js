@@ -98,8 +98,8 @@ export function transpile(rawSource) {
 
 const ARG_NAMES = [
   "pinMode", "digitalWrite", "digitalRead", "analogWrite", "analogRead",
-  "millis", "__delay", "__delayMicros", "Serial",
-  "HIGH", "LOW", "INPUT", "OUTPUT", "INPUT_PULLUP",
+  "millis", "__delay", "__delayMicros", "Serial", "WiFi",
+  "HIGH", "LOW", "INPUT", "OUTPUT", "INPUT_PULLUP", "WL_CONNECTED", "WL_DISCONNECTED",
 ];
 
 export class ArduinoRuntime {
@@ -168,6 +168,25 @@ export class ArduinoRuntime {
     println: (x) => this.callbacks.onSerial(String(x) + "\n"),
   };
 
+  // SIMULATED WiFi - there is no real network stack here. begin() always
+  // "succeeds" after a short fake delay so IoT-style sketches (which
+  // almost universally start with WiFi.begin(ssid, pass) and poll
+  // WiFi.status()) run without throwing "WiFi is not defined", and
+  // Serial.print output can narrate what a real device would be doing
+  // (connecting, sending to a server, etc). No actual data goes anywhere.
+  _wifiConnected = false;
+  _wifi = {
+    begin: (ssid) => {
+      this.callbacks.onSerial(`[sim] Connecting to WiFi "${ssid || ""}"...\n`);
+      this._wifiConnected = true;
+    },
+    status: () => (this._wifiConnected ? 3 : 0), // 3 mirrors real WL_CONNECTED's value
+    localIP: () => "192.168.1.42", // fake, illustrative only
+    disconnect: () => {
+      this._wifiConnected = false;
+    },
+  };
+
   start(code) {
     this.stop();
     let program;
@@ -176,8 +195,8 @@ export class ArduinoRuntime {
       const factory = new Function(...ARG_NAMES, body);
       program = factory(
         this._pinMode, this._digitalWrite, this._digitalRead, this._analogWrite, this._analogRead,
-        this._millis, (ms) => ({ __delay: true, ms }), () => {}, this._serial,
-        1, 0, 0, 1, 2 // HIGH, LOW, INPUT, OUTPUT, INPUT_PULLUP
+        this._millis, (ms) => ({ __delay: true, ms }), () => {}, this._serial, this._wifi,
+        1, 0, 0, 1, 2, 3, 0 // HIGH, LOW, INPUT, OUTPUT, INPUT_PULLUP, WL_CONNECTED, WL_DISCONNECTED
       );
     } catch (err) {
       this.callbacks.onStatus({ running: false, error: err.message });
