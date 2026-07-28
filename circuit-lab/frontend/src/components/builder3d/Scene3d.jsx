@@ -66,21 +66,20 @@ export default function Scene3D({
       <color attach="background" args={["#0a0e13"]} />
       <fog attach="fog" args={["#0a0e13", 9, 26]} />
 
-      <ambientLight intensity={0.55} />
-      <directionalLight position={[5, 8, 4]} intensity={1.15} castShadow />
-      <directionalLight position={[-4, 3, -3]} intensity={0.35} color="#ff6f5e" />
-      <pointLight position={[0, 3, 0]} intensity={0.25} color="#2fd66f" />
+      <ambientLight intensity={0.68} />
+      <directionalLight position={[5, 8, 4]} intensity={0.95} castShadow />
+      <directionalLight position={[-4, 3, -3]} intensity={0.18} color="#ff6f5e" />
+      <pointLight position={[0, 3, 0]} intensity={0.12} color="#2fd66f" />
 
-      {/* corner accent lights — angled in from all four corners so every
-          placed component gets lit from the sides and stays clearly
-          visible no matter which way the camera is orbited. These are
-          additive to the lighting above, not a replacement for it. */}
+      {/* corner accent lights — kept subtle, just enough to avoid flat
+          shading on the sides of parts. Previously much brighter, which
+          gave the whole bench a neon/gamer look instead of a workbench. */}
       <spotLight
         position={[5.5, 3.4, 5.5]}
         target-position={[0, 0, 0]}
         angle={0.55}
-        penumbra={0.75}
-        intensity={0.7}
+        penumbra={0.85}
+        intensity={0.28}
         distance={17}
         color="#ffffff"
       />
@@ -88,8 +87,8 @@ export default function Scene3D({
         position={[-5.5, 3.4, 5.5]}
         target-position={[0, 0, 0]}
         angle={0.55}
-        penumbra={0.75}
-        intensity={0.7}
+        penumbra={0.85}
+        intensity={0.28}
         distance={17}
         color="#ffffff"
       />
@@ -97,8 +96,8 @@ export default function Scene3D({
         position={[5.5, 3.4, -5.5]}
         target-position={[0, 0, 0]}
         angle={0.55}
-        penumbra={0.75}
-        intensity={0.55}
+        penumbra={0.85}
+        intensity={0.2}
         distance={17}
         color="#dceeff"
       />
@@ -106,8 +105,8 @@ export default function Scene3D({
         position={[-5.5, 3.4, -5.5]}
         target-position={[0, 0, 0]}
         angle={0.55}
-        penumbra={0.75}
-        intensity={0.55}
+        penumbra={0.85}
+        intensity={0.2}
         distance={17}
         color="#dceeff"
       />
