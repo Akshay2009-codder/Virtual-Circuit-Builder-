@@ -14,6 +14,7 @@ import Tutorials from "./pages/Tutorials";
 import Share from "./pages/Share";
 import CircuitView from "./pages/CircuitView";
 import Profile from "./pages/Profile";
+import FollowList from "./pages/FollowList";
 import PeopleSearch from "./components/PeopleSearch";
 
 function AnimatedRoutes() {
@@ -87,6 +88,22 @@ function AnimatedRoutes() {
           element={
             <ProtectedRoute>
               <PageTransition><Profile /></PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/u/:username/followers"
+          element={
+            <ProtectedRoute>
+              <PageTransition><FollowList /></PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/u/:username/following"
+          element={
+            <ProtectedRoute>
+              <PageTransition><FollowList /></PageTransition>
             </ProtectedRoute>
           }
         />
