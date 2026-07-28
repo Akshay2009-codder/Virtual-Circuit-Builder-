@@ -105,6 +105,55 @@ export default function Builder() {
     };
   }, []);
 
+  // Undo/redo history - snapshots of {nodes, edges} taken before each
+  // mutating action. Capped so it doesn't grow forever on a long session.
+  const [past, setPast] = useState([]);
+  const [future, setFuture] = useState([]);
+  const HISTORY_LIMIT = 50;
+
+  function pushHistory() {
+    setPast((p) => [...p.slice(-HISTORY_LIMIT + 1), { nodes, edges }]);
+    setFuture([]);
+  }
+
+  function handleUndo() {
+    if (past.length === 0) return;
+    const prev = past[past.length - 1];
+    setFuture((f) => [{ nodes, edges }, ...f].slice(0, HISTORY_LIMIT));
+    setPast((p) => p.slice(0, -1));
+    setNodes(prev.nodes);
+    setEdges(prev.edges);
+    setSelectedTerminal(null);
+  }
+
+  function handleRedo() {
+    if (future.length === 0) return;
+    const next = future[0];
+    setPast((p) => [...p, { nodes, edges }].slice(-HISTORY_LIMIT));
+    setFuture((f) => f.slice(1));
+    setNodes(next.nodes);
+    setEdges(next.edges);
+    setSelectedTerminal(null);
+  }
+
+  useEffect(() => {
+    function onKeyDown(e) {
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return; // don't hijack text field undo
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key.toLowerCase() === "z" && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      } else if (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey)) {
+        e.preventDefault();
+        handleRedo();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [past, future, nodes, edges]);
+
   function onDragOver(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
@@ -125,6 +174,7 @@ export default function Builder() {
     const rect = wrapperRef.current.getBoundingClientRect();
     const { x, z } = screenToGround(e.clientX, e.clientY, rect, cameraRef.current);
 
+    pushHistory();
     setNodes((nds) =>
       nds.concat({
         id: nextId(),
@@ -144,6 +194,7 @@ export default function Builder() {
   }
 
   function handleDragStart(nodeId) {
+    pushHistory();
     setDraggingId(nodeId);
   }
   function handleDragMove(nodeId, x, z) {
@@ -158,6 +209,7 @@ export default function Builder() {
   }
 
   function handleRemove(nodeId) {
+    pushHistory();
     setNodes((nds) => nds.filter((n) => n.id !== nodeId));
     setEdges((eds) => eds.filter((e) => e.sourceId !== nodeId && e.targetId !== nodeId));
     setSelectedTerminal((sel) => (sel && sel.nodeId === nodeId ? null : sel));
@@ -165,6 +217,7 @@ export default function Builder() {
   }
 
   function handleToggle(nodeId) {
+    pushHistory();
     setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, on: !(n.on !== false) } : n)));
   }
 
@@ -181,6 +234,7 @@ export default function Builder() {
       setSelectedTerminal({ nodeId, terminal }); // switch to the other terminal on the same part
       return;
     }
+    pushHistory();
     setEdges((eds) =>
       eds.concat({
         id: `e${Date.now()}`,
@@ -310,6 +364,22 @@ export default function Builder() {
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <SaveStatus state={saveState} />
               <PowerIndicator status={simResult?.status} running={simRunning} />
+              <button
+                onClick={handleUndo}
+                disabled={past.length === 0}
+                style={{ ...styles.shareBtn, opacity: past.length === 0 ? 0.4 : 1 }}
+                title="Undo (Ctrl+Z)"
+              >
+                ↶ Undo
+              </button>
+              <button
+                onClick={handleRedo}
+                disabled={future.length === 0}
+                style={{ ...styles.shareBtn, opacity: future.length === 0 ? 0.4 : 1 }}
+                title="Redo (Ctrl+Y)"
+              >
+                ↷ Redo
+              </button>
               <button onClick={handleSave} style={styles.saveBtn} className="cl-btn cl-btn-save">
                 Save circuit
               </button>
