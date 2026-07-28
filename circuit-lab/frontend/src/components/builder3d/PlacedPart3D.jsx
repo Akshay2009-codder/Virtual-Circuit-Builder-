@@ -57,7 +57,7 @@ export default function PlacedPart3D({
   const isToggleable = TOGGLE_KEYS.has(node.key);
   const isOn = node.on !== false; // default on
   const ringColor = powered ? "#3ddc84" : accent;
-  const ringOpacity = powered ? 0.85 : lifted ? 0.55 : isToggleable && !isOn ? 0.06 : 0.18;
+  const ringOpacity = powered ? 0.7 : lifted ? 0.35 : isToggleable && !isOn ? 0.04 : 0.09;
 
   // Multi-pin board (ESP32 etc) - pins were copied onto the node at drop
   // time from the catalog component's spec.pins. Everything else keeps the
@@ -136,7 +136,7 @@ export default function PlacedPart3D({
                   <meshStandardMaterial
                     color={selected ? "#ffffff" : termColor}
                     emissive={termColor}
-                    emissiveIntensity={selected ? 1.6 : 0.7}
+                    emissiveIntensity={selected ? 1.6 : 0.5}
                   />
                 </mesh>
                 <Html position={[pos[0] + (pin.side === "left" ? -0.16 : 0.16), pos[1], pos[2]]} center distanceFactor={12} occlude>
@@ -165,7 +165,7 @@ export default function PlacedPart3D({
                   <meshStandardMaterial
                     color={selected ? "#ffffff" : termColor}
                     emissive={termColor}
-                    emissiveIntensity={selected ? 1.6 : 0.7}
+                    emissiveIntensity={selected ? 1.6 : 0.5}
                   />
                 </mesh>
                 {isPolarized && (
@@ -180,7 +180,14 @@ export default function PlacedPart3D({
           })}
 
       <Html position={[0, 1.15, 0]} center distanceFactor={8} occlude>
-        <div className="part3d-label" style={{ borderColor: powered ? "#3ddc84" : accent }}>
+        <div
+          className="part3d-label"
+          style={{
+            borderColor: powered ? "#3ddc84" : accent,
+            opacity: lifted || powered || (reading && reading.state === "on") ? 1 : 0.45,
+            transition: "opacity 0.15s ease",
+          }}
+        >
           <span className="part3d-label-dot" style={{ background: powered ? "#3ddc84" : accent }} />
           <div className="part3d-label-text">
             <span className="part3d-label-name">{node.name}</span>
