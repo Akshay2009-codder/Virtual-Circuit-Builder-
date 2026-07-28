@@ -6,6 +6,15 @@ import client from "../api/client";
 
 const noop = () => {};
 
+const RESULT_ICON = { complete: "✓", open: "⚠", short: "⚡", no_source: "ℹ", error: "✕" };
+const RESULT_STYLE = {
+  complete: { background: "rgba(47,214,111,0.12)", color: "var(--primary)", borderColor: "var(--primary)" },
+  open: { background: "rgba(255,201,77,0.12)", color: "var(--gold)", borderColor: "var(--gold)" },
+  short: { background: "rgba(255,71,87,0.12)", color: "var(--danger)", borderColor: "var(--danger)" },
+  no_source: { background: "var(--surface-2)", color: "var(--text-dim)", borderColor: "var(--border-bright)" },
+  error: { background: "rgba(255,71,87,0.12)", color: "var(--danger)", borderColor: "var(--danger)" },
+};
+
 export default function CircuitView() {
   const { id } = useParams();
   const cameraRef = useRef(null);
@@ -17,6 +26,9 @@ export default function CircuitView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [posting, setPosting] = useState(false);
+
+  const [simResult, setSimResult] = useState(null);
+  const [simRunning, setSimRunning] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -55,6 +67,28 @@ export default function CircuitView() {
     }
   }
 
+  // Read-only test run - hits the stateless /simulate/live endpoint (no
+  // save, no ownership required, doesn't touch the owner's run_count).
+  async function handleRun() {
+    setSimRunning(true);
+    setSimResult(null);
+    try {
+      const res = await client.post(`/projects/${id}/simulate/live`, {
+        nodes: project.circuit_json?.nodes || [],
+        edges: project.circuit_json?.edges || [],
+      });
+      setSimResult(res.data);
+    } catch (err) {
+      setSimResult({
+        status: "error",
+        message: err.response?.data?.error || "Couldn't run the simulation.",
+        poweredIds: [],
+      });
+    } finally {
+      setSimRunning(false);
+    }
+  }
+
   if (loading) {
     return (
       <AppShell>
@@ -89,10 +123,27 @@ export default function CircuitView() {
             </Link>
             <h1 style={styles.title}>{project.name}</h1>
           </div>
-          <button onClick={toggleLike} style={{ ...styles.likeBtn, color: stats?.liked_by_me ? "var(--danger)" : "var(--text-dim)" }}>
-            {stats?.liked_by_me ? "♥" : "♡"} {stats?.like_count ?? 0}
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              onClick={handleRun}
+              disabled={simRunning}
+              style={styles.runBtn}
+              title="Test-run this circuit - doesn't save or change anything"
+            >
+              {simRunning ? "◐ Running…" : "▶ Run circuit"}
+            </button>
+            <button onClick={toggleLike} style={{ ...styles.likeBtn, color: stats?.liked_by_me ? "var(--danger)" : "var(--text-dim)" }}>
+              {stats?.liked_by_me ? "♥" : "♡"} {stats?.like_count ?? 0}
+            </button>
+          </div>
         </div>
+
+        {simResult && (
+          <div style={{ ...styles.resultBar, ...RESULT_STYLE[simResult.status] }}>
+            <span>{RESULT_ICON[simResult.status] || "ℹ"}</span>
+            <span>{simResult.message}</span>
+          </div>
+        )}
 
         <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
           <div style={{ flex: 1, position: "relative" }}>
@@ -108,10 +159,10 @@ export default function CircuitView() {
               onRemove={noop}
               selectedTerminal={null}
               cameraRef={cameraRef}
-              poweredIds={null}
-              readings={null}
+              poweredIds={simResult ? new Set(simResult.poweredIds) : null}
+              readings={simResult?.readings || null}
             />
-            <div style={styles.viewBadge}>👁 Read-only — viewing a shared circuit</div>
+            <div style={styles.viewBadge}>👁 Read-only — you can test-run this circuit, but not edit or save it</div>
           </div>
 
           <div style={styles.sidebar}>
@@ -163,6 +214,16 @@ const styles = {
   },
   backLink: { color: "var(--text-faint)", fontSize: 11.5, textDecoration: "none" },
   title: { margin: "4px 0 0", fontSize: 18, fontWeight: 600 },
+  runBtn: {
+    background: "transparent",
+    color: "var(--accent)",
+    border: "1.5px solid var(--accent)",
+    borderRadius: "var(--radius-sm)",
+    padding: "8px 16px",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
   likeBtn: {
     background: "transparent",
     border: "1px solid var(--border-bright)",
@@ -171,6 +232,15 @@ const styles = {
     fontSize: 13,
     fontFamily: "var(--font-display)",
     cursor: "pointer",
+  },
+  resultBar: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "9px 20px",
+    borderBottom: "1px solid",
+    fontSize: 12.5,
+    fontWeight: 500,
   },
   viewBadge: {
     position: "absolute",
