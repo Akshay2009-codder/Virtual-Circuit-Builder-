@@ -59,6 +59,7 @@ export default function PlacedPart3D({
   const isOn = node.on !== false; // default on
   const ringColor = powered ? "#3ddc84" : accent;
   const ringOpacity = powered ? 0.7 : lifted ? 0.35 : isToggleable && !isOn ? 0.04 : 0.09;
+  const labelColor = powered ? "#3ddc84" : accent;
 
   // Multi-pin board (ESP32 etc) - pins were copied onto the node at drop
   // time from the catalog component's spec.pins. Everything else keeps the
@@ -74,12 +75,18 @@ export default function PlacedPart3D({
         <meshBasicMaterial color={ringColor} transparent opacity={ringOpacity} />
       </mesh>
 
+      {/* Always-on, low-intensity fill light so every part reads clearly even
+          unpowered - previously parts with no power state sat completely flat. */}
+      <pointLight position={[0, 0.85, 0]} intensity={0.18} distance={1.4} color="#cfe8ff" />
+
       {/* a lit LED gets its own warm glow lighting the area around it */}
-      {powered && isLed && <pointLight position={[0, 0.9, 0]} intensity={1.4} distance={2.2} color="#ff5555" />}
-      {powered && !isLed && <pointLight position={[0, 0.7, 0]} intensity={0.35} distance={1.6} color="#3ddc84" />}
+      {powered && isLed && <pointLight position={[0, 0.9, 0]} intensity={1.5} distance={2.4} color="#ff5555" />}
+      {powered && !isLed && <pointLight position={[0, 0.7, 0]} intensity={0.45} distance={1.8} color="#3ddc84" />}
 
       {/* invisible drag handle beneath the part - also toggles switches on
-          click, and opens the code editor on double-click for boards */}
+          click, and toggles the name label on double-click (same for every
+          part, boards included - opening a board's code editor is done from
+          the </> button inside the open label, not from the double-click itself) */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0.015, 0]}
@@ -95,8 +102,7 @@ export default function PlacedPart3D({
         }}
         onDoubleClick={(e) => {
           e.stopPropagation();
-          if (isCodeable) onOpenCode(node.id);
-          else setLabelOpen((o) => !o);
+          setLabelOpen((o) => !o);
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
@@ -183,7 +189,10 @@ export default function PlacedPart3D({
             );
           })}
 
-      {isCodeable && (
+      {/* Small persistent "open code" badge for boards - stays available even
+          with the label closed, since double-click no longer opens code
+          directly. Styled with an explicit color, not left to external CSS. */}
+      {isCodeable && !labelOpen && (
         <Html position={[0, 1.15, 0]} center distanceFactor={8} occlude>
           <button
             className="part3d-code-badge"
@@ -192,13 +201,14 @@ export default function PlacedPart3D({
               onOpenCode(node.id);
             }}
             title={`Edit code for ${node.name}`}
+            style={{ color: labelColor, borderColor: labelColor }}
           >
-            {"</>"} {node.name}
+            {"</>"}
           </button>
         </Html>
       )}
 
-      {labelOpen && !isCodeable && (
+      {labelOpen && (
         <Html position={[0, 1.15, 0]} center distanceFactor={8} occlude>
           <div
             className="part3d-label"
@@ -206,14 +216,16 @@ export default function PlacedPart3D({
           >
             <span className="part3d-label-dot" style={{ background: powered ? "#3ddc84" : accent }} />
             <div className="part3d-label-text">
-              <span className="part3d-label-name">{node.name}</span>
+              <span className="part3d-label-name" style={{ color: labelColor }}>
+                {node.name}
+              </span>
               {reading && reading.state === "on" ? (
                 <span className="part3d-label-value" style={{ color: "#3ddc84" }}>
                   {reading.voltage.toFixed(2)}V · {reading.current_mA.toFixed(1)}mA
                 </span>
               ) : (
                 node.unit && (
-                  <span className="part3d-label-value">
+                  <span className="part3d-label-value" style={{ color: "var(--text-faint, #6c7a85)" }}>
                     {node.default_value} {node.unit}
                   </span>
                 )
@@ -226,7 +238,7 @@ export default function PlacedPart3D({
                   onOpenCode(node.id);
                 }}
                 title="Edit code"
-                style={{ marginRight: 2 }}
+                style={{ marginRight: 2, color: labelColor }}
               >
                 {"</>"}
               </button>
