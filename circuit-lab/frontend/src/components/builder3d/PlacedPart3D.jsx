@@ -183,7 +183,22 @@ export default function PlacedPart3D({
             );
           })}
 
-      {labelOpen && (
+      {isCodeable && (
+        <Html position={[0, 1.15, 0]} center distanceFactor={8} occlude>
+          <button
+            className="part3d-code-badge"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenCode(node.id);
+            }}
+            title={`Edit code for ${node.name}`}
+          >
+            {"</>"} {node.name}
+          </button>
+        </Html>
+      )}
+
+      {labelOpen && !isCodeable && (
         <Html position={[0, 1.15, 0]} center distanceFactor={8} occlude>
           <div
             className="part3d-label"
