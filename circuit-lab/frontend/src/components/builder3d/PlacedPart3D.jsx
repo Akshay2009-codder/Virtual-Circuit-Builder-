@@ -49,6 +49,7 @@ export default function PlacedPart3D({
   reading,
 }) {
   const [hovered, setHovered] = useState(false);
+  const [labelOpen, setLabelOpen] = useState(false);
   const Model = MODEL_BY_TYPE[node.modelType];
   const accent = CATEGORY_COLOR[node.category] || "#45d8c4";
   const lifted = hovered || isDragging;
@@ -93,10 +94,9 @@ export default function PlacedPart3D({
           }
         }}
         onDoubleClick={(e) => {
-          if (isCodeable) {
-            e.stopPropagation();
-            onOpenCode(node.id);
-          }
+          e.stopPropagation();
+          if (isCodeable) onOpenCode(node.id);
+          else setLabelOpen((o) => !o);
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
@@ -183,65 +183,63 @@ export default function PlacedPart3D({
             );
           })}
 
-      <Html position={[0, 1.15, 0]} center distanceFactor={8} occlude>
-        <div
-          className="part3d-label"
-          style={{
-            borderColor: powered ? "#3ddc84" : accent,
-            opacity: lifted || powered || (reading && reading.state === "on") ? 1 : 0.45,
-            transition: "opacity 0.15s ease",
-          }}
-        >
-          <span className="part3d-label-dot" style={{ background: powered ? "#3ddc84" : accent }} />
-          <div className="part3d-label-text">
-            <span className="part3d-label-name">{node.name}</span>
-            {reading && reading.state === "on" ? (
-              <span className="part3d-label-value" style={{ color: "#3ddc84" }}>
-                {reading.voltage.toFixed(2)}V · {reading.current_mA.toFixed(1)}mA
-              </span>
-            ) : (
-              node.unit && (
-                <span className="part3d-label-value">
-                  {node.default_value} {node.unit}
+      {labelOpen && (
+        <Html position={[0, 1.15, 0]} center distanceFactor={8} occlude>
+          <div
+            className="part3d-label"
+            style={{ borderColor: powered ? "#3ddc84" : accent }}
+          >
+            <span className="part3d-label-dot" style={{ background: powered ? "#3ddc84" : accent }} />
+            <div className="part3d-label-text">
+              <span className="part3d-label-name">{node.name}</span>
+              {reading && reading.state === "on" ? (
+                <span className="part3d-label-value" style={{ color: "#3ddc84" }}>
+                  {reading.voltage.toFixed(2)}V · {reading.current_mA.toFixed(1)}mA
                 </span>
-              )
+              ) : (
+                node.unit && (
+                  <span className="part3d-label-value">
+                    {node.default_value} {node.unit}
+                  </span>
+                )
+              )}
+            </div>
+            {isCodeable && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenCode(node.id);
+                }}
+                title="Edit code"
+                style={{ marginRight: 2 }}
+              >
+                {"</>"}
+              </button>
             )}
-          </div>
-          {isCodeable && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onOpenCode(node.id);
+                onRemove(node.id);
               }}
-              title="Edit code"
-              style={{ marginRight: 2 }}
+              title="Remove"
             >
-              {"</>"}
+              ×
+            </button>
+          </div>
+          {isToggleable && (
+            <button
+              className="part3d-toggle"
+              style={{ background: isOn ? "#2fd66f" : "#ff4757" }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggle(node.id);
+              }}
+            >
+              {isOn ? "ON" : "OFF"}
             </button>
           )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemove(node.id);
-            }}
-            title="Remove"
-          >
-            ×
-          </button>
-        </div>
-        {isToggleable && (
-          <button
-            className="part3d-toggle"
-            style={{ background: isOn ? "#2fd66f" : "#ff4757" }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle(node.id);
-            }}
-          >
-            {isOn ? "ON" : "OFF"}
-          </button>
-        )}
-      </Html>
+        </Html>
+      )}
     </group>
   );
 }
