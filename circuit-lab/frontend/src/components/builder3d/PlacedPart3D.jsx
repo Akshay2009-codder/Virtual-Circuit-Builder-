@@ -134,6 +134,13 @@ export default function PlacedPart3D({
               <group key={pin.terminal}>
                 <mesh
                   position={pos}
+                  onPointerDown={(e) => {
+                    // Without this, the pointerdown bubbles to the drag-handle
+                    // disc beneath the part (it's inside that disc's radius)
+                    // and starts dragging the whole part instead of letting
+                    // the click below register as a terminal pick.
+                    e.stopPropagation();
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
                     onTerminalClick(node.id, pin.terminal);
@@ -166,6 +173,11 @@ export default function PlacedPart3D({
               <group key={t}>
                 <mesh
                   position={pos}
+                  onPointerDown={(e) => {
+                    // Same fix as the board-pin terminals above: keep the
+                    // drag handle from intercepting a terminal click.
+                    e.stopPropagation();
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
                     onTerminalClick(node.id, t);
