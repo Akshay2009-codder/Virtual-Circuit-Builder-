@@ -238,7 +238,7 @@ export default function Builder() {
     pushHistory();
     setEdges((eds) =>
       eds.concat({
-        id: `e${Date.now()}`,
+        id: nextId(), // was `e${Date.now()}` - collided on rapid/same-ms edge creation
         sourceId: selectedTerminal.nodeId,
         sourceTerminal: selectedTerminal.terminal,
         targetId: nodeId,
@@ -494,7 +494,12 @@ export default function Builder() {
               )}
             </div>
 
-            <MeasurementsPanel simResult={simResult} nodes={nodes} simRunning={simRunning} />
+            {/* Measurements panel: only shown once you've run the circuit (or
+                while it's running) - was previously always mounted, which
+                showed an empty/stale panel before any simulation had happened. */}
+            {(simResult || simRunning) && (
+              <MeasurementsPanel simResult={simResult} nodes={nodes} simRunning={simRunning} />
+            )}
 
             <ComponentPalette components={components} loading={loading} />
           </div>
