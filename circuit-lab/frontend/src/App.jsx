@@ -14,7 +14,7 @@ import Tutorials from "./pages/Tutorials";
 import Share from "./pages/Share";
 import CircuitView from "./pages/CircuitView";
 import Profile from "./pages/Profile";
-import FollowList from "./pages/FollowList";
+import FollowList from "./components/FollowList";
 import PeopleSearch from "./components/PeopleSearch";
 
 function AnimatedRoutes() {
