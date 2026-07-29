@@ -49,8 +49,16 @@ export default function Scene3D({
       }
     }
 
-    const dx = terminal === "a" ? -0.55 : 0.55;
-    return [n.x + dx, 0.12, n.z];
+    // Simple two-terminal parts - PlacedPart3D only ever renders "a" (left)
+    // and "b" (right), so branch on both explicitly instead of treating
+    // "anything that isn't a" as "b". That previous fallback silently put
+    // BOTH terminals at the same spot for any unexpected terminal name,
+    // drawing a zero-length wire that looked like a broken connection.
+    if (terminal === "a") return [n.x - 0.55, 0.12, n.z];
+    if (terminal === "b") return [n.x + 0.55, 0.12, n.z];
+
+    console.warn(`terminalWorldPos: unrecognized terminal "${terminal}" on node ${nodeId}`);
+    return [n.x, 0.12, n.z];
   }
 
   function handleGroundMove(e) {
