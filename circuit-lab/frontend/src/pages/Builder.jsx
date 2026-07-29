@@ -6,6 +6,7 @@ import Scene3D from "../components/builder3d/Scene3D";
 import { screenToGround } from "../components/builder3d/raycast";
 import ShareModal from "../components/ShareModal";
 import BoardCodeEditor from "../components/builder/BoardCodeEditor";
+import MeasurementsPanel from "../components/builder/MeasurementsPanel";
 import client from "../api/client";
 
 let idCounter = 1;
@@ -432,7 +433,8 @@ export default function Builder() {
           <div style={styles.hintBar}>
             <span style={styles.hint}>
               Drag a part onto the board · drag a placed part to move it · click two glowing terminal dots
-              to wire them · double-click a dev board to write code · drag empty space to orbit, scroll to zoom
+              to wire them · double-click a part to show its name · click {"</>"} on a board to write code ·
+              drag empty space to orbit, scroll to zoom
             </span>
           </div>
 
@@ -446,21 +448,6 @@ export default function Builder() {
                 {RESULT_ICON[simResult.status] || "ℹ"}
               </span>
               <span>{simResult.message}</span>
-            </div>
-          )}
-
-          {simResult?.suggestions?.length > 0 && (
-            <div style={styles.suggestionsBar}>
-              {simResult.suggestions.map((s, i) => (
-                <div
-                  key={i}
-                  style={{ ...styles.suggestionRow, animationDelay: `${i * 70}ms` }}
-                  className="cl-suggestion-row"
-                >
-                  <span style={{ color: "var(--gold)" }}>💡</span>
-                  <span>{s}</span>
-                </div>
-              ))}
             </div>
           )}
 
@@ -505,11 +492,9 @@ export default function Builder() {
                   <span className="cl-loading-text">Loading circuit…</span>
                 </div>
               )}
-
-              {simResult?.readings && Object.keys(simResult.readings).length > 0 && (
-                <ReadingsPanel readings={simResult.readings} nodes={nodes} />
-              )}
             </div>
+
+            <MeasurementsPanel simResult={simResult} nodes={nodes} simRunning={simRunning} />
 
             <ComponentPalette components={components} loading={loading} />
           </div>
@@ -565,93 +550,6 @@ function PowerIndicator({ status, running }) {
       />
       <span className="cl-power-label">{dim ? "Idle" : cfg.label}</span>
     </span>
-  );
-}
-
-function ReadingsPanel({ readings, nodes }) {
-  const nodeById = Object.fromEntries(nodes.map((n) => [n.id, n]));
-  const rows = Object.entries(readings)
-    .filter(([, r]) => r.state === "on")
-    .map(([id, r]) => ({ id, name: nodeById[id]?.name || id, ...r }))
-    .sort((a, b) => b.current_mA - a.current_mA);
-
-  if (rows.length === 0) return null;
-
-  const maxCurrent = Math.max(...rows.map((r) => r.current_mA), 1);
-  const totalCurrentMA = rows.reduce((sum, r) => sum + r.current_mA, 0);
-  const totalPowerMW = rows.reduce((sum, r) => sum + r.power_mW, 0);
-  const railVoltage = Math.max(...rows.map((r) => r.voltage), 0);
-  const totalParts = nodes.length;
-  const poweredParts = rows.length;
-  const loadPct = Math.min(100, (totalCurrentMA / 1000) * 100); // relative to a 1A reference rail
-
-  return (
-    <div style={styles.readingsPanel} className="cl-readings-panel">
-      <div className="cl-diag-header">
-        <span className="eyebrow">Circuit diagnostics</span>
-        <span className="cl-diag-live-dot" />
-      </div>
-
-      {/* summary readout — styled like a bench multimeter */}
-      <div className="cl-diag-summary">
-        <div className="cl-diag-stat">
-          <span className="cl-diag-value mono">{railVoltage.toFixed(2)}<small>V</small></span>
-          <span className="cl-diag-label">Rail</span>
-        </div>
-        <div className="cl-diag-stat">
-          <span className="cl-diag-value mono">{totalCurrentMA.toFixed(0)}<small>mA</small></span>
-          <span className="cl-diag-label">Draw</span>
-        </div>
-        <div className="cl-diag-stat">
-          <span className="cl-diag-value mono">{totalPowerMW.toFixed(0)}<small>mW</small></span>
-          <span className="cl-diag-label">Power</span>
-        </div>
-        <div className="cl-diag-stat">
-          <span className="cl-diag-value mono">
-            {poweredParts}<small>/{totalParts}</small>
-          </span>
-          <span className="cl-diag-label">Live</span>
-        </div>
-      </div>
-
-      <div className="cl-diag-load-track" title={`${loadPct.toFixed(0)}% of reference 1A rail`}>
-        <div
-          className="cl-diag-load-fill"
-          style={{
-            width: `${loadPct}%`,
-            background: loadPct > 80 ? "var(--danger)" : loadPct > 50 ? "var(--gold)" : "var(--primary)",
-          }}
-        />
-      </div>
-
-      <div style={styles.readingsHeader}>
-        <span>Part</span>
-        <span>V</span>
-        <span>mA</span>
-        <span>mW</span>
-      </div>
-      {rows.map((r, i) => (
-        <div
-          key={r.id}
-          style={{ ...styles.readingsRow, animationDelay: `${i * 45}ms` }}
-          className="cl-readings-row"
-        >
-          <span style={styles.readingsName}>{r.name}</span>
-          <span className="mono">{r.voltage.toFixed(2)}</span>
-          <span className="mono" style={{ color: r.current_mA > 1000 ? "var(--danger)" : "var(--text)" }}>
-            {r.current_mA.toFixed(1)}
-          </span>
-          <span className="mono">{r.power_mW.toFixed(1)}</span>
-          <span
-            className="cl-readings-bar"
-            style={{
-              width: `${Math.max(6, (r.current_mA / maxCurrent) * 100)}%`,
-              background: r.current_mA > 1000 ? "var(--danger)" : "var(--primary)",
-            }}
-          />
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -761,21 +659,6 @@ const styles = {
     fontSize: 12.5,
     fontWeight: 500,
   },
-  suggestionsBar: {
-    padding: "8px 20px",
-    borderBottom: "1px solid var(--border)",
-    background: "var(--surface)",
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-  },
-  suggestionRow: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: 8,
-    fontSize: 12,
-    color: "var(--text-dim)",
-  },
   detailsBar: {
     padding: "10px 20px",
     borderBottom: "1px solid var(--border)",
@@ -802,44 +685,6 @@ const styles = {
     color: "var(--text-faint)",
     fontSize: 11.5,
   },
-  readingsPanel: {
-    position: "absolute",
-    bottom: 16,
-    left: 16,
-    width: 268,
-    background: "rgba(16,22,29,0.92)",
-    backdropFilter: "blur(6px)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius)",
-    padding: "12px 14px",
-    zIndex: 5,
-  },
-  readingsHeader: {
-    display: "grid",
-    gridTemplateColumns: "1.4fr 0.7fr 0.8fr 0.8fr",
-    gap: 6,
-    fontSize: 9.5,
-    color: "var(--text-faint)",
-    fontFamily: "var(--font-display)",
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-    paddingBottom: 6,
-    borderBottom: "1px solid var(--border)",
-  },
-  readingsRow: {
-    position: "relative",
-    display: "grid",
-    gridTemplateColumns: "1.4fr 0.7fr 0.8fr 0.8fr",
-    gap: 6,
-    fontSize: 11.5,
-    padding: "5px 0",
-  },
-  readingsName: {
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-    color: "var(--text-dim)",
-  },
 };
 
 /* ---------------------------------------------------------------------
@@ -851,10 +696,6 @@ const styles = {
 const GLOBAL_CSS = `
 @keyframes cl-fade-slide-down {
   from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes cl-fade-slide-up {
-  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes cl-fade-in {
@@ -884,14 +725,9 @@ const GLOBAL_CSS = `
   0%, 100% { opacity: 1; transform: scale(1); }
   50%      { opacity: 0.4; transform: scale(0.8); }
 }
-@keyframes cl-bar-grow {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
-}
 
 .cl-toolbar { position: relative; }
 
-/* project name field: animated underline on focus */
 .cl-name-wrap { position: relative; }
 .cl-name-input { transition: color 0.15s ease; }
 .cl-name-underline {
@@ -914,7 +750,6 @@ const GLOBAL_CSS = `
   flex-shrink: 0;
 }
 
-/* buttons: consistent, subtle lift + glow */
 .cl-btn {
   transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease,
     background 0.2s ease, border-color 0.2s ease, opacity 0.15s ease;
@@ -964,31 +799,7 @@ const GLOBAL_CSS = `
 }
 .cl-result-alert { animation: cl-fade-slide-down 0.25s cubic-bezier(0.4, 0, 0.2, 1), cl-shake 0.4s ease 0.25s; }
 
-.cl-suggestion-row {
-  animation: cl-fade-slide-up 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
-}
-
 .cl-drop-target { box-shadow: inset 0 0 0 2px rgba(47, 214, 111, 0.35); transition: box-shadow 0.15s ease; }
-
-.cl-readings-panel {
-  animation: cl-fade-slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.cl-readings-row {
-  animation: cl-fade-slide-up 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
-  overflow: hidden;
-  transition: background 0.15s ease;
-  border-radius: 4px;
-}
-.cl-readings-row:hover { background: rgba(255, 255, 255, 0.03); }
-.cl-readings-bar {
-  position: absolute;
-  left: 0; bottom: 0;
-  height: 2px;
-  border-radius: 2px;
-  transform-origin: left;
-  animation: cl-bar-grow 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
-  opacity: 0.6;
-}
 
 .cl-loading-overlay {
   position: absolute;
@@ -1011,7 +822,6 @@ const GLOBAL_CSS = `
 }
 .cl-loading-text { font-family: var(--font-display); letter-spacing: 0.03em; }
 
-/* ---- power LED (toolbar) ---- */
 @keyframes cl-led-blink {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.25; }
@@ -1046,7 +856,6 @@ const GLOBAL_CSS = `
   white-space: nowrap;
 }
 
-/* ---- 3D bench / HUD frame ---- */
 .cl-bench { overflow: hidden; }
 .cl-bench-grid {
   position: absolute;
@@ -1082,67 +891,10 @@ const GLOBAL_CSS = `
 .cl-corner-br { bottom: 10px; right: 10px; border-bottom: 2px solid; border-right: 2px solid; border-radius: 0 0 3px 0; }
 .cl-drop-target .cl-corner { border-color: var(--primary); opacity: 1; }
 
-/* ---- diagnostics panel ---- */
-.cl-diag-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-.cl-diag-live-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--primary);
-  box-shadow: 0 0 5px 1px var(--primary);
-  animation: cl-dot-pulse 1.8s ease-in-out infinite;
-}
-.cl-diag-summary {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  margin-bottom: 8px;
-  padding: 8px 4px;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-.cl-diag-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-.cl-diag-value {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--primary);
-  text-shadow: 0 0 8px rgba(47, 214, 111, 0.35);
-}
-.cl-diag-value small { font-size: 8.5px; font-weight: 600; margin-left: 1px; opacity: 0.75; }
-.cl-diag-label {
-  font-size: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-faint);
-  font-family: var(--font-display);
-}
-.cl-diag-load-track {
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.06);
-  overflow: hidden;
-  margin-bottom: 10px;
-}
-.cl-diag-load-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .cl-toolbar *, .cl-result-bar, .cl-suggestion-row, .cl-readings-panel,
-  .cl-readings-row, .cl-details-bar, .cl-btn, .cl-stat-dot, .cl-spin,
+  .cl-toolbar *, .cl-result-bar, .cl-details-bar, .cl-btn, .cl-stat-dot, .cl-spin,
   .cl-spin-slow, .cl-icon-pop, .cl-loading-spinner, .cl-led-amber,
-  .cl-led-short, .cl-led-testing, .cl-diag-live-dot {
+  .cl-led-short, .cl-led-testing {
     animation: none !important;
     transition: none !important;
   }
