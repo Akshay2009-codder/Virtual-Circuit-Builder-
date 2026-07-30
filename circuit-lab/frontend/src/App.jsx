@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { AnimatePresence } from "framer-motion";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 import CustomCursor from "./components/CustomCursor";
 import PageTransition from "./components/PageTransition";
 import Login from "./pages/Login";
@@ -16,6 +17,7 @@ import CircuitView from "./pages/CircuitView";
 import Profile from "./pages/Profile";
 import FollowList from "./components/FollowList";
 import PeopleSearch from "./components/PeopleSearch";
+import Admin from "./pages/Admin";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -113,6 +115,14 @@ function AnimatedRoutes() {
             <ProtectedRoute>
               <PageTransition><PeopleSearch /></PageTransition>
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <PageTransition><Admin /></PageTransition>
+            </AdminRoute>
           }
         />
       </Routes>
