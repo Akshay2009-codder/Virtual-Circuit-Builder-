@@ -11,6 +11,7 @@ from invites import invites_bp
 from users import users_bp
 from Simulate import simulate_bp
 from community import community_bp
+from admin import admin_bp
 from component_model import Component  # noqa: F401 - registers table with SQLAlchemy
 from seed import seed_components
 
@@ -30,6 +31,7 @@ def create_app():
     app.register_blueprint(users_bp)
     app.register_blueprint(simulate_bp)
     app.register_blueprint(community_bp)
+    app.register_blueprint(admin_bp)
 
     @app.get("/api/health")
     def health():
