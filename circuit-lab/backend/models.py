@@ -22,6 +22,11 @@ class User(db.Model):
     otp_expires_at = db.Column(db.DateTime)
     otp_last_sent_at = db.Column(db.DateTime)
 
+    # Admin panel access. Nothing sets this at signup - grant it via
+    # make_admin.py (see backend/make_admin.py) or through the admin panel
+    # itself once at least one admin exists.
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
+
     def set_password(self, raw_password):
         self.password_hash = generate_password_hash(raw_password)
 
@@ -35,6 +40,7 @@ class User(db.Model):
             "username": self.username,
             "email": self.email,
             "bio": self.bio or "",
+            "is_admin": bool(self.is_admin),
             "created_at": self.created_at.isoformat(),
         }
 
