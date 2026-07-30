@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import FollowList from "./components/FollowList";
 import PeopleSearch from "./components/PeopleSearch";
 import Admin from "./pages/Admin";
+import AdminLogin from "./pages/AdminLogin";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -117,6 +118,7 @@ function AnimatedRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route path="/admin/login" element={<PageTransition><AdminLogin /></PageTransition>} />
         <Route
           path="/admin"
           element={
