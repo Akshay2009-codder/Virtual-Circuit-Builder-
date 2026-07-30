@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
 from models import (
     db,
@@ -17,6 +17,27 @@ from models import (
 from component_model import Component
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
+
+
+# --- Dedicated admin login. Separate endpoint from /api/auth/login on
+# purpose - a regular account, even with the right password, gets nothing
+# from this route unless is_admin is also set. Same error message whether
+# the account doesn't exist, the password's wrong, or it just isn't an
+# admin account - never reveal which, or this becomes a way to fish for
+# who the admins are. ---
+
+@admin_bp.post("/login")
+def admin_login():
+    data = request.get_json(silent=True) or {}
+    identifier = (data.get("username") or "").strip().lower()
+    password = data.get("password") or ""
+
+    user = User.query.filter_by(username=identifier).first()
+    if not user or not user.check_password(password) or not user.is_admin:
+        return jsonify({"error": "Invalid admin credentials."}), 401
+
+    token = create_access_token(identity=str(user.id))
+    return jsonify({"token": token, "user": user.to_dict()}), 200
 
 
 # --- Auth guard: every route below requires a logged-in user whose
