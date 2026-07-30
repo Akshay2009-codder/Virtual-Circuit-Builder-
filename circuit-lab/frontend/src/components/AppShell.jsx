@@ -33,6 +33,11 @@ export default function AppShell({ children }) {
               Profile
             </NavLink>
           )}
+          {user?.is_admin && (
+            <NavLink to="/admin" style={navStyle}>
+              Admin
+            </NavLink>
+          )}
         </nav>
 
         <div style={styles.userArea}>
