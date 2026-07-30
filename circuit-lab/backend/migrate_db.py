@@ -36,6 +36,11 @@ def main():
     cur = conn.cursor()
     changes = []
 
+    if table_exists(cur, "users"):
+        if not column_exists(cur, "users", "is_admin"):
+            cur.execute("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0")
+            changes.append("users.is_admin")
+
     if table_exists(cur, "projects"):
         columns_to_add = [
             ("description", "TEXT DEFAULT ''"),
