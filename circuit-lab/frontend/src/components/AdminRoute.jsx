@@ -12,7 +12,6 @@ export default function AdminRoute({ children }) {
     );
   }
 
-  if (!user) return <Navigate to="/login" replace />;
-  if (!user.is_admin) return <Navigate to="/dashboard" replace />;
+  if (!user || !user.is_admin) return <Navigate to="/admin/login" replace />;
   return children;
 }
