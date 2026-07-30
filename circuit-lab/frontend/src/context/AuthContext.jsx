@@ -27,6 +27,16 @@ export function AuthProvider({ children }) {
     return res.data;
   }
 
+  // Separate from login() above - posts to /admin/login, which only issues
+  // a token if the account has is_admin set. A non-admin's correct
+  // password still gets rejected here.
+  async function adminLogin(username, password) {
+    const res = await client.post("/admin/login", { username, password });
+    localStorage.setItem("cl_token", res.data.token);
+    setUser(res.data.user);
+    return res.data;
+  }
+
   async function register(name, username, password) {
     const res = await client.post("/auth/register", { name, username, password });
     localStorage.setItem("cl_token", res.data.token);
@@ -40,7 +50,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, adminLogin, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
