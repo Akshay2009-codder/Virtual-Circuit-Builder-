@@ -1043,34 +1043,38 @@ One limitation worth knowing: a voltage divider's output isn't a strong, stiff v
 
 const CATEGORY_ORDER = Object.keys(TAG_COLOR);
 
-const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
+/* ---------------- Animation variants ---------------- */
+const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.045 } } };
 const cardVariants = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } },
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
 };
 
-function LessonIcon({ id, color, size = 40 }) {
+/* ---------------- Small building blocks ---------------- */
+
+function LessonIcon({ id, color, size = 34 }) {
   const glyph = ICONS[id] || ICONS.bulb;
   return (
     <div
       style={{
         width: size,
         height: size,
-        borderRadius: 10,
-        background: `color-mix(in srgb, ${color} 14%, var(--surface-2))`,
+        borderRadius: 7,
+        border: `1px solid color-mix(in srgb, ${color} 45%, var(--border))`,
+        background: `color-mix(in srgb, ${color} 8%, transparent)`,
         display: "grid",
         placeItems: "center",
         flexShrink: 0,
       }}
     >
-      <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24">
+      <svg width={size * 0.54} height={size * 0.54} viewBox="0 0 24 24">
         {glyph(color)}
       </svg>
     </div>
   );
 }
 
-function DifficultyMeter({ level, color, label }) {
+function DifficultyMeter({ level, color, label, compact }) {
   return (
     <span style={styles.meter} role="img" aria-label={`Difficulty: ${label}`} title={label}>
       {[1, 2, 3].map((i) => (
@@ -1078,7 +1082,7 @@ function DifficultyMeter({ level, color, label }) {
           key={i}
           style={{
             ...styles.meterBar,
-            height: 5 + i * 3,
+            height: compact ? 4 + i * 2.5 : 5 + i * 3,
             background: i <= level ? color : "var(--border)",
           }}
         />
@@ -1087,7 +1091,9 @@ function DifficultyMeter({ level, color, label }) {
   );
 }
 
-/* Simple, calm card - a border and a lift on hover. No tilt, no spotlight. */
+/* Datasheet-style card - PCB corner brackets light up on hover, a thin
+   trace line in the category color runs across the top edge instead of
+   a filled icon tile, echoing the Builder bench's targeting corners. */
 function LessonCard({ topic, onClick }) {
   const tagColor = TAG_COLOR[topic.tag] || "var(--primary)";
   return (
@@ -1096,11 +1102,17 @@ function LessonCard({ topic, onClick }) {
       layoutId={`card-${TOPICS.indexOf(topic)}`}
       onClick={onClick}
       variants={cardVariants}
-      whileHover={{ y: -3 }}
-      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className="lesson-card"
-      style={styles.card}
+      style={{ ...styles.card, "--card-accent": tagColor }}
     >
+      <span className="lesson-card-trace" />
+      <span className="lesson-card-corner tl" />
+      <span className="lesson-card-corner tr" />
+      <span className="lesson-card-corner bl" />
+      <span className="lesson-card-corner br" />
+
       <div style={styles.cardTop}>
         <LessonIcon id={topic.icon} color={tagColor} />
         <DifficultyMeter
@@ -1120,6 +1132,43 @@ function LessonCard({ topic, onClick }) {
     </motion.button>
   );
 }
+
+/* Animated oscilloscope trace - the hero's signature element. Draws
+   itself in once on load (pathLength 0 -> 1), then idles with a very
+   slow, subtle re-trace so the screen never looks static. Respects
+   prefers-reduced-motion by skipping straight to the settled state. */
+function ScopeTrace({ reduceMotion }) {
+  const path = "M4 60 C 26 60, 30 18, 48 18 S 70 96, 88 96 S 112 30, 130 30 S 150 70, 168 70 S 188 44, 206 44 S 226 60, 244 60";
+  return (
+    <div style={styles.scope} aria-hidden="true">
+      <div style={styles.scopeGrid} />
+      <svg viewBox="0 0 248 120" width="100%" height="100%" style={{ position: "relative" }}>
+        <motion.path
+          d={path}
+          fill="none"
+          stroke="var(--primary)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          initial={reduceMotion ? false : { pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ duration: 1.6, ease: [0.65, 0, 0.35, 1], delay: 0.3 }}
+        />
+        <motion.circle
+          r="3.2"
+          fill="var(--primary)"
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: [0, 1, 1, 0] }}
+          transition={{ duration: 1.6, delay: 0.3, times: [0, 0.05, 0.9, 1] }}
+        >
+          <animateMotion dur="1.6s" begin="0.3s" fill="freeze" path={path} />
+        </motion.circle>
+      </svg>
+      <span style={styles.scopeLabel}>SIGNAL&nbsp;OK</span>
+    </div>
+  );
+}
+
+/* ---------------- Page ---------------- */
 
 export default function Tutorials() {
   const [query, setQuery] = useState("");
@@ -1166,6 +1215,14 @@ export default function Tutorials() {
     })).filter((s) => s.items.length > 0);
   }, [filtered]);
 
+  const categoryCounts = useMemo(() => {
+    const counts = { All: TOPICS.length };
+    CATEGORY_ORDER.forEach((tag) => {
+      counts[tag] = TOPICS.filter((t) => t.tag === tag).length;
+    });
+    return counts;
+  }, []);
+
   const openTopic = activeTopic !== null ? TOPICS[activeTopic] : null;
   const openParagraphs = useMemo(() => (openTopic ? openTopic.body.split(/\n\n+/) : []), [openTopic]);
   const readingMinutes = useMemo(() => {
@@ -1173,54 +1230,62 @@ export default function Tutorials() {
     const words = openTopic.body.trim().split(/\s+/).length;
     return Math.max(1, Math.round(words / 200));
   }, [openTopic]);
+  const openColor = openTopic ? TAG_COLOR[openTopic.tag] : "var(--primary)";
 
   return (
     <AppShell>
-      {/* ---------------- Header ---------------- */}
-      <section style={styles.hero}>
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <div className="eyebrow">Learn</div>
-          <h1 style={styles.heroTitle}>
-            Master <span className="gradient-text">circuit design</span>
-          </h1>
-          <p style={styles.heroSubtitle}>
-            {TOPICS.length} short, practical lessons — the exact concepts behind everything CircuitLab
-            checks for you when you hit Run.
-          </p>
+      <style>{GLOBAL_CSS}</style>
 
-          <div style={styles.statsRow}>
-            <div style={styles.statBlock}>
-              <span style={{ ...styles.statNumber, color: "var(--primary)" }}>{TOPICS.length}</span>
-              <span style={styles.statLabel}>Lessons</span>
+      {/* ---------------- Hero ---------------- */}
+      <section style={styles.hero}>
+        <div style={styles.heroGrid}>
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div className="eyebrow">Learn</div>
+            <h1 style={styles.heroTitle}>
+              Master <span className="gradient-text">circuit design</span>
+            </h1>
+            <p style={styles.heroSubtitle}>
+              {TOPICS.length} short, practical lessons — the exact concepts behind everything CircuitLab
+              checks for you when you hit Run.
+            </p>
+
+            <div style={styles.specRow}>
+              <div style={styles.specField}>
+                <span style={styles.specLabel}>Lessons</span>
+                <span style={{ ...styles.specValue, color: "var(--primary)" }}>{TOPICS.length}</span>
+              </div>
+              <div style={styles.specField}>
+                <span style={styles.specLabel}>Categories</span>
+                <span style={{ ...styles.specValue, color: "var(--accent)" }}>{CATEGORY_ORDER.length}</span>
+              </div>
+              <div style={styles.specField}>
+                <span style={styles.specLabel}>Skill levels</span>
+                <span style={{ ...styles.specValue, color: "var(--gold)" }}>3</span>
+              </div>
             </div>
-            <div style={styles.statDivider} />
-            <div style={styles.statBlock}>
-              <span style={{ ...styles.statNumber, color: "var(--accent)" }}>{CATEGORY_ORDER.length}</span>
-              <span style={styles.statLabel}>Categories</span>
-            </div>
-            <div style={styles.statDivider} />
-            <div style={styles.statBlock}>
-              <span style={{ ...styles.statNumber, color: "var(--gold)" }}>3</span>
-              <span style={styles.statLabel}>Skill levels</span>
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
+
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+            className="scope-wrap"
+          >
+            <ScopeTrace reduceMotion={reduceMotion} />
+          </motion.div>
+        </div>
       </section>
 
-      {/* ---------------- Toolbar ---------------- */}
-      <motion.div
-        style={styles.toolbar}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-      >
-        <div style={styles.toolbarInner}>
-          <div style={styles.searchWrap}>
-            <svg width="15" height="15" viewBox="0 0 24 24" style={styles.searchIcon}>
+      {/* ---------------- Body: index rail + content ---------------- */}
+      <div style={styles.layout} className="tut-layout">
+        {/* Category index rail (desktop) */}
+        <aside style={styles.rail} className="tut-rail">
+          <div style={styles.railSearchWrap}>
+            <svg width="14" height="14" viewBox="0 0 24 24" style={styles.searchIcon}>
               <circle cx="10.5" cy="10.5" r="6.5" stroke="var(--text-faint)" strokeWidth="2" fill="none" />
               <path d="M20 20 15.5 15.5" stroke="var(--text-faint)" strokeWidth="2" strokeLinecap="round" />
             </svg>
@@ -1228,73 +1293,115 @@ export default function Tutorials() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search lessons..."
-              style={styles.search}
+              style={styles.railSearch}
             />
           </div>
-          <div style={styles.chipRow}>
+
+          <div style={styles.railList}>
             {["All", ...CATEGORY_ORDER].map((tag) => {
               const active = activeTag === tag;
               const color = TAG_COLOR[tag] || "var(--text-dim)";
-              const count = tag === "All" ? TOPICS.length : TOPICS.filter((t) => t.tag === tag).length;
               return (
                 <button
                   key={tag}
                   onClick={() => setActiveTag(tag)}
                   aria-pressed={active}
-                  style={{
-                    ...styles.chip,
-                    borderColor: active ? color : "var(--border)",
-                    color: active ? color : "var(--text-dim)",
-                    background: active ? `color-mix(in srgb, ${color} 12%, var(--surface))` : "var(--surface)",
-                  }}
+                  className="rail-item"
+                  style={{ ...styles.railItem, color: active ? "var(--text)" : "var(--text-dim)" }}
                 >
-                  {tag !== "All" && <span style={{ ...styles.chipSwatch, background: color }} />}
-                  {tag} <span style={{ opacity: 0.55 }}>{count}</span>
+                  {active && (
+                    <motion.span
+                      layoutId="rail-active"
+                      style={{ ...styles.railActive, background: `color-mix(in srgb, ${color} 14%, var(--surface))`, borderColor: color }}
+                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                    />
+                  )}
+                  <span style={styles.railItemInner}>
+                    {tag !== "All" && <span style={{ ...styles.railDot, background: color }} />}
+                    <span style={styles.railItemLabel}>{tag}</span>
+                    <span style={styles.railCount}>{categoryCounts[tag]}</span>
+                  </span>
                 </button>
               );
             })}
           </div>
-        </div>
-      </motion.div>
+        </aside>
 
-      {/* ---------------- Lesson sections ---------------- */}
-      <div style={{ padding: "10px 6vw 90px" }}>
-        {sections.length === 0 ? (
-          <div style={styles.emptyState}>
-            <p style={{ color: "var(--text)", fontSize: 14, fontWeight: 600, margin: 0 }}>
-              No lessons match "{query}"
-            </p>
-            <p style={{ color: "var(--text-faint)", fontSize: 12.5, margin: "4px 0 0" }}>
-              Try a different term, or clear the {activeTag !== "All" ? `${activeTag} filter` : "search"}.
-            </p>
-          </div>
-        ) : (
-          sections.map((section) => (
-            <div key={section.tag} style={styles.section}>
-              <div style={styles.sectionHeader}>
-                <span style={{ ...styles.sectionDot, background: section.color }} />
-                <h2 style={styles.sectionTitle}>{section.tag}</h2>
-                <span style={styles.sectionCount}>{section.items.length}</span>
-                <span style={styles.sectionRule} />
-              </div>
-
-              <motion.div
-                style={styles.cardGrid}
-                variants={gridVariants}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, margin: "-60px" }}
-              >
-                {section.items.map((topic) => {
-                  const globalIndex = TOPICS.indexOf(topic);
-                  return (
-                    <LessonCard key={topic.title} topic={topic} onClick={() => setActiveTopic(globalIndex)} />
-                  );
-                })}
-              </motion.div>
+        {/* Lesson content */}
+        <main style={styles.content}>
+          {/* Mobile-only horizontal filter row (rail hides on narrow screens) */}
+          <div className="tut-mobile-toolbar">
+            <div style={styles.railSearchWrap}>
+              <svg width="14" height="14" viewBox="0 0 24 24" style={styles.searchIcon}>
+                <circle cx="10.5" cy="10.5" r="6.5" stroke="var(--text-faint)" strokeWidth="2" fill="none" />
+                <path d="M20 20 15.5 15.5" stroke="var(--text-faint)" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search lessons..."
+                style={styles.railSearch}
+              />
             </div>
-          ))
-        )}
+            <div className="tut-mobile-chips">
+              {["All", ...CATEGORY_ORDER].map((tag) => {
+                const active = activeTag === tag;
+                const color = TAG_COLOR[tag] || "var(--text-dim)";
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => setActiveTag(tag)}
+                    style={{
+                      ...styles.chip,
+                      borderColor: active ? color : "var(--border)",
+                      color: active ? color : "var(--text-dim)",
+                      background: active ? `color-mix(in srgb, ${color} 12%, var(--surface))` : "var(--surface)",
+                    }}
+                  >
+                    {tag} <span style={{ opacity: 0.55 }}>{categoryCounts[tag]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {sections.length === 0 ? (
+            <div style={styles.emptyState}>
+              <p style={{ color: "var(--text)", fontSize: 14, fontWeight: 600, margin: 0 }}>
+                No lessons match "{query}"
+              </p>
+              <p style={{ color: "var(--text-faint)", fontSize: 12.5, margin: "4px 0 0" }}>
+                Try a different term, or clear the {activeTag !== "All" ? `${activeTag} filter` : "search"}.
+              </p>
+            </div>
+          ) : (
+            sections.map((section) => (
+              <div key={section.tag} style={styles.section}>
+                <div style={styles.sectionHeader}>
+                  <span style={{ ...styles.sectionDot, background: section.color }} />
+                  <h2 style={styles.sectionTitle}>{section.tag}</h2>
+                  <span style={styles.sectionCount}>{section.items.length}</span>
+                  <span style={styles.sectionRule} />
+                </div>
+
+                <motion.div
+                  style={styles.cardGrid}
+                  variants={gridVariants}
+                  initial="hidden"
+                  whileInView="show"
+                  viewport={{ once: true, margin: "-60px" }}
+                >
+                  {section.items.map((topic) => {
+                    const globalIndex = TOPICS.indexOf(topic);
+                    return (
+                      <LessonCard key={topic.title} topic={topic} onClick={() => setActiveTopic(globalIndex)} />
+                    );
+                  })}
+                </motion.div>
+              </div>
+            ))
+          )}
+        </main>
       </div>
 
       {/* ---------------- Expanded lesson modal ---------------- */}
@@ -1313,18 +1420,27 @@ export default function Tutorials() {
             <div style={styles.modalWrap}>
               <motion.div
                 layoutId={`card-${activeTopic}`}
-                style={styles.modal}
+                style={{ ...styles.modal, "--modal-accent": openColor }}
                 role="dialog"
                 aria-modal="true"
                 aria-label={openTopic.title}
                 transition={{ type: "spring", stiffness: 260, damping: 30 }}
                 ref={modalRef}
               >
+                <div style={styles.modalProgressTrack}>
+                  <motion.div
+                    style={{ ...styles.modalProgressFill, background: openColor }}
+                    initial={false}
+                    animate={{ width: `${((activeTopic + 1) / TOPICS.length) * 100}%` }}
+                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                </div>
+
                 <div style={styles.modalHeader}>
-                  <LessonIcon id={openTopic.icon} color={TAG_COLOR[openTopic.tag]} size={48} />
+                  <LessonIcon id={openTopic.icon} color={openColor} size={44} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={styles.metaRow}>
-                      <span style={{ ...styles.tagPill, color: TAG_COLOR[openTopic.tag], borderColor: TAG_COLOR[openTopic.tag] }}>
+                      <span style={{ ...styles.tagPill, color: openColor, borderColor: openColor }}>
                         {openTopic.tag}
                       </span>
                       <DifficultyMeter
@@ -1380,23 +1496,25 @@ export default function Tutorials() {
           </>
         )}
       </AnimatePresence>
-
-      <style>{`
-        .lesson-card { text-align: left; cursor: pointer; transition: border-color 0.25s ease, box-shadow 0.25s ease; }
-        .lesson-card:hover { border-color: var(--text-faint); box-shadow: 0 12px 28px color-mix(in srgb, #000 16%, transparent); }
-        .lesson-card:hover .card-arrow { transform: translateX(3px); }
-        .card-arrow { transition: transform 0.25s ease; }
-        .lesson-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-      `}</style>
     </AppShell>
   );
 }
 
+/* ---------------- Styles ---------------- */
+
 const styles = {
   hero: {
-    padding: "48px 6vw 32px",
+    padding: "44px 6vw 0",
     borderBottom: "1px solid var(--border)",
-    maxWidth: 680,
+  },
+  heroGrid: {
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 620px) 1fr",
+    gap: 32,
+    alignItems: "center",
+    maxWidth: 1180,
+    margin: "0 auto",
+    paddingBottom: 36,
   },
   heroTitle: {
     margin: "8px 0 0",
@@ -1410,72 +1528,149 @@ const styles = {
     fontSize: 14.5,
     lineHeight: 1.6,
     margin: "10px 0 0",
+    maxWidth: 480,
   },
-  statsRow: {
+  specRow: {
     display: "flex",
-    alignItems: "center",
-    gap: 18,
-    marginTop: 22,
+    alignItems: "stretch",
+    gap: 0,
+    marginTop: 26,
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-sm)",
+    overflow: "hidden",
+    width: "fit-content",
   },
-  statBlock: { display: "flex", alignItems: "baseline", gap: 6 },
-  statNumber: {
+  specField: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    padding: "9px 18px",
+    borderRight: "1px solid var(--border)",
+  },
+  specLabel: {
+    fontSize: 9.5,
     fontFamily: "var(--font-display)",
-    fontSize: 18,
-    fontWeight: 700,
-  },
-  statLabel: {
-    fontSize: 11,
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
     color: "var(--text-faint)",
   },
-  statDivider: {
-    width: 1,
-    height: 14,
-    background: "var(--border)",
+  specValue: {
+    fontFamily: "var(--font-display)",
+    fontSize: 17,
+    fontWeight: 700,
   },
-  toolbar: {
-    position: "sticky",
-    top: 0,
-    zIndex: 20,
-    background: "color-mix(in srgb, var(--surface) 90%, transparent)",
-    backdropFilter: "blur(10px)",
-    borderBottom: "1px solid var(--border)",
-    padding: "16px 6vw",
+  scope: {
+    position: "relative",
+    border: "1px solid var(--border-bright)",
+    borderRadius: "var(--radius)",
+    background: "var(--surface)",
+    padding: "18px 20px 14px",
+    overflow: "hidden",
   },
-  toolbarInner: {
-    display: "flex",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: 16,
+  scopeGrid: {
+    position: "absolute",
+    inset: 0,
+    backgroundImage:
+      "linear-gradient(rgba(47,214,111,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(47,214,111,0.07) 1px, transparent 1px)",
+    backgroundSize: "24px 20px",
+    maskImage: "radial-gradient(ellipse at center, black 60%, transparent 95%)",
+    WebkitMaskImage: "radial-gradient(ellipse at center, black 60%, transparent 95%)",
+  },
+  scopeLabel: {
+    position: "absolute",
+    top: 10,
+    right: 14,
+    fontFamily: "var(--font-display)",
+    fontSize: 9.5,
+    letterSpacing: "0.08em",
+    color: "var(--primary)",
+    opacity: 0.85,
+  },
+  layout: {
+    display: "grid",
+    gridTemplateColumns: "220px 1fr",
+    gap: 0,
     maxWidth: 1180,
     margin: "0 auto",
+    alignItems: "start",
   },
-  searchWrap: {
+  rail: {
+    position: "sticky",
+    top: 0,
+    alignSelf: "start",
+    padding: "28px 20px 40px 6vw",
+    marginLeft: "-6vw",
+    display: "flex",
+    flexDirection: "column",
+    gap: 18,
+    maxHeight: "100vh",
+    overflowY: "auto",
+  },
+  railSearchWrap: {
     position: "relative",
-    width: 260,
-    flexShrink: 0,
   },
-  searchIcon: {
-    position: "absolute",
-    left: 12,
-    top: "50%",
-    transform: "translateY(-50%)",
-    pointerEvents: "none",
-  },
-  search: {
+  railSearch: {
     width: "100%",
     background: "var(--surface-2)",
     border: "1px solid var(--border)",
     borderRadius: "var(--radius-sm)",
-    padding: "9px 12px 9px 34px",
+    padding: "8px 10px 8px 32px",
     color: "var(--text)",
-    fontSize: 13,
+    fontSize: 12.5,
     outline: "none",
   },
-  chipRow: {
+  searchIcon: {
+    position: "absolute",
+    left: 10,
+    top: "50%",
+    transform: "translateY(-50%)",
+    pointerEvents: "none",
+  },
+  railList: {
     display: "flex",
-    flexWrap: "wrap",
+    flexDirection: "column",
+    gap: 2,
+  },
+  railItem: {
+    position: "relative",
+    background: "transparent",
+    border: "none",
+    borderRadius: "var(--radius-sm)",
+    padding: "8px 10px",
+    textAlign: "left",
+    cursor: "pointer",
+    font: "inherit",
+  },
+  railActive: {
+    position: "absolute",
+    inset: 0,
+    borderRadius: "var(--radius-sm)",
+    border: "1px solid",
+  },
+  railItemInner: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
     gap: 8,
+  },
+  railDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 2,
+    flexShrink: 0,
+  },
+  railItemLabel: {
+    fontSize: 12.5,
     flex: 1,
+  },
+  railCount: {
+    fontSize: 10.5,
+    fontFamily: "var(--font-display)",
+    color: "var(--text-faint)",
+  },
+  content: {
+    padding: "28px 6vw 90px 32px",
+    minWidth: 0,
   },
   chip: {
     fontFamily: "var(--font-display)",
@@ -1488,12 +1683,6 @@ const styles = {
     display: "inline-flex",
     alignItems: "center",
     gap: 6,
-  },
-  chipSwatch: {
-    width: 7,
-    height: 7,
-    borderRadius: 2,
-    display: "inline-block",
     flexShrink: 0,
   },
   emptyState: {
@@ -1505,9 +1694,8 @@ const styles = {
     textAlign: "center",
   },
   section: {
-    maxWidth: 1180,
-    margin: "0 auto",
-    padding: "40px 0 8px",
+    padding: "0 0 8px",
+    marginTop: 8,
   },
   sectionHeader: {
     display: "flex",
@@ -1543,21 +1731,24 @@ const styles = {
   },
   cardGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
     gap: 14,
+    marginBottom: 34,
   },
   card: {
+    position: "relative",
     background: "var(--surface)",
     border: "1px solid var(--border)",
     borderRadius: "var(--radius)",
-    padding: "20px",
+    padding: "18px 18px 16px",
     display: "flex",
     flexDirection: "column",
-    gap: 12,
+    gap: 11,
     textAlign: "left",
     font: "inherit",
     color: "inherit",
     width: "100%",
+    overflow: "hidden",
   },
   cardTop: {
     display: "flex",
@@ -1576,13 +1767,13 @@ const styles = {
     display: "inline-block",
   },
   cardTitle: {
-    fontSize: 15.5,
+    fontSize: 15,
     fontWeight: 600,
     color: "var(--text)",
     lineHeight: 1.35,
   },
   cardSummary: {
-    fontSize: 13,
+    fontSize: 12.5,
     color: "var(--text-faint)",
     lineHeight: 1.5,
     flex: 1,
@@ -1591,7 +1782,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: 6,
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: 600,
     fontFamily: "var(--font-display)",
   },
@@ -1621,13 +1812,24 @@ const styles = {
     width: "100%",
     maxHeight: "82vh",
     overflowY: "auto",
-    padding: 28,
+    padding: 0,
     boxShadow: "0 24px 60px color-mix(in srgb, #000 40%, transparent)",
+  },
+  modalProgressTrack: {
+    position: "sticky",
+    top: 0,
+    height: 3,
+    background: "var(--border)",
+    zIndex: 1,
+  },
+  modalProgressFill: {
+    height: "100%",
   },
   modalHeader: {
     display: "flex",
     alignItems: "flex-start",
     gap: 16,
+    padding: "24px 28px 0",
   },
   metaRow: {
     display: "flex",
@@ -1667,7 +1869,7 @@ const styles = {
     flexShrink: 0,
   },
   modalBody: {
-    marginTop: 22,
+    padding: "22px 28px 0",
   },
   modalParagraph: {
     color: "var(--text-dim)",
@@ -1679,8 +1881,8 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 26,
-    paddingTop: 18,
+    margin: "10px 28px 0",
+    padding: "18px 0 24px",
     borderTop: "1px solid var(--border)",
   },
   modalNavBtn: {
@@ -1702,3 +1904,74 @@ const styles = {
     fontFamily: "var(--font-display)",
   },
 };
+
+/* ---------------- Global CSS: hover states, responsive collapse,
+   corner-bracket signature, reduced-motion overrides ---------------- */
+const GLOBAL_CSS = `
+.tut-mobile-toolbar { display: none; }
+
+@media (max-width: 880px) {
+  .tut-layout { display: block !important; }
+  .tut-rail { display: none !important; }
+  .tut-mobile-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px 6vw 4px;
+  }
+  .tut-mobile-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+}
+
+.scope-wrap { min-width: 0; }
+@media (max-width: 780px) {
+  .scope-wrap { display: none; }
+}
+
+.rail-item { transition: color 0.15s ease; }
+.rail-item:hover { color: var(--text) !important; }
+
+.lesson-card {
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.lesson-card:hover {
+  border-color: color-mix(in srgb, var(--card-accent) 45%, var(--border-bright));
+  box-shadow: 0 12px 28px color-mix(in srgb, #000 16%, transparent);
+}
+.lesson-card:hover .card-arrow { transform: translateX(3px); }
+.card-arrow { transition: transform 0.25s ease; }
+.lesson-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* thin PCB trace across the top edge of every card, in the category color */
+.lesson-card-trace {
+  position: absolute;
+  top: 0; left: 18px; right: 18px;
+  height: 2px;
+  background: var(--card-accent);
+  opacity: 0.35;
+  border-radius: 0 0 2px 2px;
+  transition: opacity 0.25s ease;
+}
+.lesson-card:hover .lesson-card-trace { opacity: 0.9; }
+
+/* corner brackets - dim by default, snap into focus on hover, echoing
+   the Builder bench's targeting-reticle corners */
+.lesson-card-corner {
+  position: absolute;
+  width: 12px; height: 12px;
+  border-color: var(--card-accent);
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+.lesson-card-corner.tl { top: 7px; left: 7px; border-top: 2px solid; border-left: 2px solid; border-radius: 3px 0 0 0; transform: translate(2px, 2px); }
+.lesson-card-corner.tr { top: 7px; right: 7px; border-top: 2px solid; border-right: 2px solid; border-radius: 0 3px 0 0; transform: translate(-2px, 2px); }
+.lesson-card-corner.bl { bottom: 7px; left: 7px; border-bottom: 2px solid; border-left: 2px solid; border-radius: 0 0 0 3px; transform: translate(2px, -2px); }
+.lesson-card-corner.br { bottom: 7px; right: 7px; border-bottom: 2px solid; border-right: 2px solid; border-radius: 0 0 3px 0; transform: translate(-2px, -2px); }
+.lesson-card:hover .lesson-card-corner { opacity: 0.9; transform: translate(0, 0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .lesson-card, .lesson-card-trace, .lesson-card-corner, .card-arrow, .rail-item {
+    transition: none !important;
+  }
+}
+`;
