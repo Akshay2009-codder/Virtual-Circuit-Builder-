@@ -904,4 +904,4 @@ const GLOBAL_CSS = `
     transition: none !important;
   }
 }
-`
+`;
