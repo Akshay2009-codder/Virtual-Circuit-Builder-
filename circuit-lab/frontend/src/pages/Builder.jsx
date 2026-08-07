@@ -238,7 +238,7 @@ export default function Builder() {
     pushHistory();
     setEdges((eds) =>
       eds.concat({
-        id: nextId(), // was `e${Date.now()}` - collided on rapid/same-ms edge creation
+        id: nextId(),
         sourceId: selectedTerminal.nodeId,
         sourceTerminal: selectedTerminal.terminal,
         targetId: nodeId,
@@ -337,7 +337,12 @@ export default function Builder() {
     <>
       <style>{GLOBAL_CSS}</style>
       <AppShell>
-        <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 65px)" }}>
+        <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 65px)", position: "relative" }}>
+          {/* Ambient background glow - a very low-opacity radial wash behind
+              the whole shell so floating panels have something to sit
+              "above" instead of a flat single-color page. */}
+          <div className="cl-ambient-bg" />
+
           <div style={styles.toolbar} className="cl-toolbar">
             <div style={{ display: "flex", alignItems: "center", gap: 16, flex: 1, minWidth: 0 }}>
               <div className="cl-name-wrap">
@@ -430,28 +435,7 @@ export default function Builder() {
             </div>
           )}
 
-          <div style={styles.hintBar}>
-            <span style={styles.hint}>
-              Drag a part onto the board · drag a placed part to move it · click two glowing terminal dots
-              to wire them · double-click a part to show its name · click {"</>"} on a board to write code ·
-              drag empty space to orbit, scroll to zoom
-            </span>
-          </div>
-
-          {simResult && (
-            <div
-              key={simResult.status + (simResult.message || "")}
-              style={{ ...styles.resultBar, ...RESULT_STYLE[simResult.status] }}
-              className={`cl-result-bar ${simResult.status === "short" ? "cl-result-alert" : ""}`}
-            >
-              <span className={simResult.status === "complete" ? "cl-icon-pop" : ""}>
-                {RESULT_ICON[simResult.status] || "ℹ"}
-              </span>
-              <span>{simResult.message}</span>
-            </div>
-          )}
-
-          <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+          <div style={{ flex: 1, display: "flex", minHeight: 0, gap: 14, padding: "0 16px 16px" }}>
             <div
               ref={wrapperRef}
               style={{ flex: 1, position: "relative" }}
@@ -466,6 +450,33 @@ export default function Builder() {
               <span className="cl-corner cl-corner-bl" />
               <span className="cl-corner cl-corner-br" />
               <div className="cl-bench-scanline" />
+
+              {/* Hint bar - now a small floating pill anchored to the bench
+                  itself instead of a full-width flat strip pinned above it.
+                  Reads as a HUD element over the viewport, not another row
+                  stacked in the page's document flow. */}
+              <div className="cl-hint-pill">
+                <span className="cl-hint-dot" />
+                Drag a part onto the board · drag to move · click two terminals to wire · double-click for name ·{" "}
+                {"</>"} on a board for code · drag empty space to orbit
+              </div>
+
+              {/* Result toast - floats over the top-center of the viewport
+                  instead of docking as a full-width bar between the toolbar
+                  and the bench. Feels like a HUD readout from the
+                  simulation, not another flat divider in the page. */}
+              {simResult && (
+                <div
+                  key={simResult.status + (simResult.message || "")}
+                  style={{ ...styles.resultToast, ...RESULT_STYLE[simResult.status] }}
+                  className={`cl-result-toast ${simResult.status === "short" ? "cl-result-alert" : ""}`}
+                >
+                  <span className={simResult.status === "complete" ? "cl-icon-pop" : ""}>
+                    {RESULT_ICON[simResult.status] || "ℹ"}
+                  </span>
+                  <span>{simResult.message}</span>
+                </div>
+              )}
 
               {!loading && (
                 <Scene3D
@@ -567,21 +578,28 @@ const RESULT_ICON = {
 };
 
 const RESULT_STYLE = {
-  complete: { background: "rgba(47,214,111,0.12)", color: "var(--primary)", borderColor: "var(--primary)" },
-  open: { background: "rgba(255,201,77,0.12)", color: "var(--gold)", borderColor: "var(--gold)" },
-  short: { background: "rgba(255,71,87,0.12)", color: "var(--danger)", borderColor: "var(--danger)" },
-  no_source: { background: "var(--surface-2)", color: "var(--text-dim)", borderColor: "var(--border-bright)" },
-  error: { background: "rgba(255,71,87,0.12)", color: "var(--danger)", borderColor: "var(--danger)" },
+  complete: { color: "var(--primary)", borderColor: "var(--primary)" },
+  open: { color: "var(--gold)", borderColor: "var(--gold)" },
+  short: { color: "var(--danger)", borderColor: "var(--danger)" },
+  no_source: { color: "var(--text-dim)", borderColor: "var(--border-bright)" },
+  error: { color: "var(--danger)", borderColor: "var(--danger)" },
 };
 
 const styles = {
   toolbar: {
+    position: "relative",
+    zIndex: 5,
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
+    margin: "14px 16px 0",
     padding: "12px 20px",
-    borderBottom: "1px solid var(--border)",
-    background: "var(--surface)",
+    borderRadius: "var(--radius)",
+    border: "1px solid var(--border-bright)",
+    background: "color-mix(in srgb, var(--surface) 88%, transparent)",
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
+    boxShadow: "0 10px 30px -8px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.02) inset",
     gap: 16,
   },
   nameInput: {
@@ -614,7 +632,7 @@ const styles = {
     gap: 6,
   },
   saveBtn: {
-    background: "var(--primary)",
+    background: "linear-gradient(180deg, color-mix(in srgb, var(--primary) 100%, white 8%), var(--primary))",
     color: "#062011",
     border: "none",
     borderRadius: "var(--radius-sm)",
@@ -622,9 +640,10 @@ const styles = {
     fontSize: 13.5,
     fontWeight: 600,
     cursor: "pointer",
+    boxShadow: "0 3px 10px -2px rgba(47,214,111,0.45), 0 1px 0 rgba(255,255,255,0.25) inset",
   },
   runBtn: {
-    background: "transparent",
+    background: "color-mix(in srgb, var(--accent) 8%, transparent)",
     color: "var(--accent)",
     border: "1.5px solid var(--accent)",
     borderRadius: "var(--radius-sm)",
@@ -635,9 +654,10 @@ const styles = {
     display: "inline-flex",
     alignItems: "center",
     gap: 8,
+    boxShadow: "0 2px 8px -2px rgba(255,111,94,0.3)",
   },
   shareBtn: {
-    background: "transparent",
+    background: "var(--surface-2)",
     color: "var(--text-dim)",
     border: "1.5px solid var(--border-bright)",
     borderRadius: "var(--radius-sm)",
@@ -647,7 +667,7 @@ const styles = {
     cursor: "pointer",
   },
   publishBtn: {
-    background: "transparent",
+    background: "var(--surface-2)",
     border: "1.5px solid",
     borderRadius: "var(--radius-sm)",
     padding: "7px 14px",
@@ -655,19 +675,31 @@ const styles = {
     fontWeight: 600,
     cursor: "pointer",
   },
-  resultBar: {
+  resultToast: {
     display: "flex",
     alignItems: "center",
     gap: 10,
-    padding: "9px 20px",
-    borderBottom: "1px solid",
+    padding: "9px 18px",
+    borderRadius: 999,
+    border: "1px solid",
+    background: "color-mix(in srgb, var(--surface) 85%, transparent)",
+    backdropFilter: "blur(14px)",
+    WebkitBackdropFilter: "blur(14px)",
     fontSize: 12.5,
     fontWeight: 500,
+    boxShadow: "0 12px 28px -8px rgba(0,0,0,0.55)",
   },
   detailsBar: {
+    position: "relative",
+    zIndex: 5,
+    margin: "10px 16px 0",
     padding: "10px 20px",
-    borderBottom: "1px solid var(--border)",
-    background: "var(--surface)",
+    borderRadius: "var(--radius)",
+    border: "1px solid var(--border)",
+    background: "color-mix(in srgb, var(--surface) 88%, transparent)",
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
+    boxShadow: "0 8px 20px -8px rgba(0,0,0,0.4)",
   },
   descInput: {
     width: "100%",
@@ -681,25 +713,19 @@ const styles = {
     outline: "none",
     resize: "vertical",
   },
-  hintBar: {
-    padding: "7px 20px",
-    borderBottom: "1px solid var(--border)",
-    background: "var(--surface)",
-  },
-  hint: {
-    color: "var(--text-faint)",
-    fontSize: 11.5,
-  },
 };
 
 /* ---------------------------------------------------------------------
-   Animation + micro-interaction layer. Kept separate from the inline
-   style objects above (which React needs for static layout) since
-   hover states, keyframes, and pseudo-elements aren't expressible
-   inline. Everything here is additive polish — no layout changes.
+   Animation + depth layer. Kept separate from the inline style objects
+   above (which React needs for static layout) since hover states,
+   keyframes, gradients, and pseudo-elements aren't expressible inline.
 ------------------------------------------------------------------------ */
 const GLOBAL_CSS = `
 @keyframes cl-fade-slide-down {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes cl-fade-slide-down-block {
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
@@ -716,22 +742,38 @@ const GLOBAL_CSS = `
   to { transform: rotate(360deg); }
 }
 @keyframes cl-run-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 190, 90, 0); }
-  50%      { box-shadow: 0 0 0 5px rgba(255, 190, 90, 0.08); }
+  0%, 100% { box-shadow: 0 2px 8px -2px rgba(255,111,94,0.3), 0 0 0 0 rgba(255, 190, 90, 0); }
+  50%      { box-shadow: 0 2px 8px -2px rgba(255,111,94,0.3), 0 0 0 5px rgba(255, 190, 90, 0.08); }
 }
 @keyframes cl-shake {
-  0%, 100% { transform: translateX(0); }
-  20%      { transform: translateX(-3px); }
-  40%      { transform: translateX(3px); }
-  60%      { transform: translateX(-2px); }
-  80%      { transform: translateX(2px); }
+  0%, 100% { transform: translate(-50%, 0); }
+  20%      { transform: translate(calc(-50% - 3px), 0); }
+  40%      { transform: translate(calc(-50% + 3px), 0); }
+  60%      { transform: translate(calc(-50% - 2px), 0); }
+  80%      { transform: translate(calc(-50% + 2px), 0); }
 }
 @keyframes cl-dot-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%      { opacity: 0.4; transform: scale(0.8); }
 }
+@keyframes cl-ambient-drift {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(-2%, 1.5%); }
+}
 
-.cl-toolbar { position: relative; }
+/* Very low-opacity radial wash behind the whole shell - gives the
+   floating panels something to sit "above" instead of one flat color
+   filling the entire page edge to edge. */
+.cl-ambient-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 45% at 18% 0%, rgba(47, 214, 111, 0.07), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 100% 100%, rgba(255, 111, 94, 0.05), transparent 60%);
+  animation: cl-ambient-drift 22s ease-in-out infinite;
+}
 
 .cl-name-wrap { position: relative; }
 .cl-name-input { transition: color 0.15s ease; }
@@ -765,7 +807,7 @@ const GLOBAL_CSS = `
 .cl-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
 
 .cl-btn-save:hover:not(:disabled) {
-  box-shadow: 0 4px 14px rgba(47, 214, 111, 0.35);
+  box-shadow: 0 6px 18px -2px rgba(47, 214, 111, 0.5), 0 1px 0 rgba(255,255,255,0.25) inset;
 }
 
 .cl-btn-ghost:hover:not(:disabled) {
@@ -774,8 +816,8 @@ const GLOBAL_CSS = `
 }
 
 .cl-btn-run:hover:not(:disabled) {
-  box-shadow: 0 4px 16px rgba(255, 190, 90, 0.25);
-  background: rgba(255, 190, 90, 0.08);
+  box-shadow: 0 6px 20px -2px rgba(255, 190, 90, 0.35);
+  background: rgba(255, 190, 90, 0.1);
 }
 .cl-btn-run-pulse { animation: cl-run-pulse 2.6s ease-in-out infinite; }
 .cl-btn-run-active { border-color: var(--accent); opacity: 0.9; }
@@ -784,7 +826,7 @@ const GLOBAL_CSS = `
 .cl-spin-slow { animation: cl-spin 1.1s linear infinite; display: inline-block; }
 
 .cl-btn-public {
-  box-shadow: 0 0 0 3px rgba(47, 214, 111, 0.1);
+  box-shadow: 0 0 0 3px rgba(47, 214, 111, 0.12);
 }
 
 .cl-save-status {
@@ -795,14 +837,50 @@ const GLOBAL_CSS = `
 }
 .cl-icon-pop { display: inline-block; animation: cl-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
 
-.cl-details-bar { animation: cl-fade-slide-down 0.2s ease; }
+.cl-details-bar { animation: cl-fade-slide-down-block 0.2s ease; }
 .cl-textarea { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
 .cl-textarea:focus { border-color: var(--primary) !important; box-shadow: 0 0 0 3px rgba(47, 214, 111, 0.08); }
 
-.cl-result-bar {
-  animation: cl-fade-slide-down 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+/* Floating hint pill - anchored to the bottom-left of the viewport as a
+   HUD readout, not a full-width strip stacked in the page flow. */
+.cl-hint-pill {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  z-index: 4;
+  max-width: calc(100% - 28px);
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-bright);
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text-faint);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 10px 24px -10px rgba(0,0,0,0.55);
 }
-.cl-result-alert { animation: cl-fade-slide-down 0.25s cubic-bezier(0.4, 0, 0.2, 1), cl-shake 0.4s ease 0.25s; }
+.cl-hint-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+}
+
+/* Floating result toast - anchored top-center of the viewport. */
+.cl-result-toast {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 6;
+  transform: translate(-50%, 0);
+  animation: cl-fade-slide-down 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cl-result-alert { animation: cl-fade-slide-down 0.3s cubic-bezier(0.4, 0, 0.2, 1), cl-shake 0.4s ease 0.3s; }
 
 .cl-drop-target { box-shadow: inset 0 0 0 2px rgba(47, 214, 111, 0.35); transition: box-shadow 0.15s ease; }
 
@@ -861,7 +939,17 @@ const GLOBAL_CSS = `
   white-space: nowrap;
 }
 
-.cl-bench { overflow: hidden; }
+/* Bench viewport - now a proper elevated panel (rounded, shadowed,
+   floating on its own margin) instead of a flat edge-to-edge rectangle
+   glued directly to the toolbar and side panels. */
+.cl-bench {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 50px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+}
 .cl-bench-grid {
   position: absolute;
   inset: 0;
@@ -897,9 +985,9 @@ const GLOBAL_CSS = `
 .cl-drop-target .cl-corner { border-color: var(--primary); opacity: 1; }
 
 @media (prefers-reduced-motion: reduce) {
-  .cl-toolbar *, .cl-result-bar, .cl-details-bar, .cl-btn, .cl-stat-dot, .cl-spin,
+  .cl-toolbar *, .cl-result-toast, .cl-details-bar, .cl-btn, .cl-stat-dot, .cl-spin,
   .cl-spin-slow, .cl-icon-pop, .cl-loading-spinner, .cl-led-amber,
-  .cl-led-short, .cl-led-testing {
+  .cl-led-short, .cl-led-testing, .cl-ambient-bg {
     animation: none !important;
     transition: none !important;
   }
