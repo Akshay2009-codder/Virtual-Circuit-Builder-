@@ -632,7 +632,7 @@ const styles = {
     gap: 6,
   },
   saveBtn: {
-    background: "linear-gradient(180deg, color-mix(in srgb, var(--primary) 100%, white 8%), var(--primary))",
+    background: "var(--primary)",
     color: "#062011",
     border: "none",
     borderRadius: "var(--radius-sm)",
@@ -640,10 +640,9 @@ const styles = {
     fontSize: 13.5,
     fontWeight: 600,
     cursor: "pointer",
-    boxShadow: "0 3px 10px -2px rgba(47,214,111,0.45), 0 1px 0 rgba(255,255,255,0.25) inset",
   },
   runBtn: {
-    background: "color-mix(in srgb, var(--accent) 8%, transparent)",
+    background: "transparent",
     color: "var(--accent)",
     border: "1.5px solid var(--accent)",
     borderRadius: "var(--radius-sm)",
@@ -654,10 +653,9 @@ const styles = {
     display: "inline-flex",
     alignItems: "center",
     gap: 8,
-    boxShadow: "0 2px 8px -2px rgba(255,111,94,0.3)",
   },
   shareBtn: {
-    background: "var(--surface-2)",
+    background: "transparent",
     color: "var(--text-dim)",
     border: "1.5px solid var(--border-bright)",
     borderRadius: "var(--radius-sm)",
@@ -667,7 +665,7 @@ const styles = {
     cursor: "pointer",
   },
   publishBtn: {
-    background: "var(--surface-2)",
+    background: "transparent",
     border: "1.5px solid",
     borderRadius: "var(--radius-sm)",
     padding: "7px 14px",
@@ -742,8 +740,8 @@ const GLOBAL_CSS = `
   to { transform: rotate(360deg); }
 }
 @keyframes cl-run-pulse {
-  0%, 100% { box-shadow: 0 2px 8px -2px rgba(255,111,94,0.3), 0 0 0 0 rgba(255, 190, 90, 0); }
-  50%      { box-shadow: 0 2px 8px -2px rgba(255,111,94,0.3), 0 0 0 5px rgba(255, 190, 90, 0.08); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 190, 90, 0); }
+  50%      { box-shadow: 0 0 0 5px rgba(255, 190, 90, 0.08); }
 }
 @keyframes cl-shake {
   0%, 100% { transform: translate(-50%, 0); }
@@ -807,7 +805,7 @@ const GLOBAL_CSS = `
 .cl-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
 
 .cl-btn-save:hover:not(:disabled) {
-  box-shadow: 0 6px 18px -2px rgba(47, 214, 111, 0.5), 0 1px 0 rgba(255,255,255,0.25) inset;
+  box-shadow: 0 4px 14px rgba(47, 214, 111, 0.35);
 }
 
 .cl-btn-ghost:hover:not(:disabled) {
@@ -816,8 +814,8 @@ const GLOBAL_CSS = `
 }
 
 .cl-btn-run:hover:not(:disabled) {
-  box-shadow: 0 6px 20px -2px rgba(255, 190, 90, 0.35);
-  background: rgba(255, 190, 90, 0.1);
+  box-shadow: 0 4px 16px rgba(255, 190, 90, 0.25);
+  background: rgba(255, 190, 90, 0.08);
 }
 .cl-btn-run-pulse { animation: cl-run-pulse 2.6s ease-in-out infinite; }
 .cl-btn-run-active { border-color: var(--accent); opacity: 0.9; }
@@ -826,7 +824,7 @@ const GLOBAL_CSS = `
 .cl-spin-slow { animation: cl-spin 1.1s linear infinite; display: inline-block; }
 
 .cl-btn-public {
-  box-shadow: 0 0 0 3px rgba(47, 214, 111, 0.12);
+  box-shadow: 0 0 0 3px rgba(47, 214, 111, 0.1);
 }
 
 .cl-save-status {
