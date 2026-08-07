@@ -143,7 +143,7 @@ export default function PlacedPart3D({
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
 
-      <group ref={liftRef} scale={SCALE} position={[0, 0.35, 0]}>
+      <group ref={liftRef} scale={SCALE} position={[0, 0.35, 0]} castShadow receiveShadow>
         {Model && <Model lit={isLed ? powered : undefined} on={isToggleable ? isOn : undefined} />}
       </group>
 
@@ -162,6 +162,8 @@ export default function PlacedPart3D({
             return (
               <group key={pin.terminal}>
                 <mesh
+                  castShadow
+                  receiveShadow
                   position={pos}
                   onPointerDown={(e) => {
                     // Without this, the pointerdown bubbles to the drag-handle
@@ -178,13 +180,21 @@ export default function PlacedPart3D({
                   onPointerOver={(e) => e.stopPropagation()}
                 >
                   <sphereGeometry args={[0.05, 12, 12]} />
-                  <meshStandardMaterial
+                  <meshPhysicalMaterial
                     color={selected ? "#ffffff" : termColor}
                     emissive={termColor}
                     emissiveIntensity={selected ? 1.6 : 0.4}
-                    roughness={0.3}
-                    metalness={0.4}
+                    roughness={0.35}
+                    metalness={0.85}
+                    clearcoat={0.7}
+                    clearcoatRoughness={0.2}
+                    envMapIntensity={1.2}
                   />
+                </mesh>
+                {/* tiny bright highlight to sell the rounded solder-blob look */}
+                <mesh position={[pos[0] - 0.018, pos[1] + 0.028, pos[2] + 0.018]}>
+                  <sphereGeometry args={[0.013, 8, 8]} />
+                  <meshBasicMaterial color="#ffffff" transparent opacity={0.65} />
                 </mesh>
                 {showLabel && (
                   <Html position={[pos[0] + (pin.side === "left" ? -0.16 : 0.16), pos[1], pos[2]]} center distanceFactor={12} occlude>
@@ -204,6 +214,8 @@ export default function PlacedPart3D({
             return (
               <group key={t}>
                 <mesh
+                  castShadow
+                  receiveShadow
                   position={pos}
                   onPointerDown={(e) => {
                     // Same fix as the board-pin terminals above: keep the
@@ -216,13 +228,21 @@ export default function PlacedPart3D({
                   }}
                 >
                   <sphereGeometry args={[0.078, 16, 16]} />
-                  <meshStandardMaterial
+                  <meshPhysicalMaterial
                     color={selected ? "#ffffff" : termColor}
                     emissive={termColor}
                     emissiveIntensity={selected ? 1.6 : 0.5}
-                    roughness={0.3}
-                    metalness={0.4}
+                    roughness={0.35}
+                    metalness={0.85}
+                    clearcoat={0.7}
+                    clearcoatRoughness={0.2}
+                    envMapIntensity={1.2}
                   />
+                </mesh>
+                {/* tiny bright highlight to sell the rounded solder-blob look */}
+                <mesh position={[pos[0] - 0.022, pos[1] + 0.034, pos[2] + 0.022]}>
+                  <sphereGeometry args={[0.016, 8, 8]} />
+                  <meshBasicMaterial color="#ffffff" transparent opacity={0.65} />
                 </mesh>
                 {isPolarized && (
                   <Html position={[pos[0], pos[1] + 0.22, pos[2]]} center distanceFactor={10} occlude>
