@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import * as THREE from "three";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Grid, ContactShadows, Environment } from "@react-three/drei";
 import PlacedPart3D from "./PlacedPart3D";
@@ -70,7 +71,16 @@ export default function Scene3D({
   }
 
   return (
-    <Canvas camera={{ position: [3.4, 3.6, 5], fov: 46 }} dpr={[1, 2]} shadows="soft">
+    <Canvas
+      camera={{ position: [3.4, 3.6, 5], fov: 46 }}
+      dpr={[1, 2]}
+      shadows="soft"
+      gl={{
+        toneMapping: THREE.ACESFilmicToneMapping,
+        toneMappingExposure: 1.1,
+        antialias: true,
+      }}
+    >
       <color attach="background" args={["#0a0e13"]} />
       {/* fog pushed further out - previously started at 9 units, which
           dimmed the bench itself on wider/zoomed-out views */}
@@ -151,13 +161,13 @@ export default function Scene3D({
       {/* wooden workbench desk beneath everything */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
         <circleGeometry args={[16, 48]} />
-        <meshStandardMaterial color="#2a1f18" roughness={0.85} metalness={0.05} />
+        <meshStandardMaterial color="#2a1f18" roughness={0.85} metalness={0.05} envMapIntensity={0.3} />
       </mesh>
 
       {/* inset breadboard-style working surface */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.005, 0]} receiveShadow>
         <planeGeometry args={[12, 12]} />
-        <meshStandardMaterial color="#132018" roughness={0.7} metalness={0.05} />
+        <meshStandardMaterial color="#132018" roughness={0.7} metalness={0.05} envMapIntensity={0.3} />
       </mesh>
 
       <Grid
