@@ -104,9 +104,12 @@ export default function PlacedPart3D({
 
   return (
     <group ref={groupRef}>
-      {/* Always-on, low-intensity fill light so every part reads clearly even
-          unpowered - previously parts with no power state sat completely flat. */}
-      <pointLight position={[0, 0.85, 0]} intensity={0.18} distance={1.4} color="#cfe8ff" />
+      {/* Always-on, very-low-intensity fill light so every part reads clearly
+          even unpowered. Kept deliberately faint (and short-range via
+          distance) - with many parts on the bench these were stacking up
+          into another layer of flat ambient light on top of the scene fill,
+          which is part of what was making everything look 2D. */}
+      <pointLight position={[0, 0.85, 0]} intensity={0.06} distance={0.9} color="#cfe8ff" />
 
       {/* a lit LED gets its own warm glow lighting the area around it */}
       {powered && isLed && <pointLight position={[0, 0.9, 0]} intensity={1.5} distance={2.4} color="#ff5555" />}
