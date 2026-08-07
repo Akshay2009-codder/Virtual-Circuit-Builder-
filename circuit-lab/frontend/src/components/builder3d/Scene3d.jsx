@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, Grid, ContactShadows } from "@react-three/drei";
+import { OrbitControls, Grid, ContactShadows, Environment } from "@react-three/drei";
 import PlacedPart3D from "./PlacedPart3D";
 import Wire3D from "./Wire3D";
 
@@ -76,35 +76,45 @@ export default function Scene3D({
           dimmed the bench itself on wider/zoomed-out views */}
       <fog attach="fog" args={["#0a0e13", 13, 30]} />
 
-      {/* Base fill: raised ambient + a hemisphere light (cool sky / warm
-          bench-desk "ground" bounce) so every side of a part reads clearly
-          instead of just the side facing the key light. This is the main
-          fix for the scene feeling dim overall. */}
-      <ambientLight intensity={0.85} />
-      <hemisphereLight args={["#cfe8ff", "#3a2a1c", 0.55]} />
+      {/* Real image-based reflections on every part's material - this is
+          the single biggest lever for making parts read as actual 3D
+          objects instead of flat-shaded shapes, since it gives plastic
+          and metal surfaces a believable highlight that moves with the
+          camera. background=false so it only feeds material reflections,
+          it never overrides the hand-tuned light rig or the dark bench
+          backdrop above. Fetches a small preset HDRI from drei's CDN on
+          first load - needs the browser to have network access. */}
+      <Environment preset="city" resolution={256} background={false} />
 
-      {/* key light - brighter, crisper shadows */}
+      {/* Base fill: ambient + hemisphere carry a bit less of the load now
+          that Environment supplies real reflected fill light - lowered
+          slightly from before so the scene doesn't wash out and parts
+          keep visible shading instead of looking flat-lit. */}
+      <ambientLight intensity={0.6} />
+      <hemisphereLight args={["#cfe8ff", "#3a2a1c", 0.45]} />
+
+      {/* key light - the main directional shadow-caster, nudged up so
+          reflections and shading both read clearly against the new
+          environment fill */}
       <directionalLight
         position={[5, 8, 4]}
-        intensity={1.35}
+        intensity={1.55}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
         shadow-bias={-0.0005}
       />
       {/* warm rim/fill from the opposite side, keeps shadowed edges from going flat black */}
-      <directionalLight position={[-4, 3, -3]} intensity={0.3} color="#ff6f5e" />
+      <directionalLight position={[-4, 3, -3]} intensity={0.32} color="#ff6f5e" />
       <pointLight position={[0, 3, 0]} intensity={0.16} color="#2fd66f" />
 
-      {/* corner accent lights - nudged up slightly from the previous pass so
-          the bench edges don't fall dark, while staying well short of the
-          old neon look */}
+      {/* corner accent lights */}
       <spotLight
         position={[5.5, 3.4, 5.5]}
         target-position={[0, 0, 0]}
         angle={0.58}
         penumbra={0.85}
-        intensity={0.4}
+        intensity={0.42}
         distance={17}
         color="#ffffff"
       />
@@ -113,7 +123,7 @@ export default function Scene3D({
         target-position={[0, 0, 0]}
         angle={0.58}
         penumbra={0.85}
-        intensity={0.4}
+        intensity={0.42}
         distance={17}
         color="#ffffff"
       />
@@ -122,7 +132,7 @@ export default function Scene3D({
         target-position={[0, 0, 0]}
         angle={0.58}
         penumbra={0.85}
-        intensity={0.3}
+        intensity={0.32}
         distance={17}
         color="#dceeff"
       />
@@ -131,7 +141,7 @@ export default function Scene3D({
         target-position={[0, 0, 0]}
         angle={0.58}
         penumbra={0.85}
-        intensity={0.3}
+        intensity={0.32}
         distance={17}
         color="#dceeff"
       />
@@ -200,11 +210,13 @@ export default function Scene3D({
         />
       ))}
 
-      <ContactShadows position={[0, 0.008, 0]} opacity={0.4} scale={12} blur={2.2} far={4} />
+      <ContactShadows position={[0, 0.008, 0]} opacity={0.45} scale={12} blur={2.2} far={4} />
 
       <OrbitControls
         makeDefault
         enabled={!draggingId}
+        enableDamping
+        dampingFactor={0.08}
         minDistance={2.2}
         maxDistance={16}
         maxPolarAngle={Math.PI / 2.05}
