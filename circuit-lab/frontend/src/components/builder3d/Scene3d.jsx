@@ -93,68 +93,42 @@ export default function Scene3D({
           camera. background=false so it only feeds material reflections,
           it never overrides the hand-tuned light rig or the dark bench
           backdrop above. Fetches a small preset HDRI from drei's CDN on
-          first load - needs the browser to have network access. */}
+          first load - needs the browser to have network access; if that
+          fetch is blocked, materials fall back to flat lit-only shading,
+          which is one of the things that can make everything look 2D. */}
       <Environment preset="city" resolution={256} background={false} />
 
-      {/* Base fill: ambient + hemisphere carry a bit less of the load now
-          that Environment supplies real reflected fill light - lowered
-          slightly from before so the scene doesn't wash out and parts
-          keep visible shading instead of looking flat-lit. */}
-      <ambientLight intensity={0.6} />
-      <hemisphereLight args={["#cfe8ff", "#3a2a1c", 0.45]} />
+      {/* Base fill cut way down - this used to be ambient 0.6 + hemisphere
+          0.45 + four soft spotlights all lighting the scene evenly from
+          every side. That much flat fill light is what was making
+          everything look 2D: shadows barely showed up because there was
+          almost no dark side left on any part to contrast against. A
+          "flat" render is a lighting-ratio problem, not a shadow-flag
+          problem - so the fix is deliberately going darker everywhere
+          except the one key light. */}
+      <ambientLight intensity={0.16} />
+      <hemisphereLight args={["#cfe8ff", "#1a120a", 0.14]} />
 
-      {/* key light - the main directional shadow-caster, nudged up so
-          reflections and shading both read clearly against the new
-          environment fill */}
+      {/* key light - strong, single, angled sun. This is what actually
+          carves out visible highlight/shadow on every part instead of the
+          old evenly-lit look. Everything else in the rig now exists only
+          to keep shadow-side detail from going pure black, at low
+          intensity so the key light stays dominant. */}
       <directionalLight
-        position={[5, 8, 4]}
-        intensity={1.55}
+        position={[6, 9, 3]}
+        intensity={2.6}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
-        shadow-bias={-0.0005}
+        shadow-bias={-0.0004}
       />
-      {/* warm rim/fill from the opposite side, keeps shadowed edges from going flat black */}
-      <directionalLight position={[-4, 3, -3]} intensity={0.32} color="#ff6f5e" />
-      <pointLight position={[0, 3, 0]} intensity={0.16} color="#2fd66f" />
-
-      {/* corner accent lights */}
-      <spotLight
-        position={[5.5, 3.4, 5.5]}
-        target-position={[0, 0, 0]}
-        angle={0.58}
-        penumbra={0.85}
-        intensity={0.42}
-        distance={17}
-        color="#ffffff"
-      />
-      <spotLight
-        position={[-5.5, 3.4, 5.5]}
-        target-position={[0, 0, 0]}
-        angle={0.58}
-        penumbra={0.85}
-        intensity={0.42}
-        distance={17}
-        color="#ffffff"
-      />
-      <spotLight
-        position={[5.5, 3.4, -5.5]}
-        target-position={[0, 0, 0]}
-        angle={0.58}
-        penumbra={0.85}
-        intensity={0.32}
-        distance={17}
-        color="#dceeff"
-      />
-      <spotLight
-        position={[-5.5, 3.4, -5.5]}
-        target-position={[0, 0, 0]}
-        angle={0.58}
-        penumbra={0.85}
-        intensity={0.32}
-        distance={17}
-        color="#dceeff"
-      />
+      {/* dim cool fill from the opposite side - lifts shadow-side detail
+          just enough to stay readable without erasing the key light's
+          contrast */}
+      <directionalLight position={[-5, 3, -4]} intensity={0.22} color="#5f7fa8" />
+      {/* subtle rim light from behind, picks out part edges against the
+          dark background so silhouettes read as 3D rather than flat cutouts */}
+      <directionalLight position={[0, 4, -6]} intensity={0.5} color="#8fd6ff" />
 
       <CameraCapture cameraRef={cameraRef} />
 
@@ -220,7 +194,7 @@ export default function Scene3D({
         />
       ))}
 
-      <ContactShadows position={[0, 0.008, 0]} opacity={0.45} scale={12} blur={2.2} far={4} />
+      <ContactShadows position={[0, 0.008, 0]} opacity={0.75} scale={12} blur={1.6} far={3} resolution={1024} />
 
       <OrbitControls
         makeDefault
