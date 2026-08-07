@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useFrame } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import { MODEL_BY_TYPE } from "../3d/PartModels";
 import { CATEGORY_COLOR } from "../../constants/categoryColors";
@@ -36,6 +37,11 @@ const POLARIZED_KEYS = new Set([
 
 const TOGGLE_KEYS = new Set(["switch", "dip_switch", "rocker_switch", "slide_switch", "limit_switch", "reed_switch"]);
 
+// How quickly the part glides toward its target position/lift each frame.
+// Higher = snappier, lower = floatier. 0.2 lands in ~150-200ms, no
+// perceptible lag behind the cursor while dragging, but no more hard snaps.
+const LERP_SPEED = 0.22;
+
 export default function PlacedPart3D({
   node,
   isDragging,
@@ -57,8 +63,6 @@ export default function PlacedPart3D({
   const isPolarized = POLARIZED_KEYS.has(node.key);
   const isToggleable = TOGGLE_KEYS.has(node.key);
   const isOn = node.on !== false; // default on
-  const ringColor = powered ? "#3ddc84" : accent;
-  const ringOpacity = powered ? 0.7 : lifted ? 0.35 : isToggleable && !isOn ? 0.04 : 0.09;
   const labelColor = powered ? "#3ddc84" : accent;
 
   // Multi-pin board (ESP32 etc) - pins were copied onto the node at drop
@@ -67,14 +71,39 @@ export default function PlacedPart3D({
   const hasBoardPins = Array.isArray(node.pins) && node.pins.length > 0;
   const isCodeable = node.category === "board" && typeof onOpenCode === "function";
 
-  return (
-    <group position={[node.x, 0, node.z]}>
-      {/* soft colored ring on the floor - grounds the part, brightens on hover/drag/power, dims when a switch is off */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]}>
-        <ringGeometry args={[hasBoardPins ? 0.95 : 0.58, hasBoardPins ? 1.03 : 0.66, 32]} />
-        <meshBasicMaterial color={ringColor} transparent opacity={ringOpacity} />
-      </mesh>
+  // Outer group is no longer pinned to [node.x, 0, node.z] directly - it
+  // glides toward that target every frame instead, so dragging a part (or
+  // its position snapping to the grid on drop) reads as smooth motion
+  // rather than an instant teleport. First mount snaps immediately so a
+  // freshly-placed or freshly-loaded part doesn't fly in from the origin.
+  const groupRef = useRef(null);
+  const initedRef = useRef(false);
+  const liftRef = useRef(null);
 
+  useFrame(() => {
+    const g = groupRef.current;
+    if (!g) return;
+    if (!initedRef.current) {
+      g.position.set(node.x, 0, node.z);
+      initedRef.current = true;
+    } else {
+      g.position.x += (node.x - g.position.x) * LERP_SPEED;
+      g.position.z += (node.z - g.position.z) * LERP_SPEED;
+    }
+
+    const targetLift = lifted ? 0.46 : 0.35;
+    const l = liftRef.current;
+    if (l) {
+      if (!initedRef.current) {
+        l.position.y = targetLift;
+      } else {
+        l.position.y += (targetLift - l.position.y) * LERP_SPEED;
+      }
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
       {/* Always-on, low-intensity fill light so every part reads clearly even
           unpowered - previously parts with no power state sat completely flat. */}
       <pointLight position={[0, 0.85, 0]} intensity={0.18} distance={1.4} color="#cfe8ff" />
@@ -114,7 +143,7 @@ export default function PlacedPart3D({
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
 
-      <group scale={SCALE} position={[0, lifted ? 0.46 : 0.35, 0]}>
+      <group ref={liftRef} scale={SCALE} position={[0, 0.35, 0]}>
         {Model && <Model lit={isLed ? powered : undefined} on={isToggleable ? isOn : undefined} />}
       </group>
 
@@ -138,7 +167,8 @@ export default function PlacedPart3D({
                     // Without this, the pointerdown bubbles to the drag-handle
                     // disc beneath the part (it's inside that disc's radius)
                     // and starts dragging the whole part instead of letting
-                    // the click below register as a terminal pick.
+                    // the click below register as a terminal pick. This is
+                    // what makes wiring an ESP32's pins reliable.
                     e.stopPropagation();
                   }}
                   onClick={(e) => {
@@ -152,6 +182,8 @@ export default function PlacedPart3D({
                     color={selected ? "#ffffff" : termColor}
                     emissive={termColor}
                     emissiveIntensity={selected ? 1.6 : 0.4}
+                    roughness={0.3}
+                    metalness={0.4}
                   />
                 </mesh>
                 {showLabel && (
@@ -188,6 +220,8 @@ export default function PlacedPart3D({
                     color={selected ? "#ffffff" : termColor}
                     emissive={termColor}
                     emissiveIntensity={selected ? 1.6 : 0.5}
+                    roughness={0.3}
+                    metalness={0.4}
                   />
                 </mesh>
                 {isPolarized && (
