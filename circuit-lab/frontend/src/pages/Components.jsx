@@ -207,7 +207,9 @@ const styles = {
     height: 400,
     borderRadius: "var(--radius)",
     overflow: "hidden",
-    border: "1px solid var(--border)",
+    border: "1px solid #d0d7de",
+    background: "#ffffff",
+    boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
   },
   viewerChip: {
     position: "absolute",
@@ -219,8 +221,9 @@ const styles = {
     textTransform: "uppercase",
     padding: "4px 10px",
     borderRadius: 20,
-    background: "rgba(10,14,19,0.7)",
+    background: "rgba(16, 22, 29, 0.88)",
     backdropFilter: "blur(4px)",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
   },
   specCard: {
     background: "var(--surface)",

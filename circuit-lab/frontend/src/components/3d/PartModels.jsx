@@ -384,15 +384,15 @@ export function PushButtonModel() {
     <group>
       <mesh castShadow receiveShadow position={[0, -0.15, 0]}>
         <boxGeometry args={[0.9, 0.2, 0.9]} />
-        <meshStandardMaterial envMapIntensity={0.4} color="#111318" roughness={0.5} />
+        <meshStandardMaterial envMapIntensity={0.5} color="#10141a" roughness={0.35} metalness={0.2} />
       </mesh>
       <mesh castShadow receiveShadow position={[0, 0.02, 0]}>
         <cylinderGeometry args={[0.32, 0.32, 0.14, 20]} />
-        <meshStandardMaterial envMapIntensity={0.7} color="#7a828c" metalness={0.4} roughness={0.4} />
+        <meshStandardMaterial envMapIntensity={0.8} color="#232a35" metalness={0.5} roughness={0.3} />
       </mesh>
       <mesh castShadow receiveShadow position={[0, 0.14, 0]}>
         <cylinderGeometry args={[0.22, 0.22, 0.12, 20]} />
-        <meshStandardMaterial envMapIntensity={0.4} color="#ff5d5d" roughness={0.4} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#181d26" roughness={0.3} metalness={0.3} />
       </mesh>
       {[[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3]].map(([x, z], i) => (
         <Lead key={i} position={[x, -0.4, z]} rotation={[Math.PI / 2, 0, 0]} length={0.3} radius={0.02} />
