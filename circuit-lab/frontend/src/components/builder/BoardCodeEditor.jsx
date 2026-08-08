@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArduinoRuntime } from "../../utils/arduinoRuntime";
+import { ArduinoRuntime } from "../../utils/ArduinoRuntime";
 
 const DEFAULT_SKETCH = `void setup() {
   pinMode(2, OUTPUT);
