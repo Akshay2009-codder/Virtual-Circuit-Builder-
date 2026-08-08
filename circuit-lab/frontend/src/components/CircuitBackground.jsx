@@ -1,7 +1,7 @@
 // Ambient background: PCB-style traces with a light "current" pulse
 // traveling along them. Kept subtle (low opacity) so it reads as
 // atmosphere, not decoration competing with the form.
-export default function CircuitBackground({ opacity = 0.5, speedMultiplier = 1 }) {
+export default function CircuitBackground() {
   const traces = [
     "M -20 120 H 220 V 40 H 460 V 260 H 900",
     "M -20 420 H 160 V 520 H 520 V 340 H 1000",
@@ -15,7 +15,6 @@ export default function CircuitBackground({ opacity = 0.5, speedMultiplier = 1 }
       viewBox="0 0 1200 680"
       preserveAspectRatio="xMidYMid slice"
       aria-hidden="true"
-      style={{ opacity }}
     >
       <defs>
         <style>{`
@@ -25,6 +24,7 @@ export default function CircuitBackground({ opacity = 0.5, speedMultiplier = 1 }
             width: 100%;
             height: 100%;
             z-index: 0;
+            opacity: 0.5;
           }
           .trace {
             fill: none;
@@ -39,12 +39,12 @@ export default function CircuitBackground({ opacity = 0.5, speedMultiplier = 1 }
             stroke-linecap: round;
             stroke-dasharray: 6 240;
             filter: drop-shadow(0 0 4px var(--accent));
-            animation: flow ${5 / speedMultiplier}s linear infinite;
+            animation: flow 5s linear infinite;
           }
           .pulse.copper {
             stroke: var(--primary);
             filter: drop-shadow(0 0 4px var(--primary));
-            animation-duration: ${6.5 / speedMultiplier}s;
+            animation-duration: 6.5s;
           }
           .node {
             fill: var(--surface-2);

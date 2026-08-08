@@ -1,7 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
-import { NAV_LINKS } from "../constants/navigation";
 
 export default function AppShell({ children }) {
   const { user, logout } = useAuth();
@@ -14,11 +13,21 @@ export default function AppShell({ children }) {
         </div>
 
         <nav style={styles.nav}>
-          {NAV_LINKS.map((link) => (
-            <NavLink key={link.path} to={link.path} style={navStyle}>
-              {link.label}
-            </NavLink>
-          ))}
+          <NavLink to="/dashboard" style={navStyle}>
+            Dashboard
+          </NavLink>
+          <NavLink to="/components" style={navStyle}>
+            Components
+          </NavLink>
+          <NavLink to="/builder" style={navStyle}>
+            Builder
+          </NavLink>
+          <NavLink to="/tutorials" style={navStyle}>
+            Tutorials
+          </NavLink>
+          <NavLink to="/share" style={navStyle}>
+            Share
+          </NavLink>
           {user?.username && (
             <NavLink to={`/u/${user.username}`} style={navStyle}>
               Profile

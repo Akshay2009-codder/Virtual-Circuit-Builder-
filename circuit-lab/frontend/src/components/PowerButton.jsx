@@ -1,19 +1,12 @@
 import { motion } from "framer-motion";
 
 // status: "idle" | "loading" | "error"
-export default function PowerButton({ status = "idle", children, label, ...props }) {
+export default function PowerButton({ status = "idle", children, ...props }) {
   const ledColor =
     status === "error" ? "var(--danger)" : status === "loading" ? "var(--accent)" : "var(--border-bright)";
 
   return (
-    <button
-      {...props}
-      disabled={status === "loading"}
-      aria-busy={status === "loading"}
-      aria-live="polite"
-      aria-label={label || (typeof children === "string" ? children : "Power action")}
-      style={styles.button}
-    >
+    <button {...props} disabled={status === "loading"} style={styles.button}>
       <motion.span
         aria-hidden="true"
         style={{ ...styles.led, background: ledColor }}
