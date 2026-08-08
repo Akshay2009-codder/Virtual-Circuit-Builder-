@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 
 from component_model import Component
@@ -9,8 +9,12 @@ components_bp = Blueprint("components", __name__, url_prefix="/api/components")
 @components_bp.get("")
 @jwt_required()
 def list_components():
-    items = Component.query.order_by(Component.category, Component.name).all()
-    return jsonify({"components": [c.to_dict() for c in items]}), 200
+    category = request.args.get("category")
+    query = Component.query
+    if category:
+        query = query.filter_by(category=category)
+    items = query.order_by(Component.category, Component.name).all()
+    return jsonify({"components": [c.to_dict() for c in items], "count": len(items)}), 200
 
 
 @components_bp.get("/<string:key>")
