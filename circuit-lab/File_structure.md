@@ -16,7 +16,7 @@ Virtual Circuit Builder/
     │   ├── invites.py                  <- list/accept/decline invites
     │   ├── users.py                    <- profile, follow, search
     │   ├── community.py                <- public gallery, likes, comments
-    │   ├── simulate.py                 <- /simulate and /simulate/live
+    │   ├── Simulate.py                 <- /simulate and /simulate/live
     │   ├── seed.py                     <- component catalog, incl. esp32 pins
     │   ├── email_utils.py
     │   ├── migrate_db.py
@@ -38,11 +38,10 @@ Virtual Circuit Builder/
             ├── context/
             │   └── AuthContext.jsx
             ├── constants/
-            │   ├── categoryColors.js
-            │   └── navigation.js               <- header nav routes map
+            │   └── categoryColors.js
             ├── utils/
             │   ├── timeAgo.js
-            │   └── ArduinoRuntime.js           <- Arduino transpiler + runtime
+            │   └── arduinoRuntime.js           <- Arduino transpiler + runtime
             ├── pages/
             │   ├── Login.jsx
             │   ├── Register.jsx
