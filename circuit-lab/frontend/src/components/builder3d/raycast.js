@@ -10,9 +10,21 @@ const point = new THREE.Vector3();
 // R3F scene. Used because native HTML5 drag/drop only gives us 2D screen
 // coordinates, but parts need to land on the 3D floor.
 export function screenToGround(clientX, clientY, rect, camera) {
+  if (!camera || !rect || !rect.width || !rect.height) {
+    return { x: 0, z: 0 };
+  }
   ndc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
   ndc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-  raycaster.setFromCamera(ndc, camera);
-  raycaster.ray.intersectPlane(groundPlane, point);
-  return { x: point.x, z: point.z };
+
+  try {
+    raycaster.setFromCamera(ndc, camera);
+    const hit = raycaster.ray.intersectPlane(groundPlane, point);
+    if (!hit) return { x: 0, z: 0 };
+    return {
+      x: Number.isFinite(point.x) ? point.x : 0,
+      z: Number.isFinite(point.z) ? point.z : 0,
+    };
+  } catch {
+    return { x: 0, z: 0 };
+  }
 }
