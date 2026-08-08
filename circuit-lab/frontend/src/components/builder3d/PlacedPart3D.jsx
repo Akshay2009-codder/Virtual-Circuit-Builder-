@@ -83,15 +83,18 @@ export default function PlacedPart3D({
   useFrame(() => {
     const g = groupRef.current;
     if (!g) return;
+    const targetX = Number.isFinite(node.x) ? node.x : 0;
+    const targetZ = Number.isFinite(node.z) ? node.z : 0;
+
     if (!initedRef.current) {
-      g.position.set(node.x, 0, node.z);
+      g.position.set(targetX, 0, targetZ);
       initedRef.current = true;
     } else {
-      g.position.x += (node.x - g.position.x) * LERP_SPEED;
-      g.position.z += (node.z - g.position.z) * LERP_SPEED;
+      g.position.x += (targetX - g.position.x) * LERP_SPEED;
+      g.position.z += (targetZ - g.position.z) * LERP_SPEED;
     }
 
-    const targetLift = lifted ? 0.46 : 0.35;
+    const targetLift = lifted ? 0.28 : 0.12;
     const l = liftRef.current;
     if (l) {
       if (!initedRef.current) {
@@ -104,24 +107,33 @@ export default function PlacedPart3D({
 
   return (
     <group ref={groupRef}>
-      {/* Always-on, very-low-intensity fill light so every part reads clearly
-          even unpowered. Kept deliberately faint (and short-range via
-          distance) - with many parts on the bench these were stacking up
-          into another layer of flat ambient light on top of the scene fill,
-          which is part of what was making everything look 2D. */}
-      <pointLight position={[0, 0.85, 0]} intensity={0.06} distance={0.9} color="#cfe8ff" />
+      {/* Local contact shadow directly under the component to anchor it on stage */}
+      <ContactShadows
+        position={[0, 0.012, 0]}
+        opacity={lifted ? 0.85 : 0.65}
+        scale={hasBoardPins ? 2.4 : 1.5}
+        blur={lifted ? 1.4 : 0.6}
+        far={0.8}
+        raycast={() => null}
+      />
+
+      {/* Always-on low fill light */}
+      <pointLight position={[0, 0.6, 0]} intensity={0.06} distance={0.9} color="#cfe8ff" />
 
       {/* a lit LED gets its own warm glow lighting the area around it */}
-      {powered && isLed && <pointLight position={[0, 0.9, 0]} intensity={1.5} distance={2.4} color="#ff5555" />}
-      {powered && !isLed && <pointLight position={[0, 0.7, 0]} intensity={0.45} distance={1.8} color="#3ddc84" />}
+      {powered && isLed && <pointLight position={[0, 0.6, 0]} intensity={1.5} distance={2.4} color="#ff5555" />}
+      {powered && !isLed && <pointLight position={[0, 0.5, 0]} intensity={0.45} distance={1.8} color="#3ddc84" />}
 
-      {/* invisible drag handle beneath the part - also toggles switches on
-          click, and toggles the name label on double-click (same for every
-          part, boards included - opening a board's code editor is done from
-          the </> button inside the open label, not from the double-click itself) */}
+      {/* Stage Mounting Pad beneath the part (raycast disabled so click/drag is never blocked) */}
+      <mesh position={[0, 0.01, 0]} receiveShadow castShadow raycast={() => null}>
+        <boxGeometry args={[hasBoardPins ? 1.8 : 1.1, 0.015, hasBoardPins ? 1.2 : 0.8]} />
+        <meshStandardMaterial color="#1a232e" roughness={0.4} metalness={0.6} envMapIntensity={0.8} />
+      </mesh>
+
+      {/* Primary interactive drag handle */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0.015, 0]}
+        position={[0, 0.02, 0]}
         onPointerDown={(e) => {
           e.stopPropagation();
           onDragStart(node.id);
@@ -146,7 +158,7 @@ export default function PlacedPart3D({
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
 
-      <group ref={liftRef} scale={SCALE} position={[0, 0.35, 0]} castShadow receiveShadow>
+      <group ref={liftRef} scale={SCALE} position={[0, 0.12, 0]} castShadow receiveShadow raycast={() => null}>
         {Model && <Model lit={isLed ? powered : undefined} on={isToggleable ? isOn : undefined} />}
       </group>
 
@@ -169,11 +181,6 @@ export default function PlacedPart3D({
                   receiveShadow
                   position={pos}
                   onPointerDown={(e) => {
-                    // Without this, the pointerdown bubbles to the drag-handle
-                    // disc beneath the part (it's inside that disc's radius)
-                    // and starts dragging the whole part instead of letting
-                    // the click below register as a terminal pick. This is
-                    // what makes wiring an ESP32's pins reliable.
                     e.stopPropagation();
                   }}
                   onClick={(e) => {
@@ -182,7 +189,7 @@ export default function PlacedPart3D({
                   }}
                   onPointerOver={(e) => e.stopPropagation()}
                 >
-                  <sphereGeometry args={[0.05, 12, 12]} />
+                  <sphereGeometry args={[0.052, 14, 14]} />
                   <meshPhysicalMaterial
                     color={selected ? "#ffffff" : termColor}
                     emissive={termColor}
@@ -194,8 +201,7 @@ export default function PlacedPart3D({
                     envMapIntensity={1.2}
                   />
                 </mesh>
-                {/* tiny bright highlight to sell the rounded solder-blob look */}
-                <mesh position={[pos[0] - 0.018, pos[1] + 0.028, pos[2] + 0.018]}>
+                <mesh position={[pos[0] - 0.018, pos[1] + 0.028, pos[2] + 0.018]} raycast={() => null}>
                   <sphereGeometry args={[0.013, 8, 8]} />
                   <meshBasicMaterial color="#ffffff" transparent opacity={0.65} />
                 </mesh>
@@ -213,7 +219,7 @@ export default function PlacedPart3D({
             const selected = isTerminalSelected(node.id, t);
             const isPositive = t === "a";
             const termColor = isPolarized ? (isPositive ? "#ff4757" : "#4a90e2") : accent;
-            const pos = [i === 0 ? -TERMINAL_OFFSET : TERMINAL_OFFSET, 0.12, 0];
+            const pos = [i === 0 ? -TERMINAL_OFFSET : TERMINAL_OFFSET, 0.1, 0];
             return (
               <group key={t}>
                 <mesh
@@ -221,8 +227,6 @@ export default function PlacedPart3D({
                   receiveShadow
                   position={pos}
                   onPointerDown={(e) => {
-                    // Same fix as the board-pin terminals above: keep the
-                    // drag handle from intercepting a terminal click.
                     e.stopPropagation();
                   }}
                   onClick={(e) => {
@@ -230,7 +234,7 @@ export default function PlacedPart3D({
                     onTerminalClick(node.id, t);
                   }}
                 >
-                  <sphereGeometry args={[0.078, 16, 16]} />
+                  <sphereGeometry args={[0.075, 16, 16]} />
                   <meshPhysicalMaterial
                     color={selected ? "#ffffff" : termColor}
                     emissive={termColor}
@@ -242,7 +246,6 @@ export default function PlacedPart3D({
                     envMapIntensity={1.2}
                   />
                 </mesh>
-                {/* tiny bright highlight to sell the rounded solder-blob look */}
                 <mesh position={[pos[0] - 0.022, pos[1] + 0.034, pos[2] + 0.022]}>
                   <sphereGeometry args={[0.016, 8, 8]} />
                   <meshBasicMaterial color="#ffffff" transparent opacity={0.65} />
