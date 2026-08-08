@@ -16,3 +16,11 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=6)
 
     CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
+
+
+class DevelopmentConfig(Config):
+    DEBUG = True
+
+
+class ProductionConfig(Config):
+    DEBUG = False
