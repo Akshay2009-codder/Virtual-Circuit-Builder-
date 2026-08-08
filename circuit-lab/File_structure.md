@@ -38,10 +38,11 @@ Virtual Circuit Builder/
             ├── context/
             │   └── AuthContext.jsx
             ├── constants/
-            │   └── categoryColors.js
+            │   ├── categoryColors.js
+            │   └── navigation.js               <- header nav routes map
             ├── utils/
             │   ├── timeAgo.js
-            │   └── arduinoRuntime.js           <- Arduino transpiler + runtime
+            │   └── ArduinoRuntime.js           <- Arduino transpiler + runtime
             ├── pages/
             │   ├── Login.jsx
             │   ├── Register.jsx
