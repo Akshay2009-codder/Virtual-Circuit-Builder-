@@ -341,4 +341,4 @@ export default function PlacedPart3D({
       )}
     </group>
   );
-},
+}
