@@ -124,6 +124,15 @@ class Project(db.Model):
             "is_owner": (viewer_id is not None and int(viewer_id) == self.user_id),
         }
 
+    def to_summary_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "status": self.status,
+            "is_public": bool(self.is_public),
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
     def to_community_dict(self, viewer_id=None):
         owner = User.query.get(self.user_id)
         return {
