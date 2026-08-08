@@ -168,30 +168,37 @@
       function onDrop(e) {
         e.preventDefault();
         setIsDropTarget(false);
-        const raw = e.dataTransfer.getData("application/circuitlab-component");
-        if (!raw || !cameraRef.current || !wrapperRef.current) return;
-        const component = JSON.parse(raw);
+        try {
+          const raw = e.dataTransfer.getData("application/circuitlab-component");
+          if (!raw || !cameraRef.current || !wrapperRef.current) return;
+          const component = JSON.parse(raw);
 
-        const rect = wrapperRef.current.getBoundingClientRect();
-        const { x, z } = screenToGround(e.clientX, e.clientY, rect, cameraRef.current);
+          const rect = wrapperRef.current.getBoundingClientRect();
+          const { x, z } = screenToGround(e.clientX, e.clientY, rect, cameraRef.current);
 
-        pushHistory();
-        setNodes((nds) =>
-          nds.concat({
-            id: nextId(),
-            key: component.key,
-            name: component.name,
-            category: component.category,
-            unit: component.unit,
-            default_value: component.default_value,
-            component_id: component.id,
-            modelType: component.model_type,
-            pins: component.spec?.pins || undefined,
-            on: component.key === "switch" || component.key === "dip_switch" ? true : undefined,
-            x: Math.round(x / 0.5) * 0.5,
-            z: Math.round(z / 0.5) * 0.5,
-          })
-        );
+          const dropX = Number.isFinite(x) ? Math.round(x / 0.5) * 0.5 : 0;
+          const dropZ = Number.isFinite(z) ? Math.round(z / 0.5) * 0.5 : 0;
+
+          pushHistory();
+          setNodes((nds) =>
+            nds.concat({
+              id: nextId(),
+              key: component.key || "component",
+              name: component.name || "Component",
+              category: component.category || "passive",
+              unit: component.unit || "",
+              default_value: component.default_value || "",
+              component_id: component.id,
+              modelType: component.model_type || "ic_dip",
+              pins: Array.isArray(component.spec?.pins) ? component.spec.pins : undefined,
+              on: component.key === "switch" || component.key === "dip_switch" ? true : undefined,
+              x: dropX,
+              z: dropZ,
+            })
+          );
+        } catch (err) {
+          console.error("Error dropping component:", err);
+        }
       }
 
       function handleDragStart(nodeId) {
