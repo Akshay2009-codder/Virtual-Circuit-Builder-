@@ -379,23 +379,31 @@ export function SwitchModel({ on = true } = {}) {
   );
 }
 
-export function PushButtonModel() {
+export function PushButtonModel({ on = false } = {}) {
+  const buttonY = on ? 0.08 : 0.14;
   return (
     <group>
+      {/* Black Plastic Base Body */}
       <mesh castShadow receiveShadow position={[0, -0.15, 0]}>
-        <boxGeometry args={[0.9, 0.2, 0.9]} />
-        <meshStandardMaterial envMapIntensity={0.5} color="#10141a" roughness={0.35} metalness={0.2} />
+        <boxGeometry args={[0.9, 0.22, 0.9]} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#12161f" roughness={0.4} metalness={0.2} />
       </mesh>
+
+      {/* Metallic Silver Retaining Ring / Bezel Collar */}
       <mesh castShadow receiveShadow position={[0, 0.02, 0]}>
-        <cylinderGeometry args={[0.32, 0.32, 0.14, 20]} />
-        <meshStandardMaterial envMapIntensity={0.8} color="#232a35" metalness={0.5} roughness={0.3} />
+        <cylinderGeometry args={[0.32, 0.32, 0.14, 24]} />
+        <meshStandardMaterial envMapIntensity={1.2} color="#b0b8c0" metalness={0.85} roughness={0.2} />
       </mesh>
-      <mesh castShadow receiveShadow position={[0, 0.14, 0]}>
-        <cylinderGeometry args={[0.22, 0.22, 0.12, 20]} />
-        <meshStandardMaterial envMapIntensity={0.6} color="#181d26" roughness={0.3} metalness={0.3} />
+
+      {/* Vibrant Tactile Push Button Plunger Cap */}
+      <mesh castShadow receiveShadow position={[0, buttonY, 0]}>
+        <cylinderGeometry args={[0.22, 0.22, 0.14, 24]} />
+        <meshStandardMaterial envMapIntensity={0.7} color="#ff4757" roughness={0.35} metalness={0.1} />
       </mesh>
+
+      {/* 4 Metal Terminal Leads */}
       {[[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3]].map(([x, z], i) => (
-        <Lead key={i} position={[x, -0.4, z]} rotation={[Math.PI / 2, 0, 0]} length={0.3} radius={0.02} />
+        <Lead key={i} position={[x, -0.4, z]} rotation={[Math.PI / 2, 0, 0]} length={0.3} radius={0.022} />
       ))}
     </group>
   );
