@@ -207,9 +207,9 @@ const styles = {
     height: 400,
     borderRadius: "var(--radius)",
     overflow: "hidden",
-    border: "1px solid #d0d7de",
-    background: "#ffffff",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+    border: "1px solid var(--border, #232e3a)",
+    background: "#131920",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
   },
   viewerChip: {
     position: "absolute",
