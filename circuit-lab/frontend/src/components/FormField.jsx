@@ -1,8 +1,13 @@
-export default function FormField({ label, error, ...inputProps }) {
+export default function FormField({ label, error, helperText, ...inputProps }) {
   return (
     <label style={{ display: "block", marginBottom: 16 }}>
       <span style={styles.label}>{label}</span>
-      <input {...inputProps} style={{ ...styles.input, ...(error ? styles.inputError : {}) }} />
+      <input
+        {...inputProps}
+        aria-invalid={Boolean(error)}
+        style={{ ...styles.input, ...(error ? styles.inputError : {}) }}
+      />
+      {helperText && !error && <span style={styles.helper}>{helperText}</span>}
       {error && <span style={styles.error}>{error}</span>}
     </label>
   );
@@ -30,6 +35,12 @@ const styles = {
   },
   inputError: {
     borderColor: "var(--danger)",
+  },
+  helper: {
+    display: "block",
+    color: "var(--text-dim)",
+    fontSize: 12,
+    marginTop: 5,
   },
   error: {
     display: "block",
