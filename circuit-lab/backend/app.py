@@ -9,7 +9,7 @@ from components import components_bp
 from projects import projects_bp
 from invites import invites_bp
 from users import users_bp
-from Simulate import simulate_bp
+from simulate import simulate_bp
 from community import community_bp
 from admin import admin_bp
 from component_model import Component  # noqa: F401 - registers table with SQLAlchemy
