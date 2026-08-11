@@ -193,8 +193,70 @@ CATALOG = [
     dict(
         key="esp32", name="ESP32 Dev Board", category="board",
         description="A 32-bit dual-core microcontroller board with built-in Wi-Fi and Bluetooth — the go-to choice for IoT projects that need wireless connectivity.",
-        model_type="dev_board", unit="V", default_value=3.3, terminal_count=30,
-        spec={"cpu": "dual-core 240MHz", "wifi": "802.11 b/g/n", "flash": "4MB", "gpio_pins": 30},
+        model_type="esp32", unit="V", default_value=3.3, terminal_count=30,
+        spec={
+            "cpu": "dual-core 240MHz", "wifi": "802.11 b/g/n", "flash": "4MB", "gpio_pins": 30,
+            "pins": [
+                {"terminal": "3v3", "label": "3V3", "role": "power", "side": "left", "order": 0, "gpio": None, "volts": 3.3},
+                {"terminal": "gnd1", "label": "GND", "role": "ground", "side": "left", "order": 1, "gpio": None, "volts": 0},
+                {"terminal": "gpio36", "label": "GPIO36", "role": "gpio", "side": "left", "order": 2, "gpio": 36, "volts": None},
+                {"terminal": "gpio39", "label": "GPIO39", "role": "gpio", "side": "left", "order": 3, "gpio": 39, "volts": None},
+                {"terminal": "gpio34", "label": "GPIO34", "role": "gpio", "side": "left", "order": 4, "gpio": 34, "volts": None},
+                {"terminal": "gpio35", "label": "GPIO35", "role": "gpio", "side": "left", "order": 5, "gpio": 35, "volts": None},
+                {"terminal": "gpio32", "label": "GPIO32", "role": "gpio", "side": "left", "order": 6, "gpio": 32, "volts": None},
+                {"terminal": "gpio33", "label": "GPIO33", "role": "gpio", "side": "left", "order": 7, "gpio": 33, "volts": None},
+                {"terminal": "gpio25", "label": "GPIO25", "role": "gpio", "side": "left", "order": 8, "gpio": 25, "volts": None},
+                {"terminal": "gpio26", "label": "GPIO26", "role": "gpio", "side": "left", "order": 9, "gpio": 26, "volts": None},
+                {"terminal": "gpio27", "label": "GPIO27", "role": "gpio", "side": "left", "order": 10, "gpio": 27, "volts": None},
+                {"terminal": "gpio14", "label": "GPIO14", "role": "gpio", "side": "left", "order": 11, "gpio": 14, "volts": None},
+                {"terminal": "gpio12", "label": "GPIO12", "role": "gpio", "side": "left", "order": 12, "gpio": 12, "volts": None},
+                {"terminal": "gpio13", "label": "GPIO13", "role": "gpio", "side": "left", "order": 13, "gpio": 13, "volts": None},
+                {"terminal": "gpio15", "label": "GPIO15", "role": "gpio", "side": "left", "order": 14, "gpio": 15, "volts": None},
+                {"terminal": "gpio2", "label": "GPIO2", "role": "gpio", "side": "right", "order": 0, "gpio": 2, "volts": None},
+                {"terminal": "gpio4", "label": "GPIO4", "role": "gpio", "side": "right", "order": 1, "gpio": 4, "volts": None},
+                {"terminal": "gpio16", "label": "GPIO16", "role": "gpio", "side": "right", "order": 2, "gpio": 16, "volts": None},
+                {"terminal": "gpio17", "label": "GPIO17", "role": "gpio", "side": "right", "order": 3, "gpio": 17, "volts": None},
+                {"terminal": "gpio5", "label": "GPIO5", "role": "gpio", "side": "right", "order": 4, "gpio": 5, "volts": None},
+                {"terminal": "gpio18", "label": "GPIO18", "role": "gpio", "side": "right", "order": 5, "gpio": 18, "volts": None},
+                {"terminal": "gpio19", "label": "GPIO19", "role": "gpio", "side": "right", "order": 6, "gpio": 19, "volts": None},
+                {"terminal": "gpio21", "label": "GPIO21", "role": "gpio", "side": "right", "order": 7, "gpio": 21, "volts": None},
+                {"terminal": "gpio22", "label": "GPIO22", "role": "gpio", "side": "right", "order": 8, "gpio": 22, "volts": None},
+                {"terminal": "gpio23", "label": "GPIO23", "role": "gpio", "side": "right", "order": 9, "gpio": 23, "volts": None},
+                {"terminal": "gpio1", "label": "TX0", "role": "gpio", "side": "right", "order": 10, "gpio": 1, "volts": None},
+                {"terminal": "gpio3", "label": "RX0", "role": "gpio", "side": "right", "order": 11, "gpio": 3, "volts": None},
+                {"terminal": "gpio0", "label": "GPIO0", "role": "gpio", "side": "right", "order": 12, "gpio": 0, "volts": None},
+                {"terminal": "vin", "label": "VIN (5V)", "role": "power", "side": "right", "order": 13, "gpio": None, "volts": 5.0},
+                {"terminal": "gnd2", "label": "GND", "role": "ground", "side": "right", "order": 14, "gpio": None, "volts": 0},
+            ]
+        },
+    ),
+    dict(
+        key="microbit", name="BBC micro:bit", category="board",
+        description="Pocket-sized microcontroller with 5x5 LED matrix, motion sensing, Bluetooth, and easy ring pin connectors.",
+        model_type="microbit", unit="V", default_value=3.3, terminal_count=5,
+        spec={
+            "pins": [
+                {"terminal": "gnd", "label": "GND", "role": "ground", "xOffset": -0.65, "zOffset": 0.42, "volts": 0},
+                {"terminal": "3v", "label": "3V", "role": "power", "xOffset": 0.65, "zOffset": 0.42, "volts": 3.3},
+                {"terminal": "p0", "label": "P0", "role": "gpio", "xOffset": -0.32, "zOffset": 0.42, "gpio": 0},
+                {"terminal": "p1", "label": "P1", "role": "gpio", "xOffset": 0.0, "zOffset": 0.42, "gpio": 1},
+                {"terminal": "p2", "label": "P2", "role": "gpio", "xOffset": 0.32, "zOffset": 0.42, "gpio": 2},
+            ]
+        },
+    ),
+    dict(
+        key="neopixel_ring", name="NeoPixel RGB Ring", category="output",
+        description="Circular module with 12 individually addressable RGB LEDs — produce vivid multi-color animations with just one microcontroller data pin.",
+        model_type="neopixel_ring", unit="V", default_value=5.0, terminal_count=4,
+        spec={
+            "led_count": 12,
+            "pins": [
+                {"terminal": "vcc", "label": "5V / VCC", "role": "power", "xOffset": -0.28, "zOffset": 0.55, "volts": 5.0},
+                {"terminal": "din", "label": "DIN (Data In)", "role": "gpio", "xOffset": -0.09, "zOffset": 0.58, "gpio": None},
+                {"terminal": "gnd", "label": "GND", "role": "ground", "xOffset": 0.09, "zOffset": 0.58, "volts": 0},
+                {"terminal": "dout", "label": "DOUT (Data Out)", "role": "gpio", "xOffset": 0.28, "zOffset": 0.55, "gpio": None},
+            ]
+        },
     ),
     dict(
         key="arduino_uno", name="Arduino Uno", category="board",
