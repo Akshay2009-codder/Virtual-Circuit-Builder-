@@ -56,7 +56,11 @@ export default function PlacedPart3D({
 }) {
   const [hovered, setHovered] = useState(false);
   const [labelOpen, setLabelOpen] = useState(false);
-  const Model = MODEL_BY_TYPE[node.modelType];
+  const Model =
+    MODEL_BY_TYPE[node.modelType] ||
+    MODEL_BY_TYPE[node.key] ||
+    MODEL_BY_TYPE[node.category] ||
+    MODEL_BY_TYPE.resistor;
   const accent = CATEGORY_COLOR[node.category] || "#45d8c4";
   const lifted = isDragging;
   const isLed = node.key === "led";
