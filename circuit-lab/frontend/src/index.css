@@ -219,3 +219,18 @@ body.custom-cursor-active * {
   border-radius: 2px;
   background: var(--primary);
 }
+
+/* Wire Color Palette Tooltip & Active States */
+.wire-color-swatch {
+  transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.15s ease;
+}
+
+.wire-color-swatch:hover {
+  transform: scale(1.25);
+  box-shadow: 0 0 10px currentColor;
+}
+
+@keyframes wire-pulse {
+  0% { stroke-dashoffset: 24; }
+  100% { stroke-dashoffset: 0; }
+}
