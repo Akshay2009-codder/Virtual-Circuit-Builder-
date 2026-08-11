@@ -7,7 +7,8 @@ from mna_solver import solve_circuit
 
 simulate_bp = Blueprint("simulate", __name__, url_prefix="/api/projects")
 
-SHORT_CIRCUIT_MA = 3000.0  # current above this is treated as a dangerous short for these small parts
+# Current threshold above 3000mA is flagged as a high-risk short circuit
+SHORT_CIRCUIT_MA = 3000.0
 
 
 def _accessible_project(project_id, user_id):
