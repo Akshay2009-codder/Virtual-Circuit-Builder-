@@ -1,63 +1,41 @@
-# CircuitLab — Phase 1 (Setup + Auth)
+# Virtual Circuit Builder — Interactive 3D Electronics Workbench & MNA Simulator
 
-Virtual circuit builder college project. This is Phase 1 only: project
-skeleton, database, and full login/register flow with JWT auth.
+Virtual Circuit Builder is a college project and web application for designing, simulating, and sharing 3D electronic circuits right in the browser.
 
-## What's included
+## Key Features
 
-**Backend** (`/backend` — Flask)
-- `app.py` — app factory, registers blueprints, creates DB tables on boot
-- `models.py` — `User` model (Phase 1) + `Project` model (schema stub for Phase 3)
-- `auth.py` — `/api/auth/register`, `/api/auth/login`, `/api/auth/me`
-- `config.py` — SQLite by default, swap `DATABASE_URL` for Postgres later
+- **Interactive 3D Workbench**: Render 3D component models including ESP32 DevKit, NeoPixel RGB Ring, Arduino Uno, micro:bit, LEDs, resistors, switches, and breadboards with Three.js.
+- **Custom 3D Wiring**: Draw realistic curved 3D wires with customized color insulation (VCC Red, GND Black, Data Green, Clock Amber, Serial Blue).
+- **Modified Nodal Analysis (MNA) Engine**: Exact matrix solver solving node voltages, component currents, and short-circuit protection.
+- **Community Sharing & Gallery**: Share circuits with interactive 3D viewports, likes, comments, and cloneable templates.
+- **Microcontroller Simulation**: Live tick endpoint supporting pin outputs and real-time sensor updates.
 
-**Frontend** (`/frontend` — React + Vite)
-- Login and Register pages, JWT stored client-side, protected `/dashboard` route
-- Design: dark PCB-inspired theme (`src/index.css` has all the color/type tokens)
-- `CircuitBackground.jsx` — ambient animated trace lines (signature visual)
-- `PowerButton.jsx` — the submit button doubles as a continuity-tester LED
-  (dim → pulsing teal while signing in → red flicker on error)
+## Tech Stack
 
-## Run it
+- **Frontend**: React, Three.js (`@react-three/fiber`, `@react-three/drei`), Vite, Lucide React icons.
+- **Backend**: Python, Flask, Flask-JWT-Extended, SQLAlchemy, NumPy (MNA Matrix Solver), SQLite/PostgreSQL.
 
-### 1. Backend
+## Getting Started
+
+### 1. Backend Setup
 
 ```bash
-cd backend
+cd circuit-lab/backend
 python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+venv\Scripts\activate        # On Linux/macOS: source venv/bin/activate
 pip install -r requirements.txt
+python seed.py
 python app.py
 ```
 
-Runs on `http://127.0.0.1:5000`. SQLite DB file (`circuitlab.db`) is created
-automatically on first run — nothing to configure.
+Server runs on `http://127.0.0.1:5000`.
 
-### 2. Frontend
+### 2. Frontend Setup
 
 ```bash
-cd frontend
+cd circuit-lab/frontend
 npm install
 npm run dev
 ```
 
-Runs on `http://localhost:5173`. The Vite dev server proxies `/api/*` to
-the Flask backend, so no CORS headaches locally.
-
-### 3. Try it
-
-Open `http://localhost:5173` → you'll land on `/login` → click "Create an
-account" → register → you're redirected to `/dashboard`, which confirms
-your JWT round-trips correctly (name is pulled live from `/api/auth/me`).
-
-## Notes for later phases
-
-- `Project.circuit_json` in `models.py` is already stubbed — this is where
-  the node/edge graph from the Phase 3 circuit builder will be stored.
-- Swap SQLite → Postgres later by just setting the `DATABASE_URL` env var;
-  no code changes needed since it's all through SQLAlchemy.
-- Password hashing uses Werkzeug's `generate_password_hash` (PBKDF2) — fine
-  for a college project, no need for bcrypt/argon2 unless you want to
-  mention it in your report as a "future improvement."
-- **Before you submit/deploy:** change `JWT_SECRET_KEY` in `config.py` to a
-  real secret (set it as an env var, don't hardcode it).
+App runs on `http://localhost:5173`.
