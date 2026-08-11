@@ -8,6 +8,7 @@
     import BoardCodeEditor from "../components/builder/BoardCodeEditor";
     import MeasurementsPanel from "../components/builder/MeasurementsPanel";
     import client from "../api/client";
+    import { DEFAULT_COMPONENT_PINS, getWireAutoColor } from "../constants/defaultComponentPins";
 
     let idCounter = 1;
     const nextId = () => `n${idCounter++}`;
@@ -34,6 +35,7 @@
 
       const [draggingId, setDraggingId] = useState(null);
       const [selectedTerminal, setSelectedTerminal] = useState(null);
+      const [activeWireColor, setActiveWireColor] = useState("#ff3838");
       const [simResult, setSimResult] = useState(null);
       const [simRunning, setSimRunning] = useState(false);
       const [shareOpen, setShareOpen] = useState(false);
@@ -190,7 +192,9 @@
               default_value: component.default_value || "",
               component_id: component.id,
               modelType: component.model_type || "ic_dip",
-              pins: Array.isArray(component.spec?.pins) ? component.spec.pins : undefined,
+              pins: (Array.isArray(component.spec?.pins) && component.spec.pins.length > 0)
+                ? component.spec.pins
+                : (DEFAULT_COMPONENT_PINS[component.key] ? DEFAULT_COMPONENT_PINS[component.key] : undefined),
               on: component.key === "switch" || component.key === "dip_switch" ? true : undefined,
               x: dropX,
               z: dropZ,
@@ -224,6 +228,11 @@
         if (codeEditorNodeId === nodeId) setCodeEditorNodeId(null);
       }
 
+      function handleRemoveEdge(edgeId) {
+        pushHistory();
+        setEdges((eds) => eds.filter((e) => e.id !== edgeId));
+      }
+
       function handleToggle(nodeId) {
         pushHistory();
         setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, on: !(n.on !== false) } : n)));
@@ -243,6 +252,10 @@
           return;
         }
         pushHistory();
+        const srcNode = nodes.find((n) => n.id === selectedTerminal.nodeId);
+        const pin = srcNode?.pins?.find((p) => p.terminal === selectedTerminal.terminal);
+        const autoColor = pin ? getWireAutoColor(pin.role, pin.label) : activeWireColor;
+
         setEdges((eds) =>
           eds.concat({
             id: nextId(),
@@ -250,6 +263,7 @@
             sourceTerminal: selectedTerminal.terminal,
             targetId: nodeId,
             targetTerminal: terminal,
+            color: autoColor || activeWireColor,
           })
         );
         setSelectedTerminal(null);
@@ -485,6 +499,54 @@
                     </div>
                   )}
 
+                  {/* Floating 3D Wire Color Palette HUD */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: 16,
+                      right: 16,
+                      zIndex: 10,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      background: "rgba(16, 24, 32, 0.85)",
+                      backdropFilter: "blur(8px)",
+                      padding: "6px 12px",
+                      borderRadius: 20,
+                      border: "1px solid var(--border)",
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+                    }}
+                  >
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Wire Color:
+                    </span>
+                    {[
+                      { color: "#ff3838", label: "Red (VCC/5V)" },
+                      { color: "#2ed573", label: "Green (Data/Signal)" },
+                      { color: "#1e90ff", label: "Blue (Signal)" },
+                      { color: "#ffa801", label: "Amber (Clock)" },
+                      { color: "#9c88ff", label: "Purple (PWM)" },
+                      { color: "#1e272e", label: "Black (GND)" },
+                    ].map((item) => (
+                      <button
+                        key={item.color}
+                        onClick={() => setActiveWireColor(item.color)}
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: "50%",
+                          backgroundColor: item.color,
+                          border: activeWireColor === item.color ? "2px solid #ffffff" : "1px solid rgba(255,255,255,0.25)",
+                          cursor: "pointer",
+                          transform: activeWireColor === item.color ? "scale(1.2)" : "scale(1.0)",
+                          transition: "transform 0.15s ease",
+                          outline: "none",
+                        }}
+                        title={item.label}
+                      />
+                    ))}
+                  </div>
+
                   {!loading && (
                     <Scene3D
                       nodes={nodes}
@@ -498,6 +560,8 @@
                       onOpenCode={(nodeId) => setCodeEditorNodeId(nodeId)}
                       selectedTerminal={selectedTerminal}
                       onRemove={handleRemove}
+                      onRemoveEdge={handleRemoveEdge}
+                      activeWireColor={activeWireColor}
                       cameraRef={cameraRef}
                       poweredIds={simResult ? new Set(simResult.poweredIds) : null}
                       readings={simResult?.readings || null}
