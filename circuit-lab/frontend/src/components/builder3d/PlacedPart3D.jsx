@@ -1,16 +1,16 @@
 import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Html } from "@react-three/drei";
+import { Html, ContactShadows } from "@react-three/drei";
 import { MODEL_BY_TYPE } from "../3d/PartModels";
 import { CATEGORY_COLOR } from "../../constants/categoryColors";
 
 const SCALE = 0.34;
-const TERMINAL_OFFSET = 0.55;
+const TERMINAL_OFFSET = 0.19;
 
 // Boards (ESP32 etc) have many pins laid out in two columns instead of the
 // simple left/right pair every other part uses.
-const BOARD_X_OFFSET = 0.85;
-const BOARD_PIN_PITCH = 0.16;
+const BOARD_X_OFFSET = 0.255;
+const BOARD_PIN_PITCH = 0.051;
 
 const PIN_ROLE_COLOR = {
   power: "#ff4757",
@@ -58,7 +58,7 @@ export default function PlacedPart3D({
   const [labelOpen, setLabelOpen] = useState(false);
   const Model = MODEL_BY_TYPE[node.modelType];
   const accent = CATEGORY_COLOR[node.category] || "#45d8c4";
-  const lifted = hovered || isDragging;
+  const lifted = isDragging;
   const isLed = node.key === "led";
   const isPolarized = POLARIZED_KEYS.has(node.key);
   const isToggleable = TOGGLE_KEYS.has(node.key);
@@ -94,7 +94,7 @@ export default function PlacedPart3D({
       g.position.z += (targetZ - g.position.z) * LERP_SPEED;
     }
 
-    const targetLift = lifted ? 0.28 : 0.12;
+    const targetLift = lifted ? 0.24 : 0.12;
     const l = liftRef.current;
     if (l) {
       if (!initedRef.current) {
@@ -104,6 +104,47 @@ export default function PlacedPart3D({
       }
     }
   });
+
+  function getClosestTerminal(clickPoint) {
+    if (!clickPoint) return hasBoardPins ? node.pins[0]?.terminal : "a";
+
+    const clickX = clickPoint.x;
+    const clickZ = clickPoint.z;
+
+    if (hasBoardPins && Array.isArray(node.pins) && node.pins.length > 0) {
+      let closestPin = node.pins[0];
+      let minDist = Infinity;
+
+      for (const pin of node.pins) {
+        let px = node.x;
+        let pz = node.z;
+
+        if (typeof pin.xOffset === "number" && typeof pin.zOffset === "number") {
+          px += pin.xOffset;
+          pz += pin.zOffset;
+        } else {
+          const col = pin.side === "left" ? node.pins.filter((p) => p.side === "left") : node.pins.filter((p) => p.side === "right");
+          const count = col.length;
+          const idxInCol = pin.order ?? col.findIndex((p) => p.terminal === pin.terminal);
+          pz += (idxInCol - (count - 1) / 2) * BOARD_PIN_PITCH;
+          px += pin.side === "left" ? -BOARD_X_OFFSET : BOARD_X_OFFSET;
+        }
+
+        const dist = (clickX - px) ** 2 + (clickZ - pz) ** 2;
+        if (dist < minDist) {
+          minDist = dist;
+          closestPin = pin;
+        }
+      }
+      return closestPin.terminal;
+    } else {
+      const posXA = node.x - TERMINAL_OFFSET;
+      const posXB = node.x + TERMINAL_OFFSET;
+      const distA = (clickX - posXA) ** 2 + (clickZ - node.z) ** 2;
+      const distB = (clickX - posXB) ** 2 + (clickZ - node.z) ** 2;
+      return distA <= distB ? "a" : "b";
+    }
+  }
 
   return (
     <group ref={groupRef}>
@@ -124,13 +165,13 @@ export default function PlacedPart3D({
       {powered && isLed && <pointLight position={[0, 0.6, 0]} intensity={1.5} distance={2.4} color="#ff5555" />}
       {powered && !isLed && <pointLight position={[0, 0.5, 0]} intensity={0.45} distance={1.8} color="#3ddc84" />}
 
-      {/* Stage Mounting Pad beneath the part (raycast disabled so click/drag is never blocked) */}
+      {/* Stage Mounting Pad beneath the part */}
       <mesh position={[0, 0.01, 0]} receiveShadow castShadow raycast={() => null}>
         <boxGeometry args={[hasBoardPins ? 1.8 : 1.1, 0.015, hasBoardPins ? 1.2 : 0.8]} />
         <meshStandardMaterial color="#1a232e" roughness={0.4} metalness={0.6} envMapIntensity={0.8} />
       </mesh>
 
-      {/* Primary interactive drag handle */}
+      {/* Primary interactive drag & direct component wire handle */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0.02, 0]}
@@ -139,9 +180,12 @@ export default function PlacedPart3D({
           onDragStart(node.id);
         }}
         onClick={(e) => {
+          e.stopPropagation();
           if (isToggleable) {
-            e.stopPropagation();
             onToggle(node.id);
+          } else {
+            const closest = getClosestTerminal(e.point);
+            onTerminalClick(node.id, closest);
           }
         }}
         onDoubleClick={(e) => {
@@ -158,27 +202,48 @@ export default function PlacedPart3D({
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
 
-      <group ref={liftRef} scale={SCALE} position={[0, 0.12, 0]} castShadow receiveShadow raycast={() => null}>
+      {/* 3D Model group - Clicking directly on the actual 3D component model connects a wire to it */}
+      <group
+        ref={liftRef}
+        scale={SCALE}
+        position={[0, 0.12, 0]}
+        castShadow
+        receiveShadow
+        onClick={(e) => {
+          e.stopPropagation();
+          if (isToggleable) {
+            onToggle(node.id);
+          } else {
+            const closest = getClosestTerminal(e.point);
+            onTerminalClick(node.id, closest);
+          }
+        }}
+      >
         {Model && <Model lit={isLed ? powered : undefined} on={isToggleable ? isOn : undefined} />}
       </group>
 
-      {/* terminals */}
+      {/* direct pin connection hit areas (no artificial dots - connects directly to circuit like real life) */}
       {hasBoardPins
         ? node.pins.map((pin) => {
             const selected = isTerminalSelected(node.id, pin.terminal);
-            const col = pin.side === "left" ? node.pins.filter((p) => p.side === "left") : node.pins.filter((p) => p.side === "right");
-            const count = col.length;
-            const idxInCol = pin.order ?? col.findIndex((p) => p.terminal === pin.terminal);
-            const zPos = (idxInCol - (count - 1) / 2) * BOARD_PIN_PITCH;
-            const xPos = pin.side === "left" ? -BOARD_X_OFFSET : BOARD_X_OFFSET;
-            const termColor = PIN_ROLE_COLOR[pin.role] || accent;
-            const pos = [xPos, 0.1, zPos];
-            const showLabel = selected;
+            let xPos = 0;
+            let zPos = 0;
+            if (typeof pin.xOffset === "number" && typeof pin.zOffset === "number") {
+              xPos = pin.xOffset;
+              zPos = pin.zOffset;
+            } else {
+              const col = pin.side === "left" ? node.pins.filter((p) => p.side === "left") : node.pins.filter((p) => p.side === "right");
+              const count = col.length;
+              const idxInCol = pin.order ?? col.findIndex((p) => p.terminal === pin.terminal);
+              zPos = (idxInCol - (count - 1) / 2) * BOARD_PIN_PITCH;
+              xPos = pin.side === "left" ? -BOARD_X_OFFSET : BOARD_X_OFFSET;
+            }
+            const liftY = isDragging ? 0.28 : 0.16;
+            const pos = [xPos, liftY, zPos];
             return (
               <group key={pin.terminal}>
+                {/* Invisible hit box surrounding vertical header pin */}
                 <mesh
-                  castShadow
-                  receiveShadow
                   position={pos}
                   onPointerDown={(e) => {
                     e.stopPropagation();
@@ -189,28 +254,16 @@ export default function PlacedPart3D({
                   }}
                   onPointerOver={(e) => e.stopPropagation()}
                 >
-                  <sphereGeometry args={[0.052, 14, 14]} />
-                  <meshPhysicalMaterial
-                    color={selected ? "#ffffff" : termColor}
-                    emissive={termColor}
-                    emissiveIntensity={selected ? 1.6 : 0.4}
-                    roughness={0.35}
-                    metalness={0.85}
-                    clearcoat={0.7}
-                    clearcoatRoughness={0.2}
-                    envMapIntensity={1.2}
-                  />
+                  <cylinderGeometry args={[0.06, 0.06, 0.16, 12]} />
+                  <meshBasicMaterial visible={false} />
                 </mesh>
-                <mesh position={[pos[0] - 0.018, pos[1] + 0.028, pos[2] + 0.018]} raycast={() => null}>
-                  <sphereGeometry args={[0.013, 8, 8]} />
-                  <meshBasicMaterial color="#ffffff" transparent opacity={0.65} />
-                </mesh>
-                {showLabel && (
-                  <Html position={[pos[0] + (pin.side === "left" ? -0.16 : 0.16), pos[1], pos[2]]} center distanceFactor={12} occlude>
-                    <span className="part3d-pin-label" style={{ color: termColor }}>
-                      {pin.label}
-                    </span>
-                  </Html>
+
+                {/* Subtle glowing ring ONLY when this pin is currently selected for wiring */}
+                {selected && (
+                  <mesh position={[pos[0], pos[1] + 0.02, pos[2]]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <ringGeometry args={[0.035, 0.07, 16]} />
+                    <meshBasicMaterial color="#ffffff" side={2} transparent opacity={0.9} />
+                  </mesh>
                 )}
               </group>
             );
@@ -219,12 +272,12 @@ export default function PlacedPart3D({
             const selected = isTerminalSelected(node.id, t);
             const isPositive = t === "a";
             const termColor = isPolarized ? (isPositive ? "#ff4757" : "#4a90e2") : accent;
-            const pos = [i === 0 ? -TERMINAL_OFFSET : TERMINAL_OFFSET, 0.1, 0];
+            const liftY = isDragging ? 0.28 : 0.16;
+            const pos = [i === 0 ? -TERMINAL_OFFSET : TERMINAL_OFFSET, liftY, 0];
             return (
               <group key={t}>
+                {/* Invisible hit box for direct lead/terminal clicking */}
                 <mesh
-                  castShadow
-                  receiveShadow
                   position={pos}
                   onPointerDown={(e) => {
                     e.stopPropagation();
@@ -234,28 +287,16 @@ export default function PlacedPart3D({
                     onTerminalClick(node.id, t);
                   }}
                 >
-                  <sphereGeometry args={[0.075, 16, 16]} />
-                  <meshPhysicalMaterial
-                    color={selected ? "#ffffff" : termColor}
-                    emissive={termColor}
-                    emissiveIntensity={selected ? 1.6 : 0.5}
-                    roughness={0.35}
-                    metalness={0.85}
-                    clearcoat={0.7}
-                    clearcoatRoughness={0.2}
-                    envMapIntensity={1.2}
-                  />
+                  <cylinderGeometry args={[0.08, 0.08, 0.16, 12]} />
+                  <meshBasicMaterial visible={false} />
                 </mesh>
-                <mesh position={[pos[0] - 0.022, pos[1] + 0.034, pos[2] + 0.022]}>
-                  <sphereGeometry args={[0.016, 8, 8]} />
-                  <meshBasicMaterial color="#ffffff" transparent opacity={0.65} />
-                </mesh>
-                {isPolarized && (
-                  <Html position={[pos[0], pos[1] + 0.22, pos[2]]} center distanceFactor={10} occlude>
-                    <span className="part3d-polarity" style={{ color: termColor }}>
-                      {isPositive ? "+" : "−"}
-                    </span>
-                  </Html>
+
+                {/* Subtle glowing ring ONLY when this lead is selected for wiring */}
+                {selected && (
+                  <mesh position={[pos[0], pos[1] + 0.02, pos[2]]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <ringGeometry args={[0.04, 0.075, 16]} />
+                    <meshBasicMaterial color="#ffffff" side={2} transparent opacity={0.9} />
+                  </mesh>
                 )}
               </group>
             );
