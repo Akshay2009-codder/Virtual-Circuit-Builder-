@@ -773,9 +773,181 @@ export function NeopixelRingModel({ lit }) {
   );
 }
 
+export function ArduinoUnoModel({ lit }) {
+  return (
+    <group>
+      {/* Signature Italian Teal-Blue Arduino PCB Substrate */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[2.5, 0.07, 1.8]} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#00878f" roughness={0.35} metalness={0.25} />
+      </mesh>
+
+      {/* Silver Metal USB-B Port Jack */}
+      <mesh castShadow receiveShadow position={[-0.92, 0.22, -0.45]}>
+        <boxGeometry args={[0.48, 0.35, 0.42]} />
+        <meshStandardMaterial envMapIntensity={1.5} color="#c9d1d9" metalness={0.9} roughness={0.15} />
+      </mesh>
+
+      {/* Black DC Barrel Power Jack */}
+      <mesh castShadow receiveShadow position={[-0.92, 0.2, 0.48]}>
+        <boxGeometry args={[0.45, 0.32, 0.42]} />
+        <meshStandardMaterial envMapIntensity={0.5} color="#15181c" roughness={0.5} />
+      </mesh>
+      <mesh castShadow receiveShadow position={[-0.7, 0.2, 0.48]} rotation={[0, Math.PI / 2, 0]}>
+        <cylinderGeometry args={[0.1, 0.1, 0.08, 16]} />
+        <meshStandardMaterial color="#0a0d10" />
+      </mesh>
+
+      {/* ATmega328P DIP IC Microcontroller Socket & Chip */}
+      <mesh castShadow receiveShadow position={[0.2, 0.1, 0.1]}>
+        <boxGeometry args={[1.25, 0.12, 0.38]} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#161b22" roughness={0.4} />
+      </mesh>
+      {/* Silver Crystal Oscillator (16MHz) */}
+      <mesh castShadow receiveShadow position={[-0.35, 0.1, -0.4]}>
+        <boxGeometry args={[0.25, 0.1, 0.14]} />
+        <meshStandardMaterial envMapIntensity={1.4} color="#d1d8e0" metalness={0.85} roughness={0.2} />
+      </mesh>
+
+      {/* Digital & Analog Female Header Sockets (Dark Navy Blocks) */}
+      <mesh castShadow receiveShadow position={[0.1, 0.14, -0.72]}>
+        <boxGeometry args={[1.65, 0.18, 0.14]} />
+        <meshStandardMaterial envMapIntensity={0.5} color="#0d1117" roughness={0.5} />
+      </mesh>
+      <mesh castShadow receiveShadow position={[0.2, 0.14, 0.72]}>
+        <boxGeometry args={[1.35, 0.18, 0.14]} />
+        <meshStandardMaterial envMapIntensity={0.5} color="#0d1117" roughness={0.5} />
+      </mesh>
+
+      {/* Reset Button (Red Plunger in Metallic Collar) */}
+      <mesh castShadow receiveShadow position={[-0.95, 0.12, -0.72]}>
+        <cylinderGeometry args={[0.08, 0.08, 0.1, 16]} />
+        <meshStandardMaterial envMapIntensity={1.2} color="#c9c9c9" metalness={0.8} />
+      </mesh>
+      <mesh castShadow receiveShadow position={[-0.95, 0.18, -0.72]}>
+        <cylinderGeometry args={[0.05, 0.05, 0.06, 16]} />
+        <meshStandardMaterial color="#ff3838" emissive="#ff3838" emissiveIntensity={0.3} />
+      </mesh>
+
+      {/* Status LEDs (ON Green, L Yellow, TX/RX Amber) */}
+      <mesh position={[-0.5, 0.045, -0.15]}>
+        <boxGeometry args={[0.06, 0.02, 0.06]} />
+        <meshStandardMaterial color="#2ed573" emissive="#2ed573" emissiveIntensity={lit ? 1.8 : 0.4} />
+      </mesh>
+      <mesh position={[-0.5, 0.045, 0.0]}>
+        <boxGeometry args={[0.06, 0.02, 0.06]} />
+        <meshStandardMaterial color="#ffa801" emissive="#ffa801" emissiveIntensity={lit ? 1.5 : 0.2} />
+      </mesh>
+
+      {/* White Silkscreen Text / Branding Plate */}
+      <mesh position={[-0.3, 0.038, 0.4]}>
+        <boxGeometry args={[0.8, 0.002, 0.22]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.5} />
+      </mesh>
+    </group>
+  );
+}
+
+export function RaspberryPiPicoModel({ lit }) {
+  const pinsPerSide = 20;
+  return (
+    <group>
+      {/* Signature Raspberry Pi Green PCB Substrate */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[1.3, 0.06, 2.4]} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#008040" roughness={0.35} metalness={0.2} />
+      </mesh>
+
+      {/* Micro-USB Connector Port at top */}
+      <mesh castShadow receiveShadow position={[0, 0.08, -1.1]}>
+        <boxGeometry args={[0.38, 0.12, 0.3]} />
+        <meshStandardMaterial envMapIntensity={1.5} color="#c9d1d9" metalness={0.9} roughness={0.15} />
+      </mesh>
+
+      {/* RP2040 Dual-Core Microcontroller QFN Chip */}
+      <mesh castShadow receiveShadow position={[0, 0.06, 0.1]}>
+        <boxGeometry args={[0.45, 0.04, 0.45]} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#161b22" roughness={0.3} />
+      </mesh>
+
+      {/* BOOTSEL Tactile Push Button */}
+      <mesh castShadow receiveShadow position={[0, 0.07, -0.6]}>
+        <boxGeometry args={[0.18, 0.06, 0.18]} />
+        <meshStandardMaterial envMapIntensity={1.2} color="#ffffff" roughness={0.2} />
+      </mesh>
+
+      {/* Green User LED (GP25) */}
+      <mesh position={[-0.3, 0.045, -0.8]}>
+        <boxGeometry args={[0.06, 0.02, 0.06]} />
+        <meshStandardMaterial color="#2ed573" emissive="#2ed573" emissiveIntensity={lit ? 1.8 : 0.3} />
+      </mesh>
+
+      {/* 40 Castellated Gold Pin Holes (20 Left, 20 Right) */}
+      {Array.from({ length: pinsPerSide }).map((_, i) => (
+        <mesh castShadow receiveShadow key={`pico-l-${i}`} position={[-0.58, 0.035, -1.0 + i * 0.105]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.015, 8]} />
+          <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
+        </mesh>
+      ))}
+      {Array.from({ length: pinsPerSide }).map((_, i) => (
+        <mesh castShadow receiveShadow key={`pico-r-${i}`} position={[0.58, 0.035, -1.0 + i * 0.105]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.015, 8]} />
+          <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+export function ArduinoNanoModel({ lit }) {
+  const pinsPerSide = 15;
+  return (
+    <group>
+      {/* Compact Blue PCB */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[1.1, 0.06, 2.1]} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#00878f" roughness={0.35} metalness={0.2} />
+      </mesh>
+
+      {/* Mini-USB Port */}
+      <mesh castShadow receiveShadow position={[0, 0.08, -0.92]}>
+        <boxGeometry args={[0.36, 0.13, 0.28]} />
+        <meshStandardMaterial envMapIntensity={1.5} color="#c9d1d9" metalness={0.9} roughness={0.15} />
+      </mesh>
+
+      {/* ATmega328P TQFP Chip (Rotated 45 degrees) */}
+      <mesh castShadow receiveShadow position={[0, 0.06, -0.1]} rotation={[0, Math.PI / 4, 0]}>
+        <boxGeometry args={[0.38, 0.04, 0.38]} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#161b22" roughness={0.3} />
+      </mesh>
+
+      {/* Reset Button */}
+      <mesh castShadow receiveShadow position={[0, 0.07, 0.5]}>
+        <boxGeometry args={[0.16, 0.06, 0.16]} />
+        <meshStandardMaterial color="#485460" />
+      </mesh>
+
+      {/* 30 Golden Header Pins */}
+      {Array.from({ length: pinsPerSide }).map((_, i) => (
+        <mesh castShadow receiveShadow key={`nano-l-${i}`} position={[-0.48, 0.06, -0.9 + i * 0.13]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.14, 8]} />
+          <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
+        </mesh>
+      ))}
+      {Array.from({ length: pinsPerSide }).map((_, i) => (
+        <mesh castShadow receiveShadow key={`nano-r-${i}`} position={[0.48, 0.06, -0.9 + i * 0.13]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.14, 8]} />
+          <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 export function DevBoardModel({ lit }) {
   return <Esp32BoardModel lit={lit} />;
 }
+
 
 
 /* ---------------- Power (additional) ---------------- */
@@ -1295,6 +1467,14 @@ export const MODEL_BY_TYPE = {
   esp32: Esp32BoardModel,
   microbit: MicrobitBoardModel,
   neopixel_ring: NeopixelRingModel,
+  arduino_uno: ArduinoUnoModel,
+  arduino: ArduinoUnoModel,
+  uno: ArduinoUnoModel,
+  raspberry_pi_pico: RaspberryPiPicoModel,
+  pico: RaspberryPiPicoModel,
+  arduino_nano: ArduinoNanoModel,
+  nano: ArduinoNanoModel,
+  nodemcu: Esp32BoardModel,
 
   coin_cell: CoinCellModel,
   bench_psu: BenchPsuModel,
