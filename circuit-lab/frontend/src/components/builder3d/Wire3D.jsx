@@ -21,18 +21,19 @@ export default function Wire3D({
     const e = new THREE.Vector3(end[0], endY, end[2]);
     const dist = s.distanceTo(e);
 
-    // Natural 3D curve originating right from top of vertical header pins |
-    const midX = (start[0] + end[0]) / 2;
-    const midY = Math.max(startY, endY) + Math.min(0.32, 0.06 + dist * 0.08);
-    const midZ = (start[2] + end[2]) / 2;
-    const m = new THREE.Vector3(midX, midY, midZ);
+    // Natural 3D cubic Bezier curve - lifts out of headers and never overshoots into sky
+    const lift = Math.min(0.35, 0.08 + dist * 0.12);
+    const cp1 = new THREE.Vector3(s.x, s.y + lift, s.z);
+    const cp2 = new THREE.Vector3(e.x, e.y + lift, e.z);
 
-    const curve = new THREE.CatmullRomCurve3([s, m, e]);
+    const curve = new THREE.CubicBezierCurve3(s, cp1, cp2, e);
     // Ultra-thin, realistic wire width matching real electronics jumper wire
     const radius = isPreview ? 0.007 : 0.0095;
     const geo = new THREE.TubeGeometry(curve, 36, radius, 12, false);
 
-    return { tubeGeometry: geo, startVec: s, endVec: e, midPoint: m };
+    const midP = curve.getPoint(0.5);
+
+    return { tubeGeometry: geo, startVec: s, endVec: e, midPoint: midP };
   }, [start, end, isPreview]);
 
   const activeColor = selected ? "#ffffff" : hovered ? "#ff4757" : color;
