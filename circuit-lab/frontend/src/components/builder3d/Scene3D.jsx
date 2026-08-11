@@ -1,12 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Grid, ContactShadows, Environment } from "@react-three/drei";
 import PlacedPart3D from "./PlacedPart3D";
 import Wire3D from "./Wire3D";
+import { getWireAutoColor } from "../../constants/defaultComponentPins";
 
-const BOARD_X_OFFSET = 0.85;
-const BOARD_PIN_PITCH = 0.16;
+const BOARD_X_OFFSET = 0.255;
+const BOARD_PIN_PITCH = 0.051;
 
 function CameraCapture({ cameraRef }) {
   const { camera } = useThree();
@@ -28,40 +29,76 @@ export default function Scene3D({
   onOpenCode,
   selectedTerminal,
   onRemove,
+  onRemoveEdge,
   cameraRef,
   poweredIds,
   readings,
+  activeWireColor,
 }) {
+  const [mouseWorldPos, setMouseWorldPos] = useState([0, 0.16, 0]);
+  const [selectedEdgeId, setSelectedEdgeId] = useState(null);
+
   function terminalWorldPos(nodeId, terminal) {
     const n = nodes.find((x) => x.id === nodeId);
-    if (!n) return [0, 0.1, 0];
+    if (!n) return [0, 0.16, 0];
+
+    const isLifted = draggingId === nodeId;
+    const baseHeight = isLifted ? 0.28 : 0.16;
 
     if (Array.isArray(n.pins) && n.pins.length > 0) {
       const pin = n.pins.find((p) => p.terminal === terminal);
       if (pin) {
+        if (typeof pin.xOffset === "number" && typeof pin.zOffset === "number") {
+          return [n.x + pin.xOffset, baseHeight, n.z + pin.zOffset];
+        }
         const col = n.pins.filter((p) => p.side === pin.side);
         const count = col.length;
         const idxInCol = pin.order ?? col.findIndex((p) => p.terminal === pin.terminal);
         const z = n.z + (idxInCol - (count - 1) / 2) * BOARD_PIN_PITCH;
         const x = n.x + (pin.side === "left" ? -BOARD_X_OFFSET : BOARD_X_OFFSET);
-        return [x, 0.1, z];
+        return [x, baseHeight, z];
       }
     }
 
-    if (terminal === "a") return [n.x - 0.55, 0.1, n.z];
-    if (terminal === "b") return [n.x + 0.55, 0.1, n.z];
+    if (terminal === "a") return [n.x - 0.19, baseHeight, n.z];
+    if (terminal === "b") return [n.x + 0.19, baseHeight, n.z];
 
-    console.warn(`terminalWorldPos: unrecognized terminal "${terminal}" on node ${nodeId}`);
-    return [n.x, 0.1, n.z];
+    return [n.x, baseHeight, n.z];
+  }
+
+  function getEdgeColor(edge) {
+    if (edge.color) return edge.color;
+
+    // Look up terminal role to pick smart auto color
+    const srcNode = nodes.find((n) => n.id === edge.sourceId);
+    const pin = srcNode?.pins?.find((p) => p.terminal === edge.sourceTerminal);
+    if (pin) {
+      return getWireAutoColor(pin.role, pin.label);
+    }
+
+    // Default polarity check for 2-terminal parts
+    if (edge.sourceTerminal === "a") return "#ff3838"; // positive red
+    if (edge.sourceTerminal === "b") return "#1e90ff"; // negative blue
+
+    return activeWireColor || "#2ed573";
   }
 
   function handleGroundMove(e) {
-    if (!draggingId) return;
-    onDragMove(draggingId, e.point.x, e.point.z);
+    if (e.point) {
+      setMouseWorldPos([e.point.x, 0.1, e.point.z]);
+    }
+    if (draggingId && e.point) {
+      onDragMove(draggingId, e.point.x, e.point.z);
+    }
   }
+
   function handleGroundUp() {
     if (draggingId) onDragEnd();
   }
+
+  const selectedStartPos = selectedTerminal
+    ? terminalWorldPos(selectedTerminal.nodeId, selectedTerminal.terminal)
+    : null;
 
   return (
     <Canvas
@@ -82,7 +119,7 @@ export default function Scene3D({
       <ambientLight intensity={0.28} />
       <hemisphereLight args={["#ffffff", "#121820", 0.25]} />
 
-      {/* Main Studio Key Light - strong angled sun casting realistic 3D component shadows */}
+      {/* Main Studio Key Light */}
       <directionalLight
         position={[6, 9, 4]}
         intensity={2.8}
@@ -91,28 +128,25 @@ export default function Scene3D({
         shadow-mapSize-height={2048}
         shadow-bias={-0.0003}
       />
-      {/* Cool fill light picking out shadow details */}
       <directionalLight position={[-6, 4, -4]} intensity={0.35} color="#5f8ab8" />
-      {/* Rim light defining 3D contours and silhouettes of parts */}
       <directionalLight position={[0, 4, -6]} intensity={0.65} color="#45d8c4" />
-      {/* Under-bench ambient accent glow */}
       <pointLight position={[0, 1.2, 0]} intensity={0.4} distance={6} color="#1f9a51" />
 
       <CameraCapture cameraRef={cameraRef} />
 
-      {/* Physical 3D Laboratory Workbench Table Top */}
+      {/* Workbench Base Platform */}
       <mesh position={[0, -0.2, 0]} receiveShadow castShadow>
         <boxGeometry args={[16, 0.38, 12]} />
         <meshStandardMaterial color="#161c24" roughness={0.4} metalness={0.25} envMapIntensity={0.8} />
       </mesh>
 
-      {/* Raised 3D ESD Electronics Working Surface */}
+      {/* ESD Electronics Working Mat Surface */}
       <mesh position={[0, 0.005, 0]} receiveShadow castShadow>
         <boxGeometry args={[12.3, 0.03, 12.3]} />
         <meshStandardMaterial color="#0e1713" roughness={0.55} metalness={0.15} envMapIntensity={0.6} />
       </mesh>
 
-      {/* Metallic Border Bezel around Working Surface */}
+      {/* Metallic Border Bezel */}
       <mesh position={[0, 0.008, 0]}>
         <ringGeometry args={[6.15, 6.22, 4]} />
         <meshStandardMaterial color="#35465a" metalness={0.85} roughness={0.2} envMapIntensity={1.2} />
@@ -131,12 +165,13 @@ export default function Scene3D({
         position={[0, 0.022, 0]}
       />
 
-      {/* invisible floor - captures drag movement for placed parts */}
+      {/* Raycast floor plane */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         onPointerMove={handleGroundMove}
         onPointerUp={handleGroundUp}
         onPointerLeave={handleGroundUp}
+        onClick={() => setSelectedEdgeId(null)}
       >
         <planeGeometry args={[60, 60]} />
         <meshBasicMaterial visible={false} />
@@ -160,14 +195,44 @@ export default function Scene3D({
         />
       ))}
 
-      {edges.map((e) => (
+      {edges.map((e) => {
+        const start = terminalWorldPos(e.sourceId, e.sourceTerminal);
+        const end = terminalWorldPos(e.targetId, e.targetTerminal);
+        const wireColor = getEdgeColor(e);
+        const isPowered = poweredIds ? (poweredIds.has(e.sourceId) || poweredIds.has(e.targetId)) : false;
+        const isSelected = selectedEdgeId === e.id;
+
+        return (
+          <Wire3D
+            key={e.id}
+            start={start}
+            end={end}
+            color={wireColor}
+            powered={isPowered}
+            selected={isSelected}
+            onClick={() => {
+              setSelectedEdgeId(e.id);
+              if (onRemoveEdge) {
+                // If clicked while already selected, remove edge
+                if (isSelected) {
+                  onRemoveEdge(e.id);
+                  setSelectedEdgeId(null);
+                }
+              }
+            }}
+          />
+        );
+      })}
+
+      {/* Dynamic 3D Live Wire Preview while drawing */}
+      {selectedTerminal && selectedStartPos && (
         <Wire3D
-          key={e.id}
-          start={terminalWorldPos(e.sourceId, e.sourceTerminal)}
-          end={terminalWorldPos(e.targetId, e.targetTerminal)}
-          powered={poweredIds ? (poweredIds.has(e.sourceId) || poweredIds.has(e.targetId)) : false}
+          start={selectedStartPos}
+          end={mouseWorldPos}
+          color={activeWireColor || "#2ed573"}
+          isPreview
         />
-      ))}
+      )}
 
       <ContactShadows position={[0, 0.022, 0]} opacity={0.75} scale={13} blur={1.5} far={3} resolution={1024} />
 
