@@ -545,62 +545,238 @@ export function ThermistorModel() {
   );
 }
 
-/* ---------------- Microcontroller boards ---------------- */
+/* ---------------- Microcontroller boards & Specialized Modules ---------------- */
 
-export function DevBoardModel() {
-  const pinCount = 9;
+export function Esp32BoardModel({ lit }) {
+  const pinsPerSide = 15;
   return (
-    <group rotation={[-0.08, 0.35, 0]}>
-      {/* PCB substrate */}
+    <group>
+      {/* Black / Dark Navy ESP32 PCB Substrate */}
       <mesh castShadow receiveShadow>
-        <boxGeometry args={[1.7, 0.06, 1]} />
-        <meshStandardMaterial envMapIntensity={0.4} color="#0f6b38" roughness={0.55} />
+        <boxGeometry args={[1.8, 0.06, 2.5]} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#121820" roughness={0.35} metalness={0.2} />
       </mesh>
 
-      {/* RF shield / main chip module */}
-      <mesh castShadow receiveShadow position={[0.05, 0.09, -0.15]}>
-        <boxGeometry args={[0.55, 0.1, 0.45]} />
-        <meshStandardMaterial envMapIntensity={1.3} color="#9aa1a8" metalness={0.65} roughness={0.35} />
-      </mesh>
-      <mesh castShadow receiveShadow position={[0.05, 0.145, -0.15]}>
-        <boxGeometry args={[0.5, 0.01, 0.4]} />
-        <meshStandardMaterial envMapIntensity={1.3} color="#7a828c" metalness={0.7} roughness={0.3} />
+      {/* PCB Silkscreen Border Lines */}
+      <mesh position={[0, 0.032, 0]}>
+        <boxGeometry args={[1.65, 0.002, 2.35]} />
+        <meshStandardMaterial color="#3a4b5c" roughness={0.5} />
       </mesh>
 
-      {/* USB connector */}
-      <mesh castShadow receiveShadow position={[-0.88, 0.05, 0]}>
-        <boxGeometry args={[0.22, 0.16, 0.34]} />
-        <meshStandardMaterial envMapIntensity={1.3} color="#c9c9c9" metalness={0.75} roughness={0.3} />
+      {/* ESP-WROOM-32 Metallic Shield Box */}
+      <mesh castShadow receiveShadow position={[0, 0.12, -0.3]}>
+        <boxGeometry args={[0.9, 0.12, 1.05]} />
+        <meshStandardMaterial envMapIntensity={1.4} color="#a0a7b0" metalness={0.85} roughness={0.2} />
+      </mesh>
+      {/* Etched Chip Branding Plate */}
+      <mesh castShadow receiveShadow position={[0, 0.185, -0.3]}>
+        <boxGeometry args={[0.78, 0.01, 0.9]} />
+        <meshStandardMaterial envMapIntensity={1.2} color="#78808a" metalness={0.8} roughness={0.25} />
       </mesh>
 
-      {/* reset button */}
-      <mesh castShadow receiveShadow position={[0.62, 0.08, 0.35]}>
-        <cylinderGeometry args={[0.05, 0.05, 0.06, 14]} />
-        <meshStandardMaterial envMapIntensity={0.4} color="#111318" roughness={0.5} />
+      {/* PCB Wi-Fi Antenna Trace Area (Gold/Copper Top) */}
+      <mesh castShadow receiveShadow position={[0, 0.035, -1.02]}>
+        <boxGeometry args={[1.4, 0.01, 0.32]} />
+        <meshStandardMaterial envMapIntensity={1.2} color="#1a251c" roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 0.041, -1.02]}>
+        <boxGeometry args={[1.1, 0.002, 0.2]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.85} roughness={0.25} />
       </mesh>
 
-      {/* status LED */}
-      <mesh castShadow receiveShadow position={[0.55, 0.07, -0.4]}>
-        <sphereGeometry args={[0.035, 10, 10]} />
-        <meshStandardMaterial envMapIntensity={0.4} color="#3ddc84" emissive="#2fd66f" emissiveIntensity={1.1} />
+      {/* Micro-USB Port Block */}
+      <mesh castShadow receiveShadow position={[0, 0.08, 1.12]}>
+        <boxGeometry args={[0.42, 0.14, 0.32]} />
+        <meshStandardMaterial envMapIntensity={1.5} color="#d1d8e0" metalness={0.9} roughness={0.2} />
       </mesh>
 
-      {/* header pins along both long edges */}
-      {Array.from({ length: pinCount }).map((_, i) => (
-        <mesh castShadow receiveShadow key={`t${i}`} position={[-0.68 + i * 0.17, 0.06, 0.47]}>
-          <cylinderGeometry args={[0.016, 0.016, 0.14, 6]} />
-          <meshStandardMaterial envMapIntensity={1.3} color="#d4af37" metalness={0.8} roughness={0.2} />
+      {/* CP2102 USB-to-UART Bridge IC Chip */}
+      <mesh castShadow receiveShadow position={[0, 0.05, 0.45]}>
+        <boxGeometry args={[0.35, 0.04, 0.35]} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#1c2430" roughness={0.3} />
+      </mesh>
+
+      {/* Tactile Push Buttons (EN and BOOT) */}
+      <mesh castShadow receiveShadow position={[-0.55, 0.07, 0.85]}>
+        <boxGeometry args={[0.18, 0.08, 0.18]} />
+        <meshStandardMaterial envMapIntensity={1.2} color="#485460" metalness={0.6} />
+      </mesh>
+      <mesh castShadow receiveShadow position={[-0.55, 0.12, 0.85]}>
+        <cylinderGeometry args={[0.05, 0.05, 0.04, 12]} />
+        <meshStandardMaterial color="#1e272e" />
+      </mesh>
+      <mesh castShadow receiveShadow position={[0.55, 0.07, 0.85]}>
+        <boxGeometry args={[0.18, 0.08, 0.18]} />
+        <meshStandardMaterial envMapIntensity={1.2} color="#485460" metalness={0.6} />
+      </mesh>
+      <mesh castShadow receiveShadow position={[0.55, 0.12, 0.85]}>
+        <cylinderGeometry args={[0.05, 0.05, 0.04, 12]} />
+        <meshStandardMaterial color="#1e272e" />
+      </mesh>
+
+      {/* Status LEDs (Red Power & Blue GPIO2) */}
+      <mesh position={[-0.3, 0.045, 0.85]}>
+        <boxGeometry args={[0.06, 0.03, 0.08]} />
+        <meshStandardMaterial color="#ff3838" emissive="#ff3838" emissiveIntensity={lit ? 1.5 : 0.6} />
+      </mesh>
+      <mesh position={[0.3, 0.045, 0.85]}>
+        <boxGeometry args={[0.06, 0.03, 0.08]} />
+        <meshStandardMaterial color="#1e90ff" emissive="#1e90ff" emissiveIntensity={lit ? 1.8 : 0.3} />
+      </mesh>
+
+      {/* 30 Golden Header Pins (15 Left, 15 Right) */}
+      {Array.from({ length: pinsPerSide }).map((_, i) => (
+        <mesh castShadow receiveShadow key={`left-${i}`} position={[-0.75, 0.06, -1.05 + i * 0.15]}>
+          <cylinderGeometry args={[0.022, 0.022, 0.16, 8]} />
+          <meshStandardMaterial envMapIntensity={1.5} color="#d4af37" metalness={0.9} roughness={0.15} />
         </mesh>
       ))}
-      {Array.from({ length: pinCount }).map((_, i) => (
-        <mesh castShadow receiveShadow key={`b${i}`} position={[-0.68 + i * 0.17, 0.06, -0.47]}>
-          <cylinderGeometry args={[0.016, 0.016, 0.14, 6]} />
-          <meshStandardMaterial envMapIntensity={1.3} color="#d4af37" metalness={0.8} roughness={0.2} />
+      {Array.from({ length: pinsPerSide }).map((_, i) => (
+        <mesh castShadow receiveShadow key={`right-${i}`} position={[0.75, 0.06, -1.05 + i * 0.15]}>
+          <cylinderGeometry args={[0.022, 0.022, 0.16, 8]} />
+          <meshStandardMaterial envMapIntensity={1.5} color="#d4af37" metalness={0.9} roughness={0.15} />
         </mesh>
       ))}
     </group>
   );
 }
+
+export function MicrobitBoardModel({ lit }) {
+  return (
+    <group>
+      {/* BBC micro:bit PCB Substrate with rounded corners aesthetic */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[2.2, 0.06, 1.8]} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#1e272e" roughness={0.35} metalness={0.1} />
+      </mesh>
+
+      {/* Gold Edge Connector Contacts along front edge */}
+      <mesh castShadow receiveShadow position={[0, 0.035, 0.75]}>
+        <boxGeometry args={[2.0, 0.005, 0.25]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
+      </mesh>
+
+      {/* 5 Large Ring Terminals (GND, 3V, P0, P1, P2) */}
+      {[-0.8, -0.4, 0.0, 0.4, 0.8].map((x, i) => (
+        <mesh key={i} position={[x, 0.04, 0.75]}>
+          <cylinderGeometry args={[0.09, 0.09, 0.01, 16]} />
+          <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
+        </mesh>
+      ))}
+
+      {/* 5x5 LED Matrix Screen in center */}
+      {Array.from({ length: 5 }).map((_, row) =>
+        Array.from({ length: 5 }).map((_, col) => {
+          // Glow pattern (heart or grid pattern)
+          const isGlowing = lit && (row === 1 || row === 3 || col === 2);
+          return (
+            <mesh key={`${row}-${col}`} position={[-0.32 + col * 0.16, 0.045, -0.45 + row * 0.16]}>
+              <boxGeometry args={[0.1, 0.03, 0.1]} />
+              <meshStandardMaterial
+                color={isGlowing ? "#ff3838" : "#3d3d3d"}
+                emissive={isGlowing ? "#ff3838" : "#000000"}
+                emissiveIntensity={isGlowing ? 2.0 : 0}
+              />
+            </mesh>
+          );
+        })
+      )}
+
+      {/* Buttons A & B */}
+      <mesh castShadow receiveShadow position={[-0.78, 0.08, -0.1]}>
+        <cylinderGeometry args={[0.12, 0.12, 0.08, 16]} />
+        <meshStandardMaterial color="#f5f6fa" roughness={0.3} />
+      </mesh>
+      <mesh castShadow receiveShadow position={[0.78, 0.08, -0.1]}>
+        <cylinderGeometry args={[0.12, 0.12, 0.08, 16]} />
+        <meshStandardMaterial color="#f5f6fa" roughness={0.3} />
+      </mesh>
+
+      {/* Micro:bit Top Silkscreen Emblem */}
+      <mesh position={[0, 0.035, -0.65]}>
+        <boxGeometry args={[0.6, 0.002, 0.2]} />
+        <meshStandardMaterial color="#f5f6fa" roughness={0.4} />
+      </mesh>
+    </group>
+  );
+}
+
+export function NeopixelRingModel({ lit }) {
+  const pixelCount = 12;
+  const colors = [
+    "#ff3838", "#ff9f1a", "#ffd32a", "#32ff7e",
+    "#18dcff", "#7d5fff", "#ff4d4d", "#ffaf40",
+    "#fffa65", "#70a1ff", "#ff6b81", "#2ed573"
+  ];
+
+  return (
+    <group>
+      {/* Circular PCB Ring Body */}
+      <mesh castShadow receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.62, 1.05, 36]} />
+        <meshStandardMaterial envMapIntensity={0.8} color="#1e272e" roughness={0.4} metalness={0.2} side={2} />
+      </mesh>
+
+      {/* Golden Outer & Inner Ring Accent Bezel */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
+        <ringGeometry args={[1.02, 1.05, 36]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
+        <ringGeometry args={[0.62, 0.65, 36]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
+      </mesh>
+
+      {/* 12 Individually Molded RGB NeoPixel LEDs around the Ring */}
+      {Array.from({ length: pixelCount }).map((_, i) => {
+        const angle = (i / pixelCount) * Math.PI * 2;
+        const radius = 0.83;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        const col = colors[i % colors.length];
+
+        return (
+          <group key={i} position={[x, 0.04, z]} rotation={[0, -angle, 0]}>
+            {/* Black IC Chip Package Base */}
+            <mesh castShadow receiveShadow>
+              <boxGeometry args={[0.16, 0.05, 0.16]} />
+              <meshStandardMaterial color="#2d3436" roughness={0.3} />
+            </mesh>
+            {/* Glowing Phosphor Core Lens */}
+            <mesh position={[0, 0.03, 0]}>
+              <cylinderGeometry args={[0.06, 0.06, 0.02, 16]} />
+              <meshPhysicalMaterial
+                color={lit ? col : "#f5f6fa"}
+                emissive={lit ? col : "#000000"}
+                emissiveIntensity={lit ? 2.5 : 0}
+                roughness={0.1}
+                clearcoat={0.9}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+
+      {/* Ambient Radial Rainbow Glow when powered */}
+      {lit && (
+        <pointLight position={[0, 0.4, 0]} intensity={2.8} distance={3.5} color="#32ff7e" />
+      )}
+
+      {/* Solder Connection Pads along bottom arc (VCC, DIN, DOUT, GND) */}
+      {[-0.28, -0.09, 0.09, 0.28].map((x, i) => (
+        <mesh key={i} position={[x, 0.02, 0.85]}>
+          <boxGeometry args={[0.12, 0.008, 0.16]} />
+          <meshStandardMaterial color="#d4af37" metalness={0.95} roughness={0.15} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+export function DevBoardModel({ lit }) {
+  return <Esp32BoardModel lit={lit} />;
+}
+
 
 /* ---------------- Power (additional) ---------------- */
 
@@ -1116,6 +1292,9 @@ export const MODEL_BY_TYPE = {
   thermistor: ThermistorModel,
 
   dev_board: DevBoardModel,
+  esp32: Esp32BoardModel,
+  microbit: MicrobitBoardModel,
+  neopixel_ring: NeopixelRingModel,
 
   coin_cell: CoinCellModel,
   bench_psu: BenchPsuModel,
