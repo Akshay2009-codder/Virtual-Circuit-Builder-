@@ -16,7 +16,7 @@ const itemVariants = {
 // A small IoT starter kit - the parts most real sensor/actuator projects
 // begin with - pinned at the top so a new student isn't stuck scrolling
 // ~70 parts to find them. Only shown when not actively searching/filtering.
-const STARTER_KEYS = ["esp32", "pir_motion_sensor", "humidity_sensor", "soil_moisture_sensor", "led", "resistor"];
+const STARTER_KEYS = ["esp32", "microbit", "neopixel_ring", "pir_motion_sensor", "humidity_sensor", "soil_moisture_sensor", "led", "resistor"];
 
 const CATEGORY_LABEL = {
   passive: "Passive",
