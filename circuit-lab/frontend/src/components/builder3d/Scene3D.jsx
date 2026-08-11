@@ -60,8 +60,12 @@ export default function Scene3D({
       }
     }
 
-    if (terminal === "a") return [n.x - 0.19, baseHeight, n.z];
-    if (terminal === "b") return [n.x + 0.19, baseHeight, n.z];
+    const t = String(terminal || "").toLowerCase();
+    const isLeft = ["a", "pos", "positive", "vcc", "pin1", "1", "anode", "in", "input"].includes(t);
+    const isRight = ["b", "neg", "negative", "gnd", "ground", "pin2", "2", "cathode", "out", "output"].includes(t);
+
+    if (isLeft) return [n.x - 0.19, baseHeight, n.z];
+    if (isRight) return [n.x + 0.19, baseHeight, n.z];
 
     return [n.x, baseHeight, n.z];
   }
@@ -77,15 +81,15 @@ export default function Scene3D({
     }
 
     // Default polarity check for 2-terminal parts
-    if (edge.sourceTerminal === "a") return "#ff3838"; // positive red
-    if (edge.sourceTerminal === "b") return "#1e90ff"; // negative blue
+    if (edge.sourceTerminal === "a" || edge.sourceTerminal === "pos") return "#ff3838";
+    if (edge.sourceTerminal === "b" || edge.sourceTerminal === "neg") return "#1e90ff";
 
     return activeWireColor || "#2ed573";
   }
 
   function handleGroundMove(e) {
     if (e.point) {
-      setMouseWorldPos([e.point.x, 0.1, e.point.z]);
+      setMouseWorldPos([e.point.x, 0.16, e.point.z]);
     }
     if (draggingId && e.point) {
       onDragMove(draggingId, e.point.x, e.point.z);
@@ -196,6 +200,10 @@ export default function Scene3D({
       ))}
 
       {edges.map((e) => {
+        const srcNode = nodes.find((n) => n.id === e.sourceId);
+        const tgtNode = nodes.find((n) => n.id === e.targetId);
+        if (!srcNode || !tgtNode) return null;
+
         const start = terminalWorldPos(e.sourceId, e.sourceTerminal);
         const end = terminalWorldPos(e.targetId, e.targetTerminal);
         const wireColor = getEdgeColor(e);
