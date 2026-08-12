@@ -89,7 +89,7 @@ export default function Components() {
                       transition={{ duration: 0.25 }}
                       style={{ width: "100%", height: "100%" }}
                     >
-                      <PartViewer modelType={selected.model_type} />
+                      <PartViewer modelType={selected.model_type} partKey={selected.key} name={selected.name} />
                     </motion.div>
                   )}
                 </AnimatePresence>

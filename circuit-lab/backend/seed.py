@@ -759,8 +759,19 @@ CATALOG = [
 
 
 def seed_components():
-    existing = {c.key for c in Component.query.all()}
+    existing = {c.key: c for c in Component.query.all()}
     for item in CATALOG:
-        if item["key"] not in existing:
+        key = item["key"]
+        if key in existing:
+            comp = existing[key]
+            comp.name = item["name"]
+            comp.category = item["category"]
+            comp.description = item["description"]
+            comp.model_type = item["model_type"]
+            comp.unit = item.get("unit")
+            comp.default_value = item.get("default_value")
+            comp.terminal_count = item.get("terminal_count", 2)
+            comp.spec = item.get("spec", {})
+        else:
             db.session.add(Component(**item))
     db.session.commit()

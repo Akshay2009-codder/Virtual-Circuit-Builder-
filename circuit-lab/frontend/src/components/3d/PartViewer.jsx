@@ -3,8 +3,8 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, ContactShadows, Environment } from "@react-three/drei";
 import { MODEL_BY_TYPE } from "./PartModels";
 
-export default function PartViewer({ modelType }) {
-  const Model = MODEL_BY_TYPE[modelType];
+export default function PartViewer({ modelType, partKey, name }) {
+  const Model = (partKey && MODEL_BY_TYPE[partKey]) || (modelType && MODEL_BY_TYPE[modelType]) || MODEL_BY_TYPE.resistor;
 
   return (
     <div style={{ width: "100%", height: "100%", background: "#131920" }}>
@@ -30,7 +30,7 @@ export default function PartViewer({ modelType }) {
         <directionalLight position={[0, 1.5, -3]} intensity={0.4} color="#8fd6ff" />
 
         <Suspense fallback={null}>
-          {Model ? <Model /> : null}
+          {Model ? <Model partKey={partKey} modelType={modelType} name={name} /> : null}
           <ContactShadows position={[0, -0.95, 0]} opacity={0.65} scale={4} blur={2.0} far={2} />
         </Suspense>
 

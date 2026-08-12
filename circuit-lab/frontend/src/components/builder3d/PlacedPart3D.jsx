@@ -57,9 +57,9 @@ export default function PlacedPart3D({
   const [hovered, setHovered] = useState(false);
   const [labelOpen, setLabelOpen] = useState(false);
   const Model =
-    MODEL_BY_TYPE[node.modelType] ||
-    MODEL_BY_TYPE[node.key] ||
-    MODEL_BY_TYPE[node.category] ||
+    (node.key && MODEL_BY_TYPE[node.key]) ||
+    (node.modelType && MODEL_BY_TYPE[node.modelType]) ||
+    (node.category && MODEL_BY_TYPE[node.category]) ||
     MODEL_BY_TYPE.resistor;
   const accent = CATEGORY_COLOR[node.category] || "#45d8c4";
   const lifted = isDragging;
@@ -223,7 +223,7 @@ export default function PlacedPart3D({
           }
         }}
       >
-        {Model && <Model lit={isLed ? powered : undefined} on={isToggleable ? isOn : undefined} node={node} modelType={node.modelType} key={node.key} name={node.name} />}
+        {Model && <Model lit={isLed ? powered : undefined} on={isToggleable ? isOn : undefined} node={node} modelType={node.modelType} partKey={node.key} name={node.name} />}
       </group>
 
       {/* direct pin connection hit areas (no artificial dots - connects directly to circuit like real life) */}

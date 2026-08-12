@@ -1182,8 +1182,8 @@ export function NodeMcuBoardModel({ lit }) {
   );
 }
 
-export function DevBoardModel({ lit, node, modelType, key, name }) {
-  const k = (node?.key || node?.modelType || modelType || key || node?.name || name || "").toLowerCase();
+export function DevBoardModel({ lit, node, partKey, modelType, key, name }) {
+  const k = (partKey || node?.key || key || node?.name || name || node?.modelType || modelType || "").toLowerCase();
 
   if (k.includes("uno") || k.includes("arduino_uno")) return <ArduinoUnoModel lit={lit} />;
   if (k.includes("pico") || k.includes("raspberry")) return <RaspberryPiPicoModel lit={lit} />;

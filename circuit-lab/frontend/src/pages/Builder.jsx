@@ -191,7 +191,7 @@
               unit: component.unit || "",
               default_value: component.default_value || "",
               component_id: component.id,
-              modelType: component.model_type || "ic_dip",
+              modelType: (component.model_type && component.model_type !== "dev_board") ? component.model_type : (component.key || "ic_dip"),
               pins: (Array.isArray(component.spec?.pins) && component.spec.pins.length > 0)
                 ? component.spec.pins
                 : (DEFAULT_COMPONENT_PINS[component.key] ? DEFAULT_COMPONENT_PINS[component.key] : undefined),
