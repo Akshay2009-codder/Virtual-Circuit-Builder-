@@ -1,5 +1,97 @@
 import { CATEGORY_COLOR } from "../constants/categoryColors";
 
+const BOARD_GLYPHS = {
+  arduino_uno: (c) => (
+    <g stroke={c || "#00878f"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="5" width="16" height="14" rx="2" fill="color-mix(in srgb, #00878f 30%, transparent)" />
+      <rect x="6" y="7" width="4" height="3" fill="#c9d1d9" stroke="#ffffff" />
+      <rect x="6" y="14" width="4" height="3" fill="#15181c" />
+      <rect x="12" y="10" width="6" height="4" rx="0.5" fill="#161b22" />
+      <circle cx="16" cy="6.5" r="0.8" fill="#ff3838" />
+    </g>
+  ),
+  uno: (c) => (
+    <g stroke={c || "#00878f"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="5" width="16" height="14" rx="2" fill="color-mix(in srgb, #00878f 30%, transparent)" />
+      <rect x="6" y="7" width="4" height="3" fill="#c9d1d9" stroke="#ffffff" />
+      <rect x="6" y="14" width="4" height="3" fill="#15181c" />
+      <rect x="12" y="10" width="6" height="4" rx="0.5" fill="#161b22" />
+      <circle cx="16" cy="6.5" r="0.8" fill="#ff3838" />
+    </g>
+  ),
+  raspberry_pi_pico: (c) => (
+    <g stroke={c || "#008040"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="6" y="4" width="12" height="16" rx="2" fill="color-mix(in srgb, #008040 30%, transparent)" />
+      <rect x="9.5" y="4" width="5" height="2" fill="#c9d1d9" />
+      <rect x="9" y="11" width="6" height="6" rx="1" fill="#161b22" />
+      <circle cx="12" cy="8" r="1" fill="#ffffff" />
+    </g>
+  ),
+  pico: (c) => (
+    <g stroke={c || "#008040"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="6" y="4" width="12" height="16" rx="2" fill="color-mix(in srgb, #008040 30%, transparent)" />
+      <rect x="9.5" y="4" width="5" height="2" fill="#c9d1d9" />
+      <rect x="9" y="11" width="6" height="6" rx="1" fill="#161b22" />
+      <circle cx="12" cy="8" r="1" fill="#ffffff" />
+    </g>
+  ),
+  arduino_nano: (c) => (
+    <g stroke={c || "#0077b6"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="7" y="4" width="10" height="16" rx="1.5" fill="color-mix(in srgb, #0077b6 30%, transparent)" />
+      <rect x="9.5" y="4" width="5" height="2" fill="#c9d1d9" />
+      <rect x="9" y="10" width="6" height="6" rx="1" transform="rotate(45 12 13)" fill="#161b22" />
+    </g>
+  ),
+  nano: (c) => (
+    <g stroke={c || "#0077b6"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="7" y="4" width="10" height="16" rx="1.5" fill="color-mix(in srgb, #0077b6 30%, transparent)" />
+      <rect x="9.5" y="4" width="5" height="2" fill="#c9d1d9" />
+      <rect x="9" y="10" width="6" height="6" rx="1" transform="rotate(45 12 13)" fill="#161b22" />
+    </g>
+  ),
+  stm32: (c) => (
+    <g stroke={c || "#1f5690"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="6" y="4" width="12" height="16" rx="1.5" fill="color-mix(in srgb, #1f5690 30%, transparent)" />
+      <rect x="9.5" y="4" width="5" height="2" fill="#c9d1d9" />
+      <rect x="9" y="10" width="6" height="6" rx="1" fill="#161b22" />
+      <rect x="7.5" y="7" width="2" height="2" fill="#ffd32a" stroke="none" />
+      <rect x="7.5" y="9.5" width="2" height="2" fill="#ffd32a" stroke="none" />
+    </g>
+  ),
+  nodemcu: (c) => (
+    <g stroke={c || "#181c24"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="6" y="4" width="12" height="16" rx="1.5" fill="color-mix(in srgb, #181c24 40%, transparent)" />
+      <rect x="8" y="7" width="8" height="7" rx="1" fill="#a0a7b0" />
+      <rect x="9.5" y="18" width="5" height="2" fill="#c9d1d9" />
+    </g>
+  ),
+  esp32: (c) => (
+    <g stroke={c || "#121820"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="6" y="4" width="12" height="16" rx="1.5" fill="color-mix(in srgb, #121820 50%, transparent)" />
+      <rect x="7.5" y="7" width="9" height="8" rx="1" fill="#a0a7b0" />
+      <path d="M8 5.5h8" stroke="#d4af37" strokeWidth="1.5" />
+    </g>
+  ),
+  microbit: (c) => (
+    <g stroke={c || "#1e272e"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="5" width="16" height="14" rx="3" fill="color-mix(in srgb, #1e272e 40%, transparent)" />
+      <circle cx="7" cy="12" r="1.5" fill="#f5f6fa" />
+      <circle cx="17" cy="12" r="1.5" fill="#f5f6fa" />
+      <rect x="10" y="9" width="4" height="6" fill="#ff3838" stroke="none" />
+    </g>
+  ),
+  neopixel_ring: (c) => (
+    <g stroke={c || "#d4af37"} strokeWidth="1.5" fill="none">
+      <circle cx="12" cy="12" r="7" stroke="#d4af37" strokeWidth="1.5" fill="color-mix(in srgb, #1e272e 40%, transparent)" />
+      <circle cx="12" cy="12" r="3.5" stroke="#d4af37" strokeWidth="1" />
+      <circle cx="12" cy="5" r="1" fill="#32ff7e" />
+      <circle cx="17" cy="10" r="1" fill="#ff3838" />
+      <circle cx="14" cy="17" r="1" fill="#18dcff" />
+      <circle cx="7" cy="14" r="1" fill="#ffd32a" />
+    </g>
+  ),
+};
+
 const GLYPHS = {
   passive: (c) => (
     <path d="M4 12h3l1.5-5 3 10 3-10 1.5 5H20" stroke={c} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -66,9 +158,10 @@ const GLYPHS = {
   ),
 };
 
-export default function PartIcon({ category, size = 40 }) {
+export default function PartIcon({ category, partKey, size = 40 }) {
   const color = CATEGORY_COLOR[category] || "var(--primary)";
-  const glyph = GLYPHS[category] || GLYPHS.passive;
+  const boardGlyph = partKey ? BOARD_GLYPHS[partKey] : null;
+  const glyph = boardGlyph || GLYPHS[category] || GLYPHS.passive;
 
   return (
     <div
