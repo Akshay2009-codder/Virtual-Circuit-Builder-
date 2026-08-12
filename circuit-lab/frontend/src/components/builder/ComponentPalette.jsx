@@ -21,6 +21,8 @@ const STARTER_KEYS = [
   "esp32",
   "raspberry_pi_pico",
   "arduino_nano",
+  "stm32",
+  "nodemcu",
   "microbit",
   "neopixel_ring",
   "pir_motion_sensor",
@@ -84,7 +86,7 @@ export default function ComponentPalette({ components, loading }) {
           transition={{ duration: 0.15 }}
           style={styles.item}
         >
-          <PartIcon category={c.category} size={30} />
+          <PartIcon category={c.category} partKey={c.key} size={30} />
           <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
             <span style={styles.itemName}>{c.name}</span>
             <span style={{ ...styles.itemCategory, color: CATEGORY_COLOR[c.category] }}>{c.category}</span>
