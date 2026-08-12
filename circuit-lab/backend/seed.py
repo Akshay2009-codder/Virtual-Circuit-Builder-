@@ -328,22 +328,48 @@ CATALOG = [
         },
     ),
     dict(
-        key="arduino_uno", name="Arduino Uno", category="board",
-        description="The classic beginner-friendly microcontroller board built around the ATmega328P chip — simple, well-documented, and everywhere in tutorials.",
-        model_type="dev_board", unit="V", default_value=5.0, terminal_count=20,
-        spec={"microcontroller": "ATmega328P", "digital_pins": 14, "analog_pins": 6, "clock_speed": "16MHz"},
+        key="stm32", name="STM32 Blue Pill", category="board",
+        description="ARM Cortex-M3 32-bit development board featuring STM32F103C8T6 microcontroller with 72MHz clock and dual BOOT jumpers.",
+        model_type="stm32", unit="V", default_value=3.3, terminal_count=40,
+        spec={
+            "microcontroller": "STM32F103C8T6", "core": "ARM Cortex-M3", "clock_speed": "72MHz", "flash": "64KB",
+            "pins": [
+                {"terminal": "3v3", "label": "3.3V", "role": "power", "side": "left", "order": 0, "volts": 3.3, "xOffset": -0.176, "zOffset": -0.323},
+                {"terminal": "gnd1", "label": "GND", "role": "ground", "side": "left", "order": 1, "volts": 0, "xOffset": -0.176, "zOffset": -0.289},
+                {"terminal": "pb12", "label": "PB12", "role": "gpio", "side": "left", "order": 2, "gpio": 12, "xOffset": -0.176, "zOffset": -0.255},
+                {"terminal": "pb13", "label": "PB13", "role": "gpio", "side": "left", "order": 3, "gpio": 13, "xOffset": -0.176, "zOffset": -0.221},
+                {"terminal": "pa8", "label": "PA8", "role": "gpio", "side": "left", "order": 4, "gpio": 8, "xOffset": -0.176, "zOffset": -0.187},
+                {"terminal": "pa9", "label": "PA9 (TX1)", "role": "gpio", "side": "left", "order": 5, "gpio": 9, "xOffset": -0.176, "zOffset": -0.153},
+                {"terminal": "pa10", "label": "PA10 (RX1)", "role": "gpio", "side": "left", "order": 6, "gpio": 10, "xOffset": -0.176, "zOffset": -0.119},
+                {"terminal": "5v", "label": "5V", "role": "power", "side": "right", "order": 0, "volts": 5.0, "xOffset": 0.176, "zOffset": -0.323},
+                {"terminal": "gnd2", "label": "GND", "role": "ground", "side": "right", "order": 1, "volts": 0, "xOffset": 0.176, "zOffset": -0.289},
+                {"terminal": "pc13", "label": "PC13 (LED)", "role": "gpio", "side": "right", "order": 2, "gpio": 13, "xOffset": 0.176, "zOffset": -0.255},
+                {"terminal": "pb0", "label": "PB0", "role": "gpio", "side": "right", "order": 3, "gpio": 0, "xOffset": 0.176, "zOffset": -0.221},
+                {"terminal": "pb1", "label": "PB1", "role": "gpio", "side": "right", "order": 4, "gpio": 1, "xOffset": 0.176, "zOffset": -0.187},
+            ]
+        },
     ),
     dict(
-        key="raspberry_pi_pico", name="Raspberry Pi Pico", category="board",
-        description="A tiny, low-cost microcontroller board built around the RP2040 chip, with a generous number of GPIO pins and dual-core processing.",
-        model_type="dev_board", unit="V", default_value=3.3, terminal_count=26,
-        spec={"chip": "RP2040", "gpio_pins": 26, "clock_speed": "133MHz"},
-    ),
-    dict(
-        key="arduino_nano", name="Arduino Nano", category="board",
-        description="A breadboard-friendly, compact version of the Arduino Uno — same ATmega328P chip in a much smaller footprint.",
-        model_type="dev_board", unit="V", default_value=5.0, terminal_count=22,
-        spec={"microcontroller": "ATmega328P", "size": "compact"},
+        key="nodemcu", name="NodeMCU ESP8266", category="board",
+        description="Open-source Wi-Fi development board built around ESP-12E module with CP2102 USB-to-UART converter.",
+        model_type="nodemcu", unit="V", default_value=3.3, terminal_count=30,
+        spec={
+            "chip": "ESP8266EX", "module": "ESP-12E", "wifi": "802.11 b/g/n", "clock_speed": "80MHz",
+            "pins": [
+                {"terminal": "3v3", "label": "3V3", "role": "power", "side": "left", "order": 0, "volts": 3.3, "xOffset": -0.217, "zOffset": -0.306},
+                {"terminal": "gnd1", "label": "GND", "role": "ground", "side": "left", "order": 1, "volts": 0, "xOffset": -0.217, "zOffset": -0.262},
+                {"terminal": "d1", "label": "D1 (GPIO5)", "role": "gpio", "side": "left", "order": 2, "gpio": 5, "xOffset": -0.217, "zOffset": -0.218},
+                {"terminal": "d2", "label": "D2 (GPIO4)", "role": "gpio", "side": "left", "order": 3, "gpio": 4, "xOffset": -0.217, "zOffset": -0.174},
+                {"terminal": "d3", "label": "D3 (GPIO0)", "role": "gpio", "side": "left", "order": 4, "gpio": 0, "xOffset": -0.217, "zOffset": -0.13},
+                {"terminal": "d4", "label": "D4 (LED)", "role": "gpio", "side": "left", "order": 5, "gpio": 2, "xOffset": -0.217, "zOffset": -0.086},
+                {"terminal": "vin", "label": "VIN (5V)", "role": "power", "side": "right", "order": 0, "volts": 5.0, "xOffset": 0.217, "zOffset": -0.306},
+                {"terminal": "gnd2", "label": "GND", "role": "ground", "side": "right", "order": 1, "volts": 0, "xOffset": 0.217, "zOffset": -0.262},
+                {"terminal": "d5", "label": "D5 (SCK)", "role": "gpio", "side": "right", "order": 2, "gpio": 14, "xOffset": 0.217, "zOffset": -0.218},
+                {"terminal": "d6", "label": "D6 (MISO)", "role": "gpio", "side": "right", "order": 3, "gpio": 12, "xOffset": 0.217, "zOffset": -0.174},
+                {"terminal": "d7", "label": "D7 (MOSI)", "role": "gpio", "side": "right", "order": 4, "gpio": 13, "xOffset": 0.217, "zOffset": -0.13},
+                {"terminal": "d8", "label": "D8 (CS)", "role": "gpio", "side": "right", "order": 5, "gpio": 15, "xOffset": 0.217, "zOffset": -0.086},
+            ]
+        },
     ),
 
     # ---------------- Power (additional) ----------------
