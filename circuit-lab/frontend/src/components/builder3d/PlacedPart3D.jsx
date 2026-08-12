@@ -223,7 +223,7 @@ export default function PlacedPart3D({
           }
         }}
       >
-        {Model && <Model lit={isLed ? powered : undefined} on={isToggleable ? isOn : undefined} />}
+        {Model && <Model lit={isLed ? powered : undefined} on={isToggleable ? isOn : undefined} node={node} modelType={node.modelType} key={node.key} name={node.name} />}
       </group>
 
       {/* direct pin connection hit areas (no artificial dots - connects directly to circuit like real life) */}
