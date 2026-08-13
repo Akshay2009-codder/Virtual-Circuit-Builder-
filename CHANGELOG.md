@@ -81,3 +81,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-14 -->
 ### Basic Logic Gates
 - Added 2D SVG vector glyphs for 7408 AND, 7432 OR, and 7486 XOR logic ICs.
+
+<!-- contribution-15 -->
+### Sequential Logic Gates
+- Added 2D SVG vector glyphs for NAND, NOR, NOT inverters, and D-Flip-Flop ICs.
