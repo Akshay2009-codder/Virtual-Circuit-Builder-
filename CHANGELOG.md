@@ -97,3 +97,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-18 -->
 ### Regulated Power
 - Added 2D SVG vector glyphs for benchtop DC power supplies and 5V USB ports.
+
+<!-- contribution-19 -->
+### Mechanical Switches
+- Added 2D SVG vector glyphs for SPST toggle switches, tactile push buttons, and rocker switches.
