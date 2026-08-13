@@ -93,3 +93,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-17 -->
 ### Alternative Power
 - Added 2D SVG vector glyphs for CR2032 coin cells, solar panels, and 10000mAh power banks.
+
+<!-- contribution-18 -->
+### Regulated Power
+- Added 2D SVG vector glyphs for benchtop DC power supplies and 5V USB ports.
