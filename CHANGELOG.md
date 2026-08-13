@@ -145,3 +145,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-30 -->
 ### Touch & Inertial Sensing
 - Added 2D SVG vector glyphs for capacitive touch buttons and 3-axis gyro accelerometers.
+
+<!-- contribution-31 -->
+### Environmental Probes
+- Added 2D SVG vector glyphs for soil moisture probes, flame detectors, and water level cards.
