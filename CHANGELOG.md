@@ -45,3 +45,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-5 -->
 ### Prototyping Hardware
 - Added 2D SVG vector glyphs for 830 tie-point breadboards and screw terminal blocks.
+
+<!-- contribution-6 -->
+### Light Emitting Diodes
+- Added 2D SVG vector glyphs for visible LEDs, common-cathode RGB LEDs, and IR LEDs.
