@@ -157,3 +157,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-33 -->
 ### Matrix & Retro Displays
 - Added 2D SVG vector glyphs for 8x8 LED dot matrix displays and retro Nixie tube bulbs.
+
+<!-- contribution-34 -->
+### 3D Soil Moisture Model
+- Added 3D mesh model for soil moisture probe with gold prongs and trim pot.
