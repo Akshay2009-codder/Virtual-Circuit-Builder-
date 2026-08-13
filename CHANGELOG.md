@@ -89,3 +89,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-16 -->
 ### DC Batteries
 - Added 2D SVG vector glyphs for 9V alkaline snap batteries, AA cells, and 18650 Li-ion cells.
+
+<!-- contribution-17 -->
+### Alternative Power
+- Added 2D SVG vector glyphs for CR2032 coin cells, solar panels, and 10000mAh power banks.
