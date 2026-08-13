@@ -125,3 +125,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-25 -->
 ### Light & Temp Sensing
 - Added 2D SVG vector glyphs for LDR photoresistors and NTC thermistors.
+
+<!-- contribution-26 -->
+### Precision Optical Sensors
+- Added 2D SVG vector glyphs for LM35 temperature ICs and PIN photodiodes.
