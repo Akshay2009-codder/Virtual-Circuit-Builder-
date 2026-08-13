@@ -35,7 +35,8 @@ export default function Scene3D({
   readings,
   activeWireColor,
 }) {
-  const [mouseWorldPos, setMouseWorldPos] = useState([0, 0.16, 0]);
+  const [mouseWorldPos, setMouseWorldPos] = useState(null);
+  const [isMouseHovering, setIsMouseHovering] = useState(false);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
 
   function terminalWorldPos(nodeId, terminal) {
@@ -82,7 +83,7 @@ export default function Scene3D({
 
     // Default polarity check for 2-terminal parts
     if (edge.sourceTerminal === "a" || edge.sourceTerminal === "pos") return "#ff3838";
-    if (edge.sourceTerminal === "b" || edge.sourceTerminal === "neg") return "#1e90ff";
+    if (edge.sourceTerminal === "b" || edge.sourceTerminal === "neg") return "#2ed573";
 
     return activeWireColor || "#2ed573";
   }
@@ -90,6 +91,7 @@ export default function Scene3D({
   function handleGroundMove(e) {
     if (e.point) {
       setMouseWorldPos([e.point.x, 0.16, e.point.z]);
+      setIsMouseHovering(true);
     }
     if (draggingId && e.point) {
       onDragMove(draggingId, e.point.x, e.point.z);
@@ -97,6 +99,11 @@ export default function Scene3D({
   }
 
   function handleGroundUp() {
+    if (draggingId) onDragEnd();
+  }
+
+  function handleGroundLeave() {
+    setIsMouseHovering(false);
     if (draggingId) onDragEnd();
   }
 
@@ -138,7 +145,7 @@ export default function Scene3D({
 
       <CameraCapture cameraRef={cameraRef} />
 
-      {/* Workbench Base Platform */}
+      {/* Workbench Base Platform - Clean Bevel Surface without sharp dark border lines */}
       <mesh position={[0, -0.2, 0]} receiveShadow castShadow>
         <boxGeometry args={[16, 0.38, 12]} />
         <meshStandardMaterial color="#161c24" roughness={0.4} metalness={0.25} envMapIntensity={0.8} />
@@ -146,14 +153,8 @@ export default function Scene3D({
 
       {/* ESD Electronics Working Mat Surface */}
       <mesh position={[0, 0.005, 0]} receiveShadow castShadow>
-        <boxGeometry args={[12.3, 0.03, 12.3]} />
+        <boxGeometry args={[12.4, 0.03, 12.4]} />
         <meshStandardMaterial color="#0e1713" roughness={0.55} metalness={0.15} envMapIntensity={0.6} />
-      </mesh>
-
-      {/* Metallic Border Bezel */}
-      <mesh position={[0, 0.008, 0]}>
-        <ringGeometry args={[6.15, 6.22, 4]} />
-        <meshStandardMaterial color="#35465a" metalness={0.85} roughness={0.2} envMapIntensity={1.2} />
       </mesh>
 
       <Grid
@@ -174,7 +175,7 @@ export default function Scene3D({
         rotation={[-Math.PI / 2, 0, 0]}
         onPointerMove={handleGroundMove}
         onPointerUp={handleGroundUp}
-        onPointerLeave={handleGroundUp}
+        onPointerLeave={handleGroundLeave}
         onClick={() => setSelectedEdgeId(null)}
       >
         <planeGeometry args={[60, 60]} />
@@ -233,7 +234,7 @@ export default function Scene3D({
       })}
 
       {/* Dynamic 3D Live Wire Preview while drawing */}
-      {selectedTerminal && selectedStartPos && (
+      {selectedTerminal && selectedStartPos && isMouseHovering && mouseWorldPos && (
         <Wire3D
           start={selectedStartPos}
           end={mouseWorldPos}
