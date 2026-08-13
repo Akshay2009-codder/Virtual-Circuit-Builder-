@@ -41,3 +41,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-4 -->
 ### Protection & Timing
 - Added 2D SVG vector glyphs for glass tube fuses and 16MHz crystal oscillators.
+
+<!-- contribution-5 -->
+### Prototyping Hardware
+- Added 2D SVG vector glyphs for 830 tie-point breadboards and screw terminal blocks.
