@@ -80,6 +80,58 @@ const BOARD_GLYPHS = {
       <rect x="10" y="9" width="4" height="6" fill="#ff3838" stroke="none" />
     </g>
   ),
+  arduino_mega: (c) => (
+    <g stroke={c || "#007d85"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2" fill="color-mix(in srgb, #007d85 30%, transparent)" />
+      <rect x="4" y="7" width="4" height="3" fill="#c9d1d9" stroke="#ffffff" />
+      <rect x="4" y="14" width="4" height="3" fill="#15181c" />
+      <rect x="11" y="9.5" width="5" height="5" rx="0.5" transform="rotate(45 13.5 12)" fill="#161b22" />
+      <rect x="18" y="7" width="2" height="10" fill="#0d1117" stroke="none" />
+    </g>
+  ),
+  mega: (c) => (
+    <g stroke={c || "#007d85"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2" fill="color-mix(in srgb, #007d85 30%, transparent)" />
+      <rect x="4" y="7" width="4" height="3" fill="#c9d1d9" stroke="#ffffff" />
+      <rect x="4" y="14" width="4" height="3" fill="#15181c" />
+      <rect x="11" y="9.5" width="5" height="5" rx="0.5" transform="rotate(45 13.5 12)" fill="#161b22" />
+      <rect x="18" y="7" width="2" height="10" fill="#0d1117" stroke="none" />
+    </g>
+  ),
+  teensy: (c) => (
+    <g stroke={c || "#4c1d95"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="7" y="4" width="10" height="16" rx="1.5" fill="color-mix(in srgb, #4c1d95 40%, transparent)" />
+      <rect x="9.5" y="4" width="5" height="2" fill="#c9d1d9" />
+      <rect x="9" y="9" width="6" height="6" rx="1" fill="#161b22" />
+      <circle cx="12" cy="16.5" r="1" fill="#f5f6fa" />
+    </g>
+  ),
+  raspberry_pi_4: (c) => (
+    <g stroke={c || "#008040"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="2" fill="color-mix(in srgb, #008040 35%, transparent)" />
+      <rect x="17" y="7" width="3" height="4" fill="#0077b6" stroke="none" />
+      <rect x="17" y="13" width="3" height="4" fill="#111111" stroke="none" />
+      <rect x="8" y="9" width="5" height="5" rx="1" fill="#a0a7b0" />
+      <line x1="4" y1="7" x2="15" y2="7" stroke="#0d1117" strokeWidth="1.5" />
+    </g>
+  ),
+  rpi4: (c) => (
+    <g stroke={c || "#008040"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="2" fill="color-mix(in srgb, #008040 35%, transparent)" />
+      <rect x="17" y="7" width="3" height="4" fill="#0077b6" stroke="none" />
+      <rect x="17" y="13" width="3" height="4" fill="#111111" stroke="none" />
+      <rect x="8" y="9" width="5" height="5" rx="1" fill="#a0a7b0" />
+      <line x1="4" y1="7" x2="15" y2="7" stroke="#0d1117" strokeWidth="1.5" />
+    </g>
+  ),
+  esp32_cam: (c) => (
+    <g stroke={c || "#181c24"} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="6" y="4" width="12" height="16" rx="1.5" fill="color-mix(in srgb, #181c24 50%, transparent)" />
+      <rect x="7.5" y="6" width="9" height="7" rx="1" fill="#a0a7b0" />
+      <circle cx="12" cy="15.5" r="2.2" fill="#111111" stroke="#45d8c4" strokeWidth="1" />
+      <rect x="7" y="14" width="1.5" height="1.5" fill="#ffffff" stroke="none" />
+    </g>
+  ),
   neopixel_ring: (c) => (
     <g stroke={c || "#d4af37"} strokeWidth="1.5" fill="none">
       <circle cx="12" cy="12" r="7" stroke="#d4af37" strokeWidth="1.5" fill="color-mix(in srgb, #1e272e 40%, transparent)" />

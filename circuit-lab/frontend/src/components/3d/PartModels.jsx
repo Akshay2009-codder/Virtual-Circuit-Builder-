@@ -1182,9 +1182,332 @@ export function NodeMcuBoardModel({ lit }) {
   );
 }
 
+export function ArduinoMegaModel({ lit }) {
+  return (
+    <group>
+      {/* Extended Italian Teal-Blue Arduino PCB Substrate for Mega 2560 */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[3.4, 0.07, 1.8]} />
+        <meshStandardMaterial envMapIntensity={0.65} color="#007d85" roughness={0.35} metalness={0.25} />
+      </mesh>
+
+      {/* Silver Corner Screw Mounting Pads */}
+      {[[-1.5, -0.75], [-1.5, 0.75], [1.5, -0.75], [1.5, 0.75]].map(([x, z], i) => (
+        <mesh key={i} position={[x, 0.038, z]}>
+          <cylinderGeometry args={[0.09, 0.09, 0.005, 16]} />
+          <meshStandardMaterial color="#c9d1d9" metalness={0.8} roughness={0.2} />
+        </mesh>
+      ))}
+
+      {/* Silver Metal USB-B Port Jack */}
+      <group position={[-1.38, 0.22, -0.45]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[0.48, 0.35, 0.42]} />
+          <meshStandardMaterial envMapIntensity={1.5} color="#c9d1d9" metalness={0.9} roughness={0.15} />
+        </mesh>
+        <mesh position={[-0.245, 0, 0]}>
+          <boxGeometry args={[0.01, 0.25, 0.3]} />
+          <meshStandardMaterial color="#111111" />
+        </mesh>
+      </group>
+
+      {/* Black DC Barrel Power Jack */}
+      <group position={[-1.38, 0.2, 0.48]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[0.45, 0.32, 0.42]} />
+          <meshStandardMaterial envMapIntensity={0.5} color="#15181c" roughness={0.5} />
+        </mesh>
+        <mesh castShadow receiveShadow position={[-0.23, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <cylinderGeometry args={[0.1, 0.1, 0.02, 16]} />
+          <meshStandardMaterial color="#0a0d10" />
+        </mesh>
+      </group>
+
+      {/* Main ATmega2560 Square QFP-100 Chip */}
+      <group position={[0.3, 0.06, 0.1]} rotation={[0, Math.PI / 4, 0]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[0.55, 0.04, 0.55]} />
+          <meshStandardMaterial envMapIntensity={0.6} color="#161b22" roughness={0.3} />
+        </mesh>
+        <mesh position={[-0.2, 0.022, -0.2]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.005, 12]} />
+          <meshStandardMaterial color="#c9d1d9" metalness={0.8} />
+        </mesh>
+      </group>
+
+      {/* Extended Double 2x18 Digital Pin Block at Right End */}
+      <mesh castShadow receiveShadow position={[1.5, 0.14, 0.0]}>
+        <boxGeometry args={[0.28, 0.18, 1.45]} />
+        <meshStandardMaterial envMapIntensity={0.5} color="#0d1117" roughness={0.5} />
+      </mesh>
+
+      {/* Top and Bottom Female Header Sockets */}
+      <mesh castShadow receiveShadow position={[-0.2, 0.14, -0.72]}>
+        <boxGeometry args={[2.2, 0.18, 0.14]} />
+        <meshStandardMaterial envMapIntensity={0.5} color="#0d1117" roughness={0.5} />
+      </mesh>
+      <mesh castShadow receiveShadow position={[-0.2, 0.14, 0.72]}>
+        <boxGeometry args={[2.2, 0.18, 0.14]} />
+        <meshStandardMaterial envMapIntensity={0.5} color="#0d1117" roughness={0.5} />
+      </mesh>
+
+      {/* Silver Crystal Oscillator */}
+      <mesh castShadow receiveShadow position={[-0.6, 0.1, -0.4]}>
+        <boxGeometry args={[0.25, 0.1, 0.14]} />
+        <meshStandardMaterial envMapIntensity={1.4} color="#d1d8e0" metalness={0.85} roughness={0.2} />
+      </mesh>
+
+      {/* Reset Button */}
+      <mesh castShadow receiveShadow position={[-1.4, 0.12, -0.72]}>
+        <cylinderGeometry args={[0.08, 0.08, 0.1, 16]} />
+        <meshStandardMaterial envMapIntensity={1.2} color="#c9c9c9" metalness={0.8} />
+      </mesh>
+      <mesh castShadow receiveShadow position={[-1.4, 0.18, -0.72]}>
+        <cylinderGeometry args={[0.05, 0.05, 0.06, 16]} />
+        <meshStandardMaterial color="#ff3838" emissive="#ff3838" emissiveIntensity={0.3} />
+      </mesh>
+
+      {/* Status LEDs */}
+      <mesh position={[-0.9, 0.045, -0.15]}>
+        <boxGeometry args={[0.06, 0.02, 0.06]} />
+        <meshStandardMaterial color="#2ed573" emissive="#2ed573" emissiveIntensity={lit ? 1.8 : 0.4} />
+      </mesh>
+      <mesh position={[-0.9, 0.045, 0.0]}>
+        <boxGeometry args={[0.06, 0.02, 0.06]} />
+        <meshStandardMaterial color="#ffa801" emissive="#ffa801" emissiveIntensity={lit ? 1.5 : 0.2} />
+      </mesh>
+
+      {/* Silkscreen Mega 2560 Label */}
+      <mesh position={[-0.5, 0.038, 0.35]}>
+        <boxGeometry args={[1.0, 0.002, 0.25]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.5} />
+      </mesh>
+    </group>
+  );
+}
+
+export function TeensyBoardModel({ lit }) {
+  const pinsPerSide = 14;
+  return (
+    <group>
+      {/* Compact Deep Purple PCB Substrate for Teensy 4.0 */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[0.9, 0.06, 1.8]} />
+        <meshStandardMaterial envMapIntensity={0.7} color="#4c1d95" roughness={0.35} metalness={0.2} />
+      </mesh>
+
+      {/* Micro-USB Port */}
+      <mesh castShadow receiveShadow position={[0, 0.08, -0.8]}>
+        <boxGeometry args={[0.34, 0.12, 0.26]} />
+        <meshStandardMaterial envMapIntensity={1.5} color="#c9d1d9" metalness={0.9} roughness={0.15} />
+      </mesh>
+
+      {/* High Performance NXP i.MXRT1062 ARM Cortex-M7 Chip */}
+      <group position={[0, 0.06, -0.1]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[0.42, 0.04, 0.42]} />
+          <meshStandardMaterial envMapIntensity={0.6} color="#161b22" roughness={0.3} />
+        </mesh>
+        <mesh position={[0.14, 0.022, 0.14]}>
+          <cylinderGeometry args={[0.015, 0.015, 0.005, 12]} />
+          <meshStandardMaterial color="#d4af37" metalness={0.8} />
+        </mesh>
+      </group>
+
+      {/* White Program Tactile Push Button */}
+      <mesh castShadow receiveShadow position={[0, 0.07, 0.45]}>
+        <boxGeometry args={[0.16, 0.06, 0.16]} />
+        <meshStandardMaterial color="#f5f6fa" roughness={0.3} />
+      </mesh>
+
+      {/* Orange Onboard User LED (Pin 13) */}
+      <mesh position={[-0.22, 0.045, -0.5]}>
+        <boxGeometry args={[0.05, 0.02, 0.05]} />
+        <meshStandardMaterial color="#ff9f1a" emissive="#ff9f1a" emissiveIntensity={lit ? 1.8 : 0.3} />
+      </mesh>
+
+      {/* Golden Header Pins / Castellated Pads (14 Left, 14 Right) */}
+      {Array.from({ length: pinsPerSide }).map((_, i) => (
+        <mesh castShadow receiveShadow key={`teensy-l-${i}`} position={[-0.38, 0.05, -0.75 + i * 0.115]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.1, 8]} />
+          <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
+        </mesh>
+      ))}
+      {Array.from({ length: pinsPerSide }).map((_, i) => (
+        <mesh castShadow receiveShadow key={`teensy-r-${i}`} position={[0.38, 0.05, -0.75 + i * 0.115]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.1, 8]} />
+          <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+export function RaspberryPi4Model({ lit }) {
+  return (
+    <group>
+      {/* Iconic Raspberry Pi Green PCB Substrate (Full Pi Format) */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[2.6, 0.07, 1.8]} />
+        <meshStandardMaterial envMapIntensity={0.65} color="#008040" roughness={0.35} metalness={0.2} />
+      </mesh>
+
+      {/* Corner Mounting Holes */}
+      {[[-1.15, -0.75], [-1.15, 0.75], [1.15, -0.75], [1.15, 0.75]].map(([x, z], i) => (
+        <mesh key={i} position={[x, 0.038, z]}>
+          <cylinderGeometry args={[0.08, 0.08, 0.005, 16]} />
+          <meshStandardMaterial color="#c9d1d9" metalness={0.8} roughness={0.2} />
+        </mesh>
+      ))}
+
+      {/* Broadcom BCM2711 SoC Chip with Metal Heat Spreader */}
+      <mesh castShadow receiveShadow position={[-0.2, 0.07, 0.1]}>
+        <boxGeometry args={[0.55, 0.05, 0.55]} />
+        <meshStandardMaterial envMapIntensity={1.4} color="#a0a7b0" metalness={0.85} roughness={0.2} />
+      </mesh>
+
+      {/* Dual Stacked Blue USB 3.0 Ports */}
+      <group position={[1.1, 0.22, -0.45]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[0.45, 0.38, 0.42]} />
+          <meshStandardMaterial envMapIntensity={1.5} color="#c9d1d9" metalness={0.9} roughness={0.15} />
+        </mesh>
+        <mesh position={[0.226, 0, 0]}>
+          <boxGeometry args={[0.01, 0.28, 0.3]} />
+          <meshStandardMaterial color="#0077b6" />
+        </mesh>
+      </group>
+
+      {/* Dual Stacked Black USB 2.0 Ports */}
+      <group position={[1.1, 0.22, 0.05]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[0.45, 0.38, 0.42]} />
+          <meshStandardMaterial envMapIntensity={1.5} color="#c9d1d9" metalness={0.9} roughness={0.15} />
+        </mesh>
+        <mesh position={[0.226, 0, 0]}>
+          <boxGeometry args={[0.01, 0.28, 0.3]} />
+          <meshStandardMaterial color="#111111" />
+        </mesh>
+      </group>
+
+      {/* Gigabit Ethernet RJ45 Port */}
+      <group position={[1.1, 0.24, 0.55]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[0.48, 0.4, 0.44]} />
+          <meshStandardMaterial envMapIntensity={1.5} color="#c9d1d9" metalness={0.9} roughness={0.15} />
+        </mesh>
+        <mesh position={[0.241, 0, 0]}>
+          <boxGeometry args={[0.01, 0.28, 0.32]} />
+          <meshStandardMaterial color="#111111" />
+        </mesh>
+      </group>
+
+      {/* Dual Micro-HDMI Ports & USB-C Power along bottom edge */}
+      <mesh castShadow receiveShadow position={[-0.7, 0.1, 0.76]}>
+        <boxGeometry args={[0.3, 0.12, 0.25]} />
+        <meshStandardMaterial envMapIntensity={1.5} color="#c9d1d9" metalness={0.9} roughness={0.15} />
+      </mesh>
+      <mesh castShadow receiveShadow position={[-0.2, 0.1, 0.76]}>
+        <boxGeometry args={[0.25, 0.1, 0.22]} />
+        <meshStandardMaterial envMapIntensity={1.5} color="#c9d1d9" metalness={0.9} roughness={0.15} />
+      </mesh>
+      <mesh castShadow receiveShadow position={[0.2, 0.1, 0.76]}>
+        <boxGeometry args={[0.25, 0.1, 0.22]} />
+        <meshStandardMaterial envMapIntensity={1.5} color="#c9d1d9" metalness={0.9} roughness={0.15} />
+      </mesh>
+
+      {/* 40-Pin Double Row GPIO Header Block along top edge */}
+      <mesh castShadow receiveShadow position={[-0.1, 0.14, -0.72]}>
+        <boxGeometry args={[1.85, 0.18, 0.2]} />
+        <meshStandardMaterial envMapIntensity={0.5} color="#0d1117" roughness={0.5} />
+      </mesh>
+
+      {/* Red Power LED & Green ACT Activity LED */}
+      <mesh position={[-1.1, 0.045, 0.6]}>
+        <boxGeometry args={[0.06, 0.02, 0.06]} />
+        <meshStandardMaterial color="#ff3838" emissive="#ff3838" emissiveIntensity={lit ? 1.8 : 0.4} />
+      </mesh>
+      <mesh position={[-0.98, 0.045, 0.6]}>
+        <boxGeometry args={[0.06, 0.02, 0.06]} />
+        <meshStandardMaterial color="#2ed573" emissive="#2ed573" emissiveIntensity={lit ? 1.8 : 0.3} />
+      </mesh>
+    </group>
+  );
+}
+
+export function Esp32CamModel({ lit }) {
+  const pinsPerSide = 8;
+  return (
+    <group>
+      {/* Matte Dark Board Substrate for ESP32-CAM AI-Thinker */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[1.2, 0.06, 1.8]} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#181c24" roughness={0.35} metalness={0.2} />
+      </mesh>
+
+      {/* ESP-32S Metallic Shield Box */}
+      <mesh castShadow receiveShadow position={[0, 0.1, -0.2]}>
+        <boxGeometry args={[0.75, 0.08, 0.85]} />
+        <meshStandardMaterial envMapIntensity={1.4} color="#a0a7b0" metalness={0.85} roughness={0.2} />
+      </mesh>
+
+      {/* MicroSD Card Reader Slot Housing */}
+      <mesh castShadow receiveShadow position={[0, 0.08, 0.5]}>
+        <boxGeometry args={[0.65, 0.06, 0.6]} />
+        <meshStandardMaterial envMapIntensity={1.3} color="#c9d1d9" metalness={0.8} roughness={0.25} />
+      </mesh>
+
+      {/* OV2640 Camera Lens Housing Module */}
+      <group position={[0, 0.18, 0.45]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[0.36, 0.12, 0.36]} />
+          <meshStandardMaterial color="#111111" roughness={0.3} />
+        </mesh>
+        {/* Camera Lens Element */}
+        <mesh position={[0, 0.07, 0]}>
+          <cylinderGeometry args={[0.1, 0.1, 0.03, 20]} />
+          <meshPhysicalMaterial color="#1e272e" roughness={0.1} clearcoat={0.9} metalness={0.5} />
+        </mesh>
+        <mesh position={[0, 0.086, 0]}>
+          <cylinderGeometry args={[0.05, 0.05, 0.005, 16]} />
+          <meshStandardMaterial color="#45d8c4" roughness={0.1} emissive="#45d8c4" emissiveIntensity={0.2} />
+        </mesh>
+      </group>
+
+      {/* High-Power White Flash LED */}
+      <mesh position={[-0.32, 0.06, 0.65]}>
+        <boxGeometry args={[0.1, 0.03, 0.1]} />
+        <meshStandardMaterial
+          color={lit ? "#ffffff" : "#f1f2f6"}
+          emissive={lit ? "#ffffff" : "#000000"}
+          emissiveIntensity={lit ? 3.0 : 0}
+        />
+      </mesh>
+
+      {/* 16 Golden Header Pins (8 Left, 8 Right) */}
+      {Array.from({ length: pinsPerSide }).map((_, i) => (
+        <mesh castShadow receiveShadow key={`cam-l-${i}`} position={[-0.52, 0.06, -0.65 + i * 0.18]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.14, 8]} />
+          <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
+        </mesh>
+      ))}
+      {Array.from({ length: pinsPerSide }).map((_, i) => (
+        <mesh castShadow receiveShadow key={`cam-r-${i}`} position={[0.52, 0.06, -0.65 + i * 0.18]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.14, 8]} />
+          <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 export function DevBoardModel({ lit, node, partKey, modelType, key, name }) {
   const k = (partKey || node?.key || key || node?.name || name || node?.modelType || modelType || "").toLowerCase();
 
+  if (k.includes("mega") || k.includes("2560")) return <ArduinoMegaModel lit={lit} />;
+  if (k.includes("teensy")) return <TeensyBoardModel lit={lit} />;
+  if (k.includes("pi_4") || k.includes("raspberry_pi_4") || k.includes("rpi4") || k.includes("rpi_4")) return <RaspberryPi4Model lit={lit} />;
+  if (k.includes("cam") || k.includes("esp32_cam") || k.includes("esp32-cam")) return <Esp32CamModel lit={lit} />;
   if (k.includes("uno") || k.includes("arduino_uno")) return <ArduinoUnoModel lit={lit} />;
   if (k.includes("pico") || k.includes("raspberry")) return <RaspberryPiPicoModel lit={lit} />;
   if (k.includes("nano") || k.includes("arduino_nano")) return <ArduinoNanoModel lit={lit} />;
@@ -1719,6 +2042,15 @@ export const MODEL_BY_TYPE = {
   arduino_uno: ArduinoUnoModel,
   arduino: ArduinoUnoModel,
   uno: ArduinoUnoModel,
+  arduino_mega: ArduinoMegaModel,
+  arduino_mega_2560: ArduinoMegaModel,
+  mega: ArduinoMegaModel,
+  teensy: TeensyBoardModel,
+  teensy40: TeensyBoardModel,
+  raspberry_pi_4: RaspberryPi4Model,
+  rpi4: RaspberryPi4Model,
+  esp32_cam: Esp32CamModel,
+  esp32cam: Esp32CamModel,
   raspberry_pi_pico: RaspberryPiPicoModel,
   pico: RaspberryPiPicoModel,
   arduino_nano: ArduinoNanoModel,

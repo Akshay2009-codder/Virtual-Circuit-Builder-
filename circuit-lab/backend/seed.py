@@ -720,16 +720,28 @@ CATALOG = [
         spec={"style": "vintage / retro"},
     ),
     dict(
-        key="arduino_mega", name="Arduino Mega", category="board",
+        key="arduino_mega", name="Arduino Mega 2560", category="board",
         description="A larger Arduino board with far more I/O pins and memory than the Uno — used when a project outgrows the Uno's 14 digital pins.",
-        model_type="dev_board", unit="V", default_value=5.0, terminal_count=54,
+        model_type="arduino_mega", unit="V", default_value=5.0, terminal_count=54,
         spec={"microcontroller": "ATmega2560", "digital_pins": 54, "analog_pins": 16},
     ),
     dict(
         key="teensy", name="Teensy 4.0", category="board",
-        description="A very small, very fast USB-based microcontroller board — popular for projects that need serious processing power in a tiny footprint.",
-        model_type="dev_board", unit="V", default_value=3.3, terminal_count=40,
-        spec={"clock_speed": "600MHz"},
+        description="A very small, ultra-fast 600MHz ARM Cortex-M7 microcontroller board — popular for audio and high-speed processing.",
+        model_type="teensy", unit="V", default_value=3.3, terminal_count=40,
+        spec={"processor": "ARM Cortex-M7", "clock_speed": "600MHz"},
+    ),
+    dict(
+        key="raspberry_pi_4", name="Raspberry Pi 4 Model B", category="board",
+        description="Single-board computer featuring a quad-core 64-bit processor, dual micro-HDMI 4K displays, USB 3.0 ports, Gigabit Ethernet, and 40-pin GPIO block.",
+        model_type="raspberry_pi_4", unit="V", default_value=5.0, terminal_count=40,
+        spec={"processor": "BCM2711 Quad-Core 1.5GHz", "ram": "4GB"},
+    ),
+    dict(
+        key="esp32_cam", name="ESP32-CAM AI-Thinker", category="board",
+        description="Compact ESP32 development board featuring an integrated OV2640 camera lens module, MicroSD card slot, and high-power flash LED.",
+        model_type="esp32_cam", unit="V", default_value=5.0, terminal_count=16,
+        spec={"camera": "OV2640 2MP", "wifi_bluetooth": True},
     ),
     dict(
         key="heat_sink", name="Heat Sink", category="passive",

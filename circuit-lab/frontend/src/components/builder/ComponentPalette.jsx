@@ -18,8 +18,12 @@ const itemVariants = {
 // ~70 parts to find them. Only shown when not actively searching/filtering.
 const STARTER_KEYS = [
   "arduino_uno",
+  "arduino_mega",
   "esp32",
+  "raspberry_pi_4",
   "raspberry_pi_pico",
+  "esp32_cam",
+  "teensy",
   "arduino_nano",
   "stm32",
   "nodemcu",

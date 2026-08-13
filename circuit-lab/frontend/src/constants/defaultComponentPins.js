@@ -147,13 +147,60 @@ export const DEFAULT_COMPONENT_PINS = {
     { terminal: "d7", label: "D7 (MOSI)", role: "gpio", side: "right", order: 4, gpio: 13, xOffset: 0.217, zOffset: -0.13 },
     { terminal: "d8", label: "D8 (CS)", role: "gpio", side: "right", order: 5, gpio: 15, xOffset: 0.217, zOffset: -0.086 },
   ],
+
+  arduino_mega: [
+    { terminal: "5v", label: "5V", role: "power", side: "left", order: 0, volts: 5.0, xOffset: -0.28, zOffset: 0.2 },
+    { terminal: "3v3", label: "3V3", role: "power", side: "left", order: 1, volts: 3.3, xOffset: -0.28, zOffset: 0.14 },
+    { terminal: "gnd1", label: "GND", role: "ground", side: "left", order: 2, volts: 0, xOffset: -0.28, zOffset: 0.08 },
+    { terminal: "gnd2", label: "GND", role: "ground", side: "left", order: 3, volts: 0, xOffset: -0.28, zOffset: 0.02 },
+    { terminal: "vin", label: "VIN", role: "power", side: "left", order: 4, xOffset: -0.28, zOffset: -0.04 },
+    { terminal: "a0", label: "A0", role: "gpio", side: "left", order: 5, xOffset: -0.28, zOffset: -0.1 },
+    { terminal: "a1", label: "A1", role: "gpio", side: "left", order: 6, xOffset: -0.28, zOffset: -0.16 },
+    { terminal: "a2", label: "A2", role: "gpio", side: "left", order: 7, xOffset: -0.28, zOffset: -0.22 },
+    { terminal: "d2", label: "D2", role: "gpio", side: "right", order: 0, gpio: 2, xOffset: 0.28, zOffset: -0.3 },
+    { terminal: "d3", label: "D3 (~PWM)", role: "gpio", side: "right", order: 1, gpio: 3, xOffset: 0.28, zOffset: -0.24 },
+    { terminal: "d13", label: "D13 (LED)", role: "gpio", side: "right", order: 2, gpio: 13, xOffset: 0.28, zOffset: 0.36 },
+  ],
+
+  teensy: [
+    { terminal: "gnd", label: "GND", role: "ground", side: "left", order: 0, volts: 0, xOffset: -0.13, zOffset: -0.25 },
+    { terminal: "0", label: "0 (RX1)", role: "gpio", side: "left", order: 1, gpio: 0, xOffset: -0.13, zOffset: -0.18 },
+    { terminal: "1", label: "1 (TX1)", role: "gpio", side: "left", order: 2, gpio: 1, xOffset: -0.13, zOffset: -0.11 },
+    { terminal: "2", label: "2", role: "gpio", side: "left", order: 3, gpio: 2, xOffset: -0.13, zOffset: -0.04 },
+    { terminal: "13", label: "13 (LED)", role: "gpio", side: "left", order: 4, gpio: 13, xOffset: -0.13, zOffset: 0.03 },
+    { terminal: "3v3", label: "3.3V", role: "power", side: "right", order: 0, volts: 3.3, xOffset: 0.13, zOffset: -0.25 },
+    { terminal: "vin", label: "VIN (5V)", role: "power", side: "right", order: 1, volts: 5.0, xOffset: 0.13, zOffset: -0.18 },
+  ],
+
+  raspberry_pi_4: [
+    { terminal: "3v3_1", label: "3.3V", role: "power", side: "left", order: 0, volts: 3.3, xOffset: -0.2, zOffset: -0.25 },
+    { terminal: "5v_1", label: "5V", role: "power", side: "right", order: 0, volts: 5.0, xOffset: 0.2, zOffset: -0.25 },
+    { terminal: "gpio2", label: "GPIO2 (SDA)", role: "gpio", side: "left", order: 1, gpio: 2, xOffset: -0.2, zOffset: -0.18 },
+    { terminal: "5v_2", label: "5V", role: "power", side: "right", order: 1, volts: 5.0, xOffset: 0.2, zOffset: -0.18 },
+    { terminal: "gnd1", label: "GND", role: "ground", side: "right", order: 2, volts: 0, xOffset: 0.2, zOffset: -0.11 },
+    { terminal: "gpio14", label: "GPIO14 (TXD)", role: "gpio", side: "right", order: 3, gpio: 14, xOffset: 0.2, zOffset: -0.04 },
+  ],
+
+  esp32_cam: [
+    { terminal: "5v", label: "5V", role: "power", side: "left", order: 0, volts: 5.0, xOffset: -0.18, zOffset: -0.22 },
+    { terminal: "gnd1", label: "GND", role: "ground", side: "left", order: 1, volts: 0, xOffset: -0.18, zOffset: -0.14 },
+    { terminal: "gpio12", label: "GPIO12", role: "gpio", side: "left", order: 2, gpio: 12, xOffset: -0.18, zOffset: -0.06 },
+    { terminal: "gpio13", label: "GPIO13", role: "gpio", side: "left", order: 3, gpio: 13, xOffset: -0.18, zOffset: 0.02 },
+    { terminal: "3v3", label: "3V3", role: "power", side: "right", order: 0, volts: 3.3, xOffset: 0.18, zOffset: -0.22 },
+    { terminal: "gnd2", label: "GND", role: "ground", side: "right", order: 1, volts: 0, xOffset: 0.18, zOffset: -0.14 },
+    { terminal: "gpio4", label: "GPIO4 (Flash)", role: "gpio", side: "right", order: 2, gpio: 4, xOffset: 0.18, zOffset: -0.06 },
+    { terminal: "gpio0", label: "GPIO0", role: "gpio", side: "right", order: 3, gpio: 0, xOffset: 0.18, zOffset: 0.02 },
+  ],
 };
 
 DEFAULT_COMPONENT_PINS.uno = DEFAULT_COMPONENT_PINS.arduino_uno;
+DEFAULT_COMPONENT_PINS.mega = DEFAULT_COMPONENT_PINS.arduino_mega;
+DEFAULT_COMPONENT_PINS.arduino_mega_2560 = DEFAULT_COMPONENT_PINS.arduino_mega;
 DEFAULT_COMPONENT_PINS.pico = DEFAULT_COMPONENT_PINS.raspberry_pi_pico;
 DEFAULT_COMPONENT_PINS.nano = DEFAULT_COMPONENT_PINS.arduino_nano;
 DEFAULT_COMPONENT_PINS.stm32_blue_pill = DEFAULT_COMPONENT_PINS.stm32;
 DEFAULT_COMPONENT_PINS.esp8266 = DEFAULT_COMPONENT_PINS.nodemcu;
+DEFAULT_COMPONENT_PINS.rpi4 = DEFAULT_COMPONENT_PINS.raspberry_pi_4;
 
 // Returns default pin role color
 export function getPinRoleColor(role, defaultColor = "#45d8c4") {
