@@ -161,3 +161,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-34 -->
 ### 3D Soil Moisture Model
 - Added 3D mesh model for soil moisture probe with gold prongs and trim pot.
+
+<!-- contribution-35 -->
+### 3D Flame Sensor Model
+- Added 3D mesh model for IR flame sensor module with black receiver LED.
