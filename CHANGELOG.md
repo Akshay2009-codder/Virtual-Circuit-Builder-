@@ -37,3 +37,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-3 -->
 ### Inductors & Ferrites
 - Added 2D SVG vector glyphs for multi-turn inductors and RF ferrite beads.
+
+<!-- contribution-4 -->
+### Protection & Timing
+- Added 2D SVG vector glyphs for glass tube fuses and 16MHz crystal oscillators.
