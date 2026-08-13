@@ -61,3 +61,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-9 -->
 ### Bipolar Transistors
 - Added 2D SVG vector glyphs for TO-92 NPN and PNP bipolar junction transistors.
+
+<!-- contribution-10 -->
+### Power Semiconductors
+- Added 2D SVG vector glyphs for TO-220 N-channel MOSFETs and 4-pin bridge rectifiers.
