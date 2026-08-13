@@ -169,3 +169,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-36 -->
 ### 3D Water Sensor Model
 - Added 3D mesh model for water level sensor card with gold parallel trace lines.
+
+<!-- contribution-37 -->
+### 3D Nixie Tube Model
+- Added 3D mesh model for vintage Nixie display tube with glowing orange filament.
