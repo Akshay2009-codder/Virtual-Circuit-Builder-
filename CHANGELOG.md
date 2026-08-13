@@ -101,3 +101,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-19 -->
 ### Mechanical Switches
 - Added 2D SVG vector glyphs for SPST toggle switches, tactile push buttons, and rocker switches.
+
+<!-- contribution-20 -->
+### Special Switches
+- Added 2D SVG vector glyphs for slide switches, 4-position DIP switches, limit switches, and reed switches.
