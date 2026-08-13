@@ -177,3 +177,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-38 -->
 ### 3D Heat Sink Model
 - Added 3D mesh model for aluminum finned heat sink cooling block.
+
+<!-- contribution-39 -->
+### Documentation Update
+- Documented complete 65+ component icon mapping across all categories.
