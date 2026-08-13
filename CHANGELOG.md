@@ -25,3 +25,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 ### Changed
 - Refactored `Scene3D` and `Wire3D` to render realistic 3D curved Bezier paths.
 - Updated database seed script with board pin metadata.
+
+<!-- contribution-1 -->
+### Resistors & Trimmers
+- Added 2D SVG vector glyphs for fixed resistors and variable trimmers.
