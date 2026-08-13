@@ -109,3 +109,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-21 -->
 ### Electromechanical Controls
 - Added 2D SVG vector glyphs for 5V PCB relays and 12V linear solenoids.
+
+<!-- contribution-22 -->
+### Acoustic Outputs
+- Added 2D SVG vector glyphs for piezo active buzzers and 8-ohm speaker cones.
