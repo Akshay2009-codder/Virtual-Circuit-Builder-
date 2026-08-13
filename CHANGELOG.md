@@ -57,3 +57,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-8 -->
 ### Special Diodes
 - Added 2D SVG vector glyphs for Zener breakdown diodes and Schottky diodes.
+
+<!-- contribution-9 -->
+### Bipolar Transistors
+- Added 2D SVG vector glyphs for TO-92 NPN and PNP bipolar junction transistors.
