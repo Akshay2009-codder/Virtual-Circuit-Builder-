@@ -141,3 +141,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-29 -->
 ### Environmental & Magnetic
 - Added 2D SVG vector glyphs for DHT11 humidity modules and Hall effect magnetic sensors.
+
+<!-- contribution-30 -->
+### Touch & Inertial Sensing
+- Added 2D SVG vector glyphs for capacitive touch buttons and 3-axis gyro accelerometers.
