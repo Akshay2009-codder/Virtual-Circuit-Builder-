@@ -165,3 +165,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-35 -->
 ### 3D Flame Sensor Model
 - Added 3D mesh model for IR flame sensor module with black receiver LED.
+
+<!-- contribution-36 -->
+### 3D Water Sensor Model
+- Added 3D mesh model for water level sensor card with gold parallel trace lines.
