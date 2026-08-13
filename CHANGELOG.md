@@ -121,3 +121,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-24 -->
 ### Auxiliary Actuators
 - Added 2D SVG vector glyphs for 12V DC cooling fans and haptic vibration coin motors.
+
+<!-- contribution-25 -->
+### Light & Temp Sensing
+- Added 2D SVG vector glyphs for LDR photoresistors and NTC thermistors.
