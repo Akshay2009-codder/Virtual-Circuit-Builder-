@@ -77,3 +77,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-13 -->
 ### Memory & Converter ICs
 - Added 2D SVG vector glyphs for I2C EEPROM chips and 12-bit ADC converters.
+
+<!-- contribution-14 -->
+### Basic Logic Gates
+- Added 2D SVG vector glyphs for 7408 AND, 7432 OR, and 7486 XOR logic ICs.
