@@ -85,3 +85,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-15 -->
 ### Sequential Logic Gates
 - Added 2D SVG vector glyphs for NAND, NOR, NOT inverters, and D-Flip-Flop ICs.
+
+<!-- contribution-16 -->
+### DC Batteries
+- Added 2D SVG vector glyphs for 9V alkaline snap batteries, AA cells, and 18650 Li-ion cells.
