@@ -153,3 +153,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-32 -->
 ### Character Displays
 - Added 2D SVG vector glyphs for 7-segment red digits, 16x2 character LCDs, and OLED screens.
+
+<!-- contribution-33 -->
+### Matrix & Retro Displays
+- Added 2D SVG vector glyphs for 8x8 LED dot matrix displays and retro Nixie tube bulbs.
