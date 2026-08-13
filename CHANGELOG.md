@@ -129,3 +129,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-26 -->
 ### Precision Optical Sensors
 - Added 2D SVG vector glyphs for LM35 temperature ICs and PIN photodiodes.
+
+<!-- contribution-27 -->
+### Distance & Infrared Sensors
+- Added 2D SVG vector glyphs for HC-SR04 ultrasonic rangefinders and reflective IR modules.
