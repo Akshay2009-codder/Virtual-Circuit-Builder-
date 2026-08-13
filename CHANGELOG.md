@@ -137,3 +137,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-28 -->
 ### Motion & Gas Sensing
 - Added 2D SVG vector glyphs for passive infrared motion domes and MQ gas sensor caps.
+
+<!-- contribution-29 -->
+### Environmental & Magnetic
+- Added 2D SVG vector glyphs for DHT11 humidity modules and Hall effect magnetic sensors.
