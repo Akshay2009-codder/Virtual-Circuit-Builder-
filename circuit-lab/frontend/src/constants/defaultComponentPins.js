@@ -191,6 +191,30 @@ export const DEFAULT_COMPONENT_PINS = {
     { terminal: "gpio4", label: "GPIO4 (Flash)", role: "gpio", side: "right", order: 2, gpio: 4, xOffset: 0.18, zOffset: -0.06 },
     { terminal: "gpio0", label: "GPIO0", role: "gpio", side: "right", order: 3, gpio: 0, xOffset: 0.18, zOffset: 0.02 },
   ],
+
+  soil_moisture_sensor: [
+    { terminal: "vcc", label: "VCC (3.3V/5V)", role: "power", side: "left", order: 0, volts: 3.3, xOffset: -0.1, zOffset: -0.25 },
+    { terminal: "gnd", label: "GND", role: "ground", side: "left", order: 1, volts: 0, xOffset: 0.0, zOffset: -0.25 },
+    { terminal: "aout", label: "A0 (Signal)", role: "gpio", side: "left", order: 2, xOffset: 0.1, zOffset: -0.25 },
+  ],
+  flame_sensor: [
+    { terminal: "vcc", label: "VCC (5V)", role: "power", side: "left", order: 0, volts: 5.0, xOffset: -0.1, zOffset: 0.25 },
+    { terminal: "gnd", label: "GND", role: "ground", side: "left", order: 1, volts: 0, xOffset: 0.0, zOffset: 0.25 },
+    { terminal: "dout", label: "D0 (Digital)", role: "gpio", side: "left", order: 2, xOffset: 0.1, zOffset: 0.25 },
+  ],
+  water_level_sensor: [
+    { terminal: "vcc", label: "VCC (5V)", role: "power", side: "left", order: 0, volts: 5.0, xOffset: -0.1, zOffset: -0.35 },
+    { terminal: "gnd", label: "GND", role: "ground", side: "left", order: 1, volts: 0, xOffset: 0.0, zOffset: -0.35 },
+    { terminal: "sig", label: "S (Signal)", role: "gpio", side: "left", order: 2, xOffset: 0.1, zOffset: -0.35 },
+  ],
+  nixie_tube: [
+    { terminal: "anode", label: "Anode (+170V)", role: "power", side: "left", order: 0, volts: 170.0, xOffset: -0.15, zOffset: 0.1 },
+    { terminal: "gnd", label: "GND", role: "ground", side: "right", order: 0, volts: 0, xOffset: 0.15, zOffset: 0.1 },
+  ],
+  heat_sink: [
+    { terminal: "tab1", label: "Mount 1", role: "ground", side: "left", order: 0, volts: 0, xOffset: -0.2, zOffset: 0.0 },
+    { terminal: "tab2", label: "Mount 2", role: "ground", side: "right", order: 0, volts: 0, xOffset: 0.2, zOffset: 0.0 },
+  ],
 };
 
 DEFAULT_COMPONENT_PINS.uno = DEFAULT_COMPONENT_PINS.arduino_uno;

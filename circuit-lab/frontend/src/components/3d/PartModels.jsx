@@ -2003,37 +2003,182 @@ export function TerminalBlockModel() {
   );
 }
 
+export function SoilMoistureSensorModel() {
+  return (
+    <group>
+      {/* Sensor Control PCB Board */}
+      <mesh castShadow receiveShadow position={[0, 0.08, -0.4]}>
+        <boxGeometry args={[0.7, 0.06, 0.6]} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#181c24" roughness={0.35} metalness={0.2} />
+      </mesh>
+      {/* Blue Potentiometer Trim */}
+      <mesh castShadow receiveShadow position={[0, 0.14, -0.4]}>
+        <boxGeometry args={[0.2, 0.08, 0.2]} />
+        <meshStandardMaterial color="#0077b6" />
+      </mesh>
+      {/* Dual Gold PCB Probe Prongs */}
+      <mesh castShadow receiveShadow position={[-0.2, 0.04, 0.4]}>
+        <boxGeometry args={[0.15, 0.03, 1.0]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
+      </mesh>
+      <mesh castShadow receiveShadow position={[0.2, 0.04, 0.4]}>
+        <boxGeometry args={[0.15, 0.03, 1.0]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
+      </mesh>
+    </group>
+  );
+}
+
+export function FlameSensorModel() {
+  return (
+    <group>
+      {/* Sensor Module PCB */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[0.6, 0.06, 1.1]} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#1f5690" roughness={0.35} metalness={0.25} />
+      </mesh>
+      {/* IR Receiver LED Lens at top */}
+      <mesh castShadow receiveShadow position={[0, 0.08, -0.55]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.1, 0.1, 0.2, 16]} />
+        <meshStandardMaterial color="#111111" roughness={0.2} />
+      </mesh>
+      <Lead position={[-0.15, -0.4, 0.45]} rotation={[Math.PI / 2, 0, 0]} length={0.4} />
+      <Lead position={[0.15, -0.4, 0.45]} rotation={[Math.PI / 2, 0, 0]} length={0.4} />
+    </group>
+  );
+}
+
+export function WaterLevelSensorModel() {
+  return (
+    <group>
+      {/* PCB Card */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[0.65, 0.05, 1.6]} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#0077b6" roughness={0.35} metalness={0.2} />
+      </mesh>
+      {/* Parallel Gold Trace Lines */}
+      {[-0.2, -0.07, 0.07, 0.2].map((x, i) => (
+        <mesh key={i} position={[x, 0.03, 0.1]}>
+          <boxGeometry args={[0.06, 0.005, 1.2]} />
+          <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.15} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+export function NixieTubeModel({ lit }) {
+  return (
+    <group>
+      {/* Black Socket Base */}
+      <mesh castShadow receiveShadow position={[0, 0.1, 0]}>
+        <cylinderGeometry args={[0.45, 0.45, 0.2, 24]} />
+        <meshStandardMaterial color="#161b22" roughness={0.5} />
+      </mesh>
+      {/* Glass Bulb Envelope */}
+      <mesh position={[0, 0.7, 0]}>
+        <cylinderGeometry args={[0.4, 0.4, 1.0, 24]} />
+        <meshPhysicalMaterial color="#ffffff" transparent opacity={0.35} roughness={0.05} clearcoat={1} />
+      </mesh>
+      {/* Orange Glowing Filament Digit 8 */}
+      <mesh position={[0, 0.7, 0]}>
+        <boxGeometry args={[0.18, 0.5, 0.02]} />
+        <meshStandardMaterial
+          color="#ffa801"
+          emissive="#ffa801"
+          emissiveIntensity={lit ? 3.0 : 0.6}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+export function HeatSinkModel() {
+  return (
+    <group>
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[1.0, 0.8, 0.6]} />
+        <meshStandardMaterial envMapIntensity={1.4} color="#57606f" metalness={0.8} roughness={0.25} />
+      </mesh>
+      {[-0.35, -0.12, 0.12, 0.35].map((x, i) => (
+        <mesh key={i} position={[x, 0.45, 0]}>
+          <boxGeometry args={[0.08, 0.5, 0.58]} />
+          <meshStandardMaterial envMapIntensity={1.4} color="#57606f" metalness={0.8} roughness={0.25} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 export const MODEL_BY_TYPE = {
   resistor: ResistorModel,
+  resistor_variable: PotentiometerModel,
   capacitor_electrolytic: CapacitorElectrolyticModel,
   capacitor_ceramic: CapacitorCeramicModel,
+  polyester_capacitor: CapacitorCeramicModel,
+  varistor: CapacitorCeramicModel,
   inductor: InductorModel,
+  ferrite_bead: InductorModel,
   potentiometer: PotentiometerModel,
   fuse: FuseModel,
   wire: WireModel,
+  jumper_wire: WireModel,
 
   led: LedModel,
+  ir_led: LedModel,
+  laser_diode: DiodeModel,
   diode: DiodeModel,
+  zener_diode: DiodeModel,
+  schottky_diode: DiodeModel,
   transistor: TransistorModel,
+  transistor_npn: TransistorModel,
+  transistor_pnp: TransistorModel,
   mosfet: MosfetModel,
+  voltage_regulator: MosfetModel,
 
   ic_dip: IcDipModel,
+  ic_555: IcDipModel,
+  ic_opamp: IcDipModel,
+  microcontroller_atmega328: IcDipModel,
+  eeprom_ic: IcDipModel,
+  adc_ic: IcDipModel,
+  ic_socket: IcDipModel,
+  logic_and: IcDipModel,
+  logic_or: IcDipModel,
+  logic_xor: IcDipModel,
+  logic_nand: IcDipModel,
+  logic_nor: IcDipModel,
+  logic_not: IcDipModel,
+  flip_flop: IcDipModel,
 
   battery_9v: Battery9vModel,
   battery_aa: BatteryAaModel,
+  lithium_battery: BatteryAaModel,
   solar_panel: SolarPanelModel,
+  power_bank: BenchPsuModel,
 
   switch: SwitchModel,
   push_button: PushButtonModel,
   relay: RelayModel,
   dip_switch: DipSwitchModel,
+  limit_switch: SwitchModel,
+  reed_switch: SwitchModel,
 
   buzzer: BuzzerModel,
   dc_motor: DcMotorModel,
+  solenoid: DcMotorModel,
+  vibration_motor: DcMotorModel,
   speaker: SpeakerModel,
 
   ldr: LdrModel,
   thermistor: ThermistorModel,
+  temperature_sensor: To92SensorModel,
+  photodiode: DiodeModel,
+  hall_effect_sensor: To92SensorModel,
+  accelerometer: IcDipModel,
+  soil_moisture_sensor: SoilMoistureSensorModel,
+  flame_sensor: FlameSensorModel,
+  water_level_sensor: WaterLevelSensorModel,
 
   dev_board: DevBoardModel,
   esp32: Esp32BoardModel,
@@ -2080,9 +2225,12 @@ export const MODEL_BY_TYPE = {
   touch_sensor: TouchSensorModel,
 
   seven_segment: SevenSegmentModel,
+  seven_segment_display: SevenSegmentModel,
   lcd_display: LcdDisplayModel,
   oled_display: OledDisplayModel,
   led_matrix: LedMatrixModel,
+  rgb_led_display: LedMatrixModel,
+  nixie_tube: NixieTubeModel,
 
   servo_motor: ServoMotorModel,
   stepper_motor: StepperMotorModel,
@@ -2091,4 +2239,5 @@ export const MODEL_BY_TYPE = {
   crystal_oscillator: CrystalOscillatorModel,
   breadboard: BreadboardModel,
   terminal_block: TerminalBlockModel,
+  heat_sink: HeatSinkModel,
 };
