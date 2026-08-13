@@ -117,3 +117,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-23 -->
 ### Motors & Actuators
 - Added 2D SVG vector glyphs for 6V brushed DC motors, 180° RC servos, and 200-step steppers.
+
+<!-- contribution-24 -->
+### Auxiliary Actuators
+- Added 2D SVG vector glyphs for 12V DC cooling fans and haptic vibration coin motors.
