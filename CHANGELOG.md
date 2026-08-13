@@ -65,3 +65,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-10 -->
 ### Power Semiconductors
 - Added 2D SVG vector glyphs for TO-220 N-channel MOSFETs and 4-pin bridge rectifiers.
+
+<!-- contribution-11 -->
+### Analog ICs
+- Added 2D SVG vector glyphs for NE555 timer chips and dual operational amplifiers.
