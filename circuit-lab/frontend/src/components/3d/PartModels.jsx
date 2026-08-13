@@ -262,32 +262,197 @@ export function MosfetModel() {
 
 /* ---------------- Integrated circuits ---------------- */
 
-export function IcDipModel() {
-  const pinsPerSide = 4;
+export function GenericDipIcModel({ pins = 8, label = "IC", partNumber = "" }) {
+  const pinsPerSide = Math.floor(pins / 2);
+  const bodyLength = 0.35 + pinsPerSide * 0.22;
+  const pinSpacing = (bodyLength - 0.3) / (pinsPerSide - 1 || 1);
+
   return (
     <group>
+      {/* Black Molded Epoxy DIP Body */}
       <mesh castShadow receiveShadow>
-        <boxGeometry args={[1.6, 0.28, 0.7]} />
-        <meshStandardMaterial envMapIntensity={0.4} color="#111318" roughness={0.5} />
+        <boxGeometry args={[bodyLength, 0.28, 0.7]} />
+        <meshStandardMaterial envMapIntensity={0.5} color="#15181e" roughness={0.45} />
       </mesh>
-      <mesh castShadow receiveShadow position={[-0.72, 0.16, 0]} rotation={[0, 0, Math.PI / 2]}>
+
+      {/* Pin 1 Half-Moon Notch at Top Edge */}
+      <mesh castShadow receiveShadow position={[-bodyLength / 2 + 0.08, 0.14, 0]} rotation={[0, 0, Math.PI / 2]}>
         <cylinderGeometry args={[0.08, 0.08, 0.05, 16, 1, false, 0, Math.PI]} />
-        <meshStandardMaterial envMapIntensity={0.4} color="#111318" roughness={0.5} />
+        <meshStandardMaterial color="#0f1115" roughness={0.4} />
       </mesh>
-      {[-0.35, 0.35].map((z, side) =>
-        Array.from({ length: pinsPerSide }).map((_, i) => (
-          <mesh
-            castShadow
-            receiveShadow
-            key={`${side}-${i}`}
-            position={[-0.6 + i * 0.4, -0.18, z]}
-            rotation={[0, 0, 0]}
-          >
-            <boxGeometry args={[0.06, 0.22, 0.05]} />
-            <meshStandardMaterial envMapIntensity={1.3} color="#c9c9c9" metalness={0.8} roughness={0.3} />
+
+      {/* Pin 1 Corner Dot Indentation */}
+      <mesh position={[-bodyLength / 2 + 0.18, 0.145, -0.22]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.02, 16]} />
+        <meshStandardMaterial color="#0b0d10" roughness={0.3} />
+      </mesh>
+
+      {/* Laser-Etched Top Silkscreen Chip Label */}
+      <mesh position={[0, 0.142, 0]}>
+        <boxGeometry args={[bodyLength * 0.75, 0.005, 0.35]} />
+        <meshStandardMaterial
+          color="#d1d5db"
+          roughness={0.8}
+          metalness={0.1}
+          emissive="#8a94a6"
+          emissiveIntensity={0.15}
+        />
+      </mesh>
+
+      {/* Dual Inline Pins (DIP Silver Pins) */}
+      {[-0.37, 0.37].map((z, side) =>
+        Array.from({ length: pinsPerSide }).map((_, i) => {
+          const x = -bodyLength / 2 + 0.18 + i * pinSpacing;
+          return (
+            <group key={`${side}-${i}`} position={[x, -0.16, z]}>
+              <mesh castShadow receiveShadow>
+                <boxGeometry args={[0.07, 0.25, 0.05]} />
+                <meshStandardMaterial envMapIntensity={1.3} color="#d4d4d4" metalness={0.85} roughness={0.2} />
+              </mesh>
+            </group>
+          );
+        })
+      )}
+    </group>
+  );
+}
+
+export function IcDipModel() {
+  return <GenericDipIcModel pins={8} label="GENERIC IC" partNumber="DIP-8" />;
+}
+
+export function Ic555Model() {
+  return <GenericDipIcModel pins={8} label="555 TIMER" partNumber="NE555P" />;
+}
+
+export function IcOpampModel() {
+  return <GenericDipIcModel pins={8} label="DUAL OP-AMP" partNumber="LM358P" />;
+}
+
+export function MicrocontrollerAtmega328Model() {
+  return <GenericDipIcModel pins={28} label="MICROCHIP" partNumber="ATMEGA328P-PU" />;
+}
+
+export function EepromIcModel() {
+  return <GenericDipIcModel pins={8} label="EEPROM 256K" partNumber="24LC256" />;
+}
+
+export function AdcIcModel() {
+  return <GenericDipIcModel pins={16} label="10-BIT ADC" partNumber="MCP3008" />;
+}
+
+export function LogicAndModel() {
+  return <GenericDipIcModel pins={14} label="QUAD AND" partNumber="SN74HC08N" />;
+}
+
+export function LogicOrModel() {
+  return <GenericDipIcModel pins={14} label="QUAD OR" partNumber="SN74HC32N" />;
+}
+
+export function LogicXorModel() {
+  return <GenericDipIcModel pins={14} label="QUAD XOR" partNumber="SN74HC86N" />;
+}
+
+export function LogicNandModel() {
+  return <GenericDipIcModel pins={14} label="QUAD NAND" partNumber="SN74HC00N" />;
+}
+
+export function LogicNorModel() {
+  return <GenericDipIcModel pins={14} label="QUAD NOR" partNumber="SN74HC02N" />;
+}
+
+export function LogicNotModel() {
+  return <GenericDipIcModel pins={14} label="HEX INVERTER" partNumber="SN74HC04N" />;
+}
+
+export function FlipFlopModel() {
+  return <GenericDipIcModel pins={14} label="DUAL D-FF" partNumber="SN74HC74N" />;
+}
+
+export function VoltageRegulatorModel() {
+  return (
+    <group>
+      {/* Black Molded TO-220 Body */}
+      <mesh castShadow receiveShadow position={[0, 0.2, 0]}>
+        <boxGeometry args={[0.9, 1.0, 0.28]} />
+        <meshStandardMaterial envMapIntensity={0.4} color="#15181c" roughness={0.5} />
+      </mesh>
+      {/* Top Silkscreen Etching */}
+      <mesh position={[0, 0.35, 0.145]}>
+        <boxGeometry args={[0.7, 0.25, 0.005]} />
+        <meshStandardMaterial color="#d1d5db" roughness={0.8} />
+      </mesh>
+      {/* Metal Heat Tab with Hole */}
+      <mesh castShadow receiveShadow position={[0, 0.78, 0.02]}>
+        <boxGeometry args={[0.55, 0.4, 0.06]} />
+        <meshStandardMaterial envMapIntensity={1.3} color="#c9c9c9" metalness={0.85} roughness={0.2} />
+      </mesh>
+      <mesh castShadow receiveShadow position={[0, 0.78, 0.06]}>
+        <cylinderGeometry args={[0.07, 0.07, 0.08, 16]} />
+        <meshStandardMaterial envMapIntensity={0.4} color="#15181c" />
+      </mesh>
+      {/* 3 Lead Legs (IN, GND, OUT) */}
+      {[-0.3, 0, 0.3].map((x, i) => (
+        <mesh castShadow receiveShadow key={i} position={[x, -0.55, 0.16]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.03, 0.03, 0.55, 8]} />
+          <meshStandardMaterial envMapIntensity={1.3} color="#c9c9c9" metalness={0.8} roughness={0.3} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+export function IcSocketModel() {
+  return (
+    <group>
+      {/* Black Plastic Socket Frame */}
+      <mesh castShadow receiveShadow position={[0, 0.06, 0]}>
+        <boxGeometry args={[1.6, 0.12, 0.75]} />
+        <meshStandardMaterial color="#1a1e24" roughness={0.6} />
+      </mesh>
+      {/* Open Recess Slot */}
+      <mesh position={[0, 0.1, 0]}>
+        <boxGeometry args={[1.3, 0.08, 0.45]} />
+        <meshStandardMaterial color="#0c0e12" roughness={0.8} />
+      </mesh>
+      {/* Dual Wipe Contacts (8 Holes) */}
+      {[-0.32, 0.32].map((z, side) =>
+        [-0.6, -0.2, 0.2, 0.6].map((x, i) => (
+          <mesh key={`${side}-${i}`} position={[x, 0.08, z]}>
+            <boxGeometry args={[0.1, 0.08, 0.08]} />
+            <meshStandardMaterial color="#b8c0cc" metalness={0.9} roughness={0.2} />
           </mesh>
         ))
       )}
+    </group>
+  );
+}
+
+export function AccelerometerIcModel() {
+  return (
+    <group>
+      {/* Blue Sensor Module PCB */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[1.1, 0.06, 0.8]} />
+        <meshStandardMaterial envMapIntensity={0.6} color="#0077b6" roughness={0.35} metalness={0.2} />
+      </mesh>
+      {/* MPU-6050 QFN Chip */}
+      <mesh castShadow receiveShadow position={[0, 0.06, 0]}>
+        <boxGeometry args={[0.3, 0.05, 0.3]} />
+        <meshStandardMaterial color="#111318" roughness={0.3} />
+      </mesh>
+      {/* Gold Orient Dot */}
+      <mesh position={[-0.1, 0.09, -0.1]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.01, 12]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.9} />
+      </mesh>
+      {/* 8 Pin Gold Male Header */}
+      {Array.from({ length: 8 }).map((_, i) => (
+        <mesh key={i} position={[-0.45 + i * 0.13, 0.15, -0.3]}>
+          <boxGeometry args={[0.04, 0.25, 0.04]} />
+          <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -2134,22 +2299,22 @@ export const MODEL_BY_TYPE = {
   transistor_npn: TransistorModel,
   transistor_pnp: TransistorModel,
   mosfet: MosfetModel,
-  voltage_regulator: MosfetModel,
+  voltage_regulator: VoltageRegulatorModel,
 
   ic_dip: IcDipModel,
-  ic_555: IcDipModel,
-  ic_opamp: IcDipModel,
-  microcontroller_atmega328: IcDipModel,
-  eeprom_ic: IcDipModel,
-  adc_ic: IcDipModel,
-  ic_socket: IcDipModel,
-  logic_and: IcDipModel,
-  logic_or: IcDipModel,
-  logic_xor: IcDipModel,
-  logic_nand: IcDipModel,
-  logic_nor: IcDipModel,
-  logic_not: IcDipModel,
-  flip_flop: IcDipModel,
+  ic_555: Ic555Model,
+  ic_opamp: IcOpampModel,
+  microcontroller_atmega328: MicrocontrollerAtmega328Model,
+  eeprom_ic: EepromIcModel,
+  adc_ic: AdcIcModel,
+  ic_socket: IcSocketModel,
+  logic_and: LogicAndModel,
+  logic_or: LogicOrModel,
+  logic_xor: LogicXorModel,
+  logic_nand: LogicNandModel,
+  logic_nor: LogicNorModel,
+  logic_not: LogicNotModel,
+  flip_flop: FlipFlopModel,
 
   battery_9v: Battery9vModel,
   battery_aa: BatteryAaModel,
@@ -2175,7 +2340,7 @@ export const MODEL_BY_TYPE = {
   temperature_sensor: To92SensorModel,
   photodiode: DiodeModel,
   hall_effect_sensor: To92SensorModel,
-  accelerometer: IcDipModel,
+  accelerometer: AccelerometerIcModel,
   soil_moisture_sensor: SoilMoistureSensorModel,
   flame_sensor: FlameSensorModel,
   water_level_sensor: WaterLevelSensorModel,
