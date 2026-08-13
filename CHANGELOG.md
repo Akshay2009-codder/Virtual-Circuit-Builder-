@@ -49,3 +49,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-6 -->
 ### Light Emitting Diodes
 - Added 2D SVG vector glyphs for visible LEDs, common-cathode RGB LEDs, and IR LEDs.
+
+<!-- contribution-7 -->
+### Diodes & Lasers
+- Added 2D SVG vector glyphs for 5mW red laser diodes and silicon rectifier diodes.
