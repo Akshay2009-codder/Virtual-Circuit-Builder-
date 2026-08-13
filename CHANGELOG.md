@@ -53,3 +53,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-7 -->
 ### Diodes & Lasers
 - Added 2D SVG vector glyphs for 5mW red laser diodes and silicon rectifier diodes.
+
+<!-- contribution-8 -->
+### Special Diodes
+- Added 2D SVG vector glyphs for Zener breakdown diodes and Schottky diodes.
