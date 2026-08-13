@@ -113,3 +113,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-22 -->
 ### Acoustic Outputs
 - Added 2D SVG vector glyphs for piezo active buzzers and 8-ohm speaker cones.
+
+<!-- contribution-23 -->
+### Motors & Actuators
+- Added 2D SVG vector glyphs for 6V brushed DC motors, 180° RC servos, and 200-step steppers.
