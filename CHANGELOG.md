@@ -149,3 +149,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-31 -->
 ### Environmental Probes
 - Added 2D SVG vector glyphs for soil moisture probes, flame detectors, and water level cards.
+
+<!-- contribution-32 -->
+### Character Displays
+- Added 2D SVG vector glyphs for 7-segment red digits, 16x2 character LCDs, and OLED screens.
