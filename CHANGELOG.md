@@ -181,3 +181,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-39 -->
 ### Documentation Update
 - Documented complete 65+ component icon mapping across all categories.
+
+<!-- contribution-40 -->
+### v1.4.0 Milestone Release
+- Completed 40 contributions milestone bringing full 2D/3D component visual parity.
