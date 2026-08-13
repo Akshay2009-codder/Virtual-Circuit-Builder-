@@ -133,3 +133,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-27 -->
 ### Distance & Infrared Sensors
 - Added 2D SVG vector glyphs for HC-SR04 ultrasonic rangefinders and reflective IR modules.
+
+<!-- contribution-28 -->
+### Motion & Gas Sensing
+- Added 2D SVG vector glyphs for passive infrared motion domes and MQ gas sensor caps.
