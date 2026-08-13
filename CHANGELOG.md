@@ -173,3 +173,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-37 -->
 ### 3D Nixie Tube Model
 - Added 3D mesh model for vintage Nixie display tube with glowing orange filament.
+
+<!-- contribution-38 -->
+### 3D Heat Sink Model
+- Added 3D mesh model for aluminum finned heat sink cooling block.
