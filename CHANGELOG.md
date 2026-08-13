@@ -73,3 +73,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-12 -->
 ### Power & MCU ICs
 - Added 2D SVG vector glyphs for 7805 voltage regulators and ATmega328 DIP-28 chips.
+
+<!-- contribution-13 -->
+### Memory & Converter ICs
+- Added 2D SVG vector glyphs for I2C EEPROM chips and 12-bit ADC converters.
