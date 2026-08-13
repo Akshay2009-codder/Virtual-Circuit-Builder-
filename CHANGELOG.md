@@ -105,3 +105,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-20 -->
 ### Special Switches
 - Added 2D SVG vector glyphs for slide switches, 4-position DIP switches, limit switches, and reed switches.
+
+<!-- contribution-21 -->
+### Electromechanical Controls
+- Added 2D SVG vector glyphs for 5V PCB relays and 12V linear solenoids.
