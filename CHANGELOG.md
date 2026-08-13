@@ -69,3 +69,7 @@ All notable changes to the Virtual Circuit Builder project will be documented in
 <!-- contribution-11 -->
 ### Analog ICs
 - Added 2D SVG vector glyphs for NE555 timer chips and dual operational amplifiers.
+
+<!-- contribution-12 -->
+### Power & MCU ICs
+- Added 2D SVG vector glyphs for 7805 voltage regulators and ATmega328 DIP-28 chips.
