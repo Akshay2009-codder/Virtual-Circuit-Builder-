@@ -57,21 +57,7 @@ ASSUMED_OHMS = {
     "buzzer": 100.0,
     "dc_motor": 20.0,
     "relay": 400.0,  # coil resistance if ever wired as a plain resistive load
-    "servo_sg90": 50.0,  # motor coil equivalent resistance
 }
-
-# Micro Servo SG90 Specification parameters for PWM duty cycle angle control
-SERVO_SPECS = {
-    "servo_sg90": {
-        "min_angle": 0,
-        "max_angle": 180,
-        "pwm_freq_hz": 50,
-        "min_pulse_ms": 1.0,
-        "max_pulse_ms": 2.0,
-        "operating_voltage": 4.8,
-    }
-}
-
 
 
 def _to_ohms(value, unit):

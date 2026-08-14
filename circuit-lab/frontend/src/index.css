@@ -80,7 +80,26 @@ input:focus {
   color: transparent;
 }
 
-/* ---- Floating labels above placed 3D components ---- */
+/* ---- Floating labels & code badge above placed 3D components ---- */
+.part3d-code-badge {
+  background: rgba(16, 22, 29, 0.94);
+  border: 1.5px solid;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  transition: transform 0.15s ease, background 0.15s ease;
+  user-select: none;
+}
+.part3d-code-badge:hover {
+  transform: scale(1.1);
+  background: rgba(26, 36, 48, 0.98);
+}
+
 .part3d-label {
   display: flex;
   align-items: center;

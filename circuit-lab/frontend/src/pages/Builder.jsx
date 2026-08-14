@@ -192,9 +192,7 @@
               default_value: component.default_value || "",
               component_id: component.id,
               modelType: component.model_type || component.key || "ic_dip",
-              pins: (Array.isArray(component.spec?.pins) && component.spec.pins.length > 0)
-                ? component.spec.pins
-                : (DEFAULT_COMPONENT_PINS[component.key] || DEFAULT_COMPONENT_PINS[component.model_type] || undefined),
+              pins: DEFAULT_COMPONENT_PINS[component.key] || DEFAULT_COMPONENT_PINS[component.model_type] || (Array.isArray(component.spec?.pins) && component.spec.pins.length > 0 ? component.spec.pins : undefined),
               on: component.key === "switch" || component.key === "dip_switch" ? true : undefined,
               x: dropX,
               z: dropZ,

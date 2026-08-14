@@ -2398,9 +2398,6 @@ export const MODEL_BY_TYPE = {
   nixie_tube: NixieTubeModel,
 
   servo_motor: ServoMotorModel,
-  servo_sg90: ServoMotorModel,
-  servo: ServoMotorModel,
-  sg90: ServoMotorModel,
   stepper_motor: StepperMotorModel,
   fan: FanModel,
 
@@ -2408,10 +2405,4 @@ export const MODEL_BY_TYPE = {
   breadboard: BreadboardModel,
   terminal_block: TerminalBlockModel,
   heat_sink: HeatSinkModel,
-
-  acs712: To92SensorModel,
-  uln2003: IcDipModel,
-  mcp4725: IcDipModel,
-  ssd1306: OledDisplayModel,
-  hc_sr04: UltrasonicSensorModel,
 };

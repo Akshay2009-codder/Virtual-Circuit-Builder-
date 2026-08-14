@@ -327,19 +327,6 @@ def solve_circuit(nodes, edges):
             pin_net = net(n["id"], term)
             board_pin_voltages[f'{n["id"]}::{term}'] = round(voltages.get(pin_net, gnd_v) - gnd_v, 4)
 
-    # Identify unconnected / floating component terminals
-    floating_warnings = []
-    net_connections = defaultdict(int)
-    for e in edges:
-        net_connections[(e["sourceId"], e["sourceTerminal"])] += 1
-        net_connections[(e["targetId"], e["targetTerminal"])] += 1
-
-    for n in nodes:
-        if classify(n) not in ("board", "zero"):
-            for term in ("a", "b"):
-                if net_connections[(n["id"], term)] == 0:
-                    floating_warnings.append(f"Component '{n['id']}' terminal '{term}' is un-connected / floating.")
-
     return {
         "ok": True,
         "readings": readings,
@@ -347,5 +334,4 @@ def solve_circuit(nodes, edges):
         "any_source_current": any_current,
         "max_source_current_mA": max_source_mA,
         "board_pin_voltages": board_pin_voltages,
-        "warnings": floating_warnings,
     }

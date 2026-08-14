@@ -3,6 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { Html, ContactShadows } from "@react-three/drei";
 import { MODEL_BY_TYPE } from "../3d/PartModels";
 import { CATEGORY_COLOR } from "../../constants/categoryColors";
+import { DEFAULT_COMPONENT_PINS, getResolvedPins } from "../../constants/defaultComponentPins";
 
 const SCALE = 0.34;
 const TERMINAL_OFFSET = 0.19;
@@ -53,6 +54,7 @@ export default function PlacedPart3D({
   isTerminalSelected,
   powered,
   reading,
+  previewMode = false,
 }) {
   const [hovered, setHovered] = useState(false);
   const [labelOpen, setLabelOpen] = useState(false);
@@ -69,17 +71,11 @@ export default function PlacedPart3D({
   const isOn = node.on !== false; // default on
   const labelColor = powered ? "#3ddc84" : accent;
 
-  // Multi-pin board (ESP32 etc) - pins were copied onto the node at drop
-  // time from the catalog component's spec.pins. Everything else keeps the
-  // original simple two-terminal a/b layout.
-  const hasBoardPins = Array.isArray(node.pins) && node.pins.length > 0;
-  const isCodeable = node.category === "board" && typeof onOpenCode === "function";
+  // Resolve pins for any component (board, sensor, display, IC, discrete)
+  const effectivePins = getResolvedPins(node);
+  const hasBoardPins = Array.isArray(effectivePins) && effectivePins.length > 0;
+  const isCodeable = !previewMode && node.category === "board" && typeof onOpenCode === "function";
 
-  // Outer group is no longer pinned to [node.x, 0, node.z] directly - it
-  // glides toward that target every frame instead, so dragging a part (or
-  // its position snapping to the grid on drop) reads as smooth motion
-  // rather than an instant teleport. First mount snaps immediately so a
-  // freshly-placed or freshly-loaded part doesn't fly in from the origin.
   const groupRef = useRef(null);
   const initedRef = useRef(false);
   const liftRef = useRef(null);
@@ -110,16 +106,16 @@ export default function PlacedPart3D({
   });
 
   function getClosestTerminal(clickPoint) {
-    if (!clickPoint) return hasBoardPins ? node.pins[0]?.terminal : "a";
+    if (!clickPoint) return hasBoardPins ? effectivePins[0]?.terminal : "a";
 
     const clickX = clickPoint.x;
     const clickZ = clickPoint.z;
 
-    if (hasBoardPins && Array.isArray(node.pins) && node.pins.length > 0) {
-      let closestPin = node.pins[0];
+    if (hasBoardPins) {
+      let closestPin = effectivePins[0];
       let minDist = Infinity;
 
-      for (const pin of node.pins) {
+      for (const pin of effectivePins) {
         let px = node.x;
         let pz = node.z;
 
@@ -127,7 +123,7 @@ export default function PlacedPart3D({
           px += pin.xOffset;
           pz += pin.zOffset;
         } else {
-          const col = pin.side === "left" ? node.pins.filter((p) => p.side === "left") : node.pins.filter((p) => p.side === "right");
+          const col = pin.side === "left" ? effectivePins.filter((p) => p.side === "left") : effectivePins.filter((p) => p.side === "right");
           const count = col.length;
           const idxInCol = pin.order ?? col.findIndex((p) => p.terminal === pin.terminal);
           pz += (idxInCol - (count - 1) / 2) * BOARD_PIN_PITCH;
@@ -226,9 +222,9 @@ export default function PlacedPart3D({
         {Model && <Model lit={isLed ? powered : undefined} on={isToggleable ? isOn : undefined} node={node} modelType={node.modelType} partKey={node.key} name={node.name} />}
       </group>
 
-      {/* direct pin connection hit areas (no artificial dots - connects directly to circuit like real life) */}
+      {/* direct pin connection hit areas (connects directly to component pins like real life) */}
       {hasBoardPins
-        ? node.pins.map((pin) => {
+        ? effectivePins.map((pin) => {
             const selected = isTerminalSelected(node.id, pin.terminal);
             let xPos = 0;
             let zPos = 0;
@@ -236,17 +232,17 @@ export default function PlacedPart3D({
               xPos = pin.xOffset;
               zPos = pin.zOffset;
             } else {
-              const col = pin.side === "left" ? node.pins.filter((p) => p.side === "left") : node.pins.filter((p) => p.side === "right");
+              const col = pin.side === "left" ? effectivePins.filter((p) => p.side === "left") : effectivePins.filter((p) => p.side === "right");
               const count = col.length;
               const idxInCol = pin.order ?? col.findIndex((p) => p.terminal === pin.terminal);
               zPos = (idxInCol - (count - 1) / 2) * BOARD_PIN_PITCH;
               xPos = pin.side === "left" ? -BOARD_X_OFFSET : BOARD_X_OFFSET;
             }
-            const liftY = isDragging ? 0.28 : 0.16;
+            const liftY = isDragging ? 0.252 : 0.132;
             const pos = [xPos, liftY, zPos];
             return (
               <group key={pin.terminal}>
-                {/* Invisible hit box surrounding vertical header pin */}
+                {/* Invisible hit box surrounding header pin / lead */}
                 <mesh
                   position={pos}
                   onPointerDown={(e) => {
@@ -310,7 +306,7 @@ export default function PlacedPart3D({
           with the label closed, since double-click no longer opens code
           directly. Styled with an explicit color, not left to external CSS. */}
       {isCodeable && !labelOpen && (
-        <Html position={[0, 1.15, 0]} center distanceFactor={8} occlude>
+        <Html position={[0, 1.15, 0]} center distanceFactor={8}>
           <button
             className="part3d-code-badge"
             onClick={(e) => {
@@ -326,7 +322,7 @@ export default function PlacedPart3D({
       )}
 
       {labelOpen && (
-        <Html position={[0, 1.15, 0]} center distanceFactor={8} occlude>
+        <Html position={[0, 1.15, 0]} center distanceFactor={8}>
           <div
             className="part3d-label"
             style={{ borderColor: powered ? "#3ddc84" : accent }}

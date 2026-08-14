@@ -2,20 +2,6 @@
 
 All notable changes to the Virtual Circuit Builder project will be documented in this file.
 
-## [v1.7.0] - 2026-08-14
-
-### Added
-- **Signal Generator Utility**: Added `waveformGenerator.js` supporting Sine, Square, Triangle, and PWM signal calculations.
-- **SG90 Servo Specifications**: Added micro servo motor operating voltages, duty cycle ranges, and coil parameters in `electrical_models.py`.
-- **Keyboard Shortcuts Dialog**: Added `KeyboardShortcutsModal.jsx` for circuit builder UI hotkeys reference.
-- **API Rate Limiter**: Added token-bucket rate limiter middleware `rate_limiter.py` for endpoint protection.
-- **Backend Test Suite**: Added unit tests in `test_contributions.py` for waveform math and rate limiter logic.
-- **SVG Schematic Exporter**: Added `svgExporter.js` utility for vector SVG circuit canvas downloads.
-- **Floating Net Diagnostics**: Enhanced MNA solver in `mna_solver.py` with floating node detection warnings.
-- **REST API Documentation**: Added comprehensive `docs/API_SPECIFICATION.md` OpenAPI guide.
-- **Frontend ESLint Configuration**: Added `.eslintrc.json` enforcing React code hygiene standards.
-- **Release Milestone v1.7.0**: Completed 10 feature contributions milestone.
-
 ## [v1.3.0] - 2026-08-12
 
 ### Added

@@ -1,10 +1,10 @@
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Grid, ContactShadows, Environment } from "@react-three/drei";
 import PlacedPart3D from "./PlacedPart3D";
 import Wire3D from "./Wire3D";
-import { getWireAutoColor } from "../../constants/defaultComponentPins";
+import { getWireAutoColor, getTerminalWorldPos, getResolvedPins } from "../../constants/defaultComponentPins";
 
 const BOARD_X_OFFSET = 0.255;
 const BOARD_PIN_PITCH = 0.051;
@@ -41,34 +41,8 @@ export default function Scene3D({
 
   function terminalWorldPos(nodeId, terminal) {
     const n = nodes.find((x) => x.id === nodeId);
-    if (!n) return [0, 0.16, 0];
-
-    const isLifted = draggingId === nodeId;
-    const baseHeight = isLifted ? 0.28 : 0.16;
-
-    if (Array.isArray(n.pins) && n.pins.length > 0) {
-      const pin = n.pins.find((p) => p.terminal === terminal);
-      if (pin) {
-        if (typeof pin.xOffset === "number" && typeof pin.zOffset === "number") {
-          return [n.x + pin.xOffset, baseHeight, n.z + pin.zOffset];
-        }
-        const col = n.pins.filter((p) => p.side === pin.side);
-        const count = col.length;
-        const idxInCol = pin.order ?? col.findIndex((p) => p.terminal === pin.terminal);
-        const z = n.z + (idxInCol - (count - 1) / 2) * BOARD_PIN_PITCH;
-        const x = n.x + (pin.side === "left" ? -BOARD_X_OFFSET : BOARD_X_OFFSET);
-        return [x, baseHeight, z];
-      }
-    }
-
-    const t = String(terminal || "").toLowerCase();
-    const isLeft = ["a", "pos", "positive", "vcc", "pin1", "1", "anode", "in", "input"].includes(t);
-    const isRight = ["b", "neg", "negative", "gnd", "ground", "pin2", "2", "cathode", "out", "output"].includes(t);
-
-    if (isLeft) return [n.x - 0.19, baseHeight, n.z];
-    if (isRight) return [n.x + 0.19, baseHeight, n.z];
-
-    return [n.x, baseHeight, n.z];
+    if (!n) return [0, 0.132, 0];
+    return getTerminalWorldPos(n, terminal, draggingId === nodeId);
   }
 
   function getEdgeColor(edge) {
@@ -76,7 +50,8 @@ export default function Scene3D({
 
     // Look up terminal role to pick smart auto color
     const srcNode = nodes.find((n) => n.id === edge.sourceId);
-    const pin = srcNode?.pins?.find((p) => p.terminal === edge.sourceTerminal);
+    const pins = getResolvedPins(srcNode);
+    const pin = pins.find((p) => p.terminal === edge.sourceTerminal);
     if (pin) {
       return getWireAutoColor(pin.role, pin.label);
     }
@@ -125,8 +100,10 @@ export default function Scene3D({
       <color attach="background" args={["#080c10"]} />
       <fog attach="fog" args={["#080c10", 14, 32]} />
 
-      <ambientLight intensity={0.65} />
-      <hemisphereLight args={["#ffffff", "#121820", 0.55]} />
+      <Environment preset="city" resolution={256} background={false} />
+
+      <ambientLight intensity={0.28} />
+      <hemisphereLight args={["#ffffff", "#121820", 0.25]} />
 
       {/* Main Studio Key Light */}
       <directionalLight

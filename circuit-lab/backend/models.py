@@ -130,6 +130,7 @@ class Project(db.Model):
             "id": self.id,
             "name": self.name,
             "description": self.description or "",
+            "circuit_json": self.circuit_json or {"nodes": [], "edges": []},
             "owner_name": owner.name if owner else "Unknown",
             "owner_username": owner.username if owner else "",
             "component_count": len((self.circuit_json or {}).get("nodes", [])),

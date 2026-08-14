@@ -320,10 +320,10 @@ CATALOG = [
         spec={
             "led_count": 12,
             "pins": [
-                {"terminal": "vcc", "label": "5V / VCC", "role": "power", "xOffset": -0.28, "zOffset": 0.55, "volts": 5.0},
-                {"terminal": "din", "label": "DIN (Data In)", "role": "gpio", "xOffset": -0.09, "zOffset": 0.58, "gpio": None},
-                {"terminal": "gnd", "label": "GND", "role": "ground", "xOffset": 0.09, "zOffset": 0.58, "volts": 0},
-                {"terminal": "dout", "label": "DOUT (Data Out)", "role": "gpio", "xOffset": 0.28, "zOffset": 0.55, "gpio": None},
+                {"terminal": "vcc", "label": "5V / VCC", "role": "power", "xOffset": -0.095, "zOffset": 0.289, "volts": 5.0},
+                {"terminal": "din", "label": "DIN (Data In)", "role": "gpio", "xOffset": -0.03, "zOffset": 0.289, "gpio": None},
+                {"terminal": "gnd", "label": "GND", "role": "ground", "xOffset": 0.03, "zOffset": 0.289, "volts": 0},
+                {"terminal": "dout", "label": "DOUT (Data Out)", "role": "gpio", "xOffset": 0.095, "zOffset": 0.289, "gpio": None},
             ]
         },
     ),

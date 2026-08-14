@@ -2,6 +2,33 @@ import { useMemo, useState } from "react";
 import { Html } from "@react-three/drei";
 import * as THREE from "three";
 
+function ConnectorBoot({ position, color }) {
+  return (
+    <group position={position}>
+      {/* Outer Insulated Dupont Header Socket Housing */}
+      <mesh position={[0, 0.012, 0]} castShadow receiveShadow raycast={() => null}>
+        <boxGeometry args={[0.028, 0.048, 0.028]} />
+        <meshStandardMaterial color="#182028" roughness={0.35} metalness={0.25} envMapIntensity={1.2} />
+      </mesh>
+      {/* Colored Identification Stripe / Boot Collar */}
+      <mesh position={[0, 0.032, 0]} castShadow receiveShadow raycast={() => null}>
+        <boxGeometry args={[0.029, 0.014, 0.029]} />
+        <meshStandardMaterial color={color} roughness={0.3} metalness={0.4} envMapIntensity={1.4} />
+      </mesh>
+      {/* Silver Metallic Crimp Ring at wire neck */}
+      <mesh position={[0, 0.042, 0]} castShadow receiveShadow raycast={() => null}>
+        <cylinderGeometry args={[0.012, 0.012, 0.008, 12]} />
+        <meshStandardMaterial color="#c9d1d9" roughness={0.2} metalness={0.9} envMapIntensity={1.5} />
+      </mesh>
+      {/* Bottom Gold Pin Socket Tip Plugging onto Component Pin */}
+      <mesh position={[0, -0.012, 0]} castShadow receiveShadow raycast={() => null}>
+        <cylinderGeometry args={[0.013, 0.013, 0.018, 12]} />
+        <meshStandardMaterial color="#d4af37" roughness={0.2} metalness={0.9} envMapIntensity={1.5} />
+      </mesh>
+    </group>
+  );
+}
+
 export default function Wire3D({
   start,
   end,
@@ -21,8 +48,8 @@ export default function Wire3D({
     const e = new THREE.Vector3(end[0], endY, end[2]);
     const dist = s.distanceTo(e);
 
-    // Natural 3D cubic Bezier curve - lifts out of headers and never overshoots into sky
-    const lift = Math.min(0.35, 0.08 + dist * 0.12);
+    // Natural 3D cubic Bezier curve - lifts out of headers and loops naturally
+    const lift = Math.min(0.38, 0.09 + dist * 0.12);
     const cp1 = new THREE.Vector3(s.x, s.y + lift, s.z);
     const cp2 = new THREE.Vector3(e.x, e.y + lift, e.z);
 
@@ -40,7 +67,7 @@ export default function Wire3D({
 
   return (
     <group>
-      {/* Sleek 3D Cable Wire */}
+      {/* Sleek 3D Cable Wire Tube */}
       <mesh
         geometry={tubeGeometry}
         castShadow={!isPreview}
@@ -73,17 +100,11 @@ export default function Wire3D({
         />
       </mesh>
 
-      {/* Dupont Female Header Pin Sockets plugging directly onto the vertical pin | */}
+      {/* Realistic Dupont Pin Connector Boots at both start and end terminal ends */}
       {!isPreview && (
         <>
-          <mesh position={[startVec.x, startVec.y, startVec.z]} castShadow receiveShadow raycast={() => null}>
-            <cylinderGeometry args={[0.015, 0.015, 0.045, 12]} />
-            <meshStandardMaterial color={activeColor} roughness={0.3} metalness={0.6} envMapIntensity={1.2} />
-          </mesh>
-          <mesh position={[endVec.x, endVec.y, endVec.z]} castShadow receiveShadow raycast={() => null}>
-            <cylinderGeometry args={[0.015, 0.015, 0.045, 12]} />
-            <meshStandardMaterial color={activeColor} roughness={0.3} metalness={0.6} envMapIntensity={1.2} />
-          </mesh>
+          <ConnectorBoot position={[startVec.x, startVec.y, startVec.z]} color={activeColor} />
+          <ConnectorBoot position={[endVec.x, endVec.y, endVec.z]} color={activeColor} />
         </>
       )}
 
@@ -115,3 +136,4 @@ export default function Wire3D({
     </group>
   );
 }
+
