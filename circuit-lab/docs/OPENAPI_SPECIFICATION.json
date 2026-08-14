@@ -1,0 +1,15 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Virtual Circuit Builder REST API",
+    "version": "1.5.0"
+  },
+  "paths": {
+    "/api/projects": {
+      "get": { "summary": "List user circuit projects" }
+    },
+    "/api/simulate": {
+      "post": { "summary": "Run MNA simulation engine" }
+    }
+  }
+}
