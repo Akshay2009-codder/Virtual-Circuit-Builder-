@@ -125,7 +125,9 @@ export default function Scene3D({
       <color attach="background" args={["#080c10"]} />
       <fog attach="fog" args={["#080c10", 14, 32]} />
 
-      <Environment preset="city" resolution={256} background={false} />
+      <Suspense fallback={null}>
+        <Environment preset="city" resolution={256} background={false} />
+      </Suspense>
 
       <ambientLight intensity={0.28} />
       <hemisphereLight args={["#ffffff", "#121820", 0.25]} />
