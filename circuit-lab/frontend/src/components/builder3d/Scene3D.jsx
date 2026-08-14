@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import * as THREE from "three";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Grid, ContactShadows, Environment } from "@react-three/drei";
@@ -125,12 +125,8 @@ export default function Scene3D({
       <color attach="background" args={["#080c10"]} />
       <fog attach="fog" args={["#080c10", 14, 32]} />
 
-      <Suspense fallback={null}>
-        <Environment preset="city" resolution={256} background={false} />
-      </Suspense>
-
-      <ambientLight intensity={0.28} />
-      <hemisphereLight args={["#ffffff", "#121820", 0.25]} />
+      <ambientLight intensity={0.65} />
+      <hemisphereLight args={["#ffffff", "#121820", 0.55]} />
 
       {/* Main Studio Key Light */}
       <directionalLight
