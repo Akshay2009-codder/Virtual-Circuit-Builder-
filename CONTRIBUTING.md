@@ -1,32 +1,16 @@
 # Contributing to Virtual Circuit Builder
 
-Thank you for contributing to Virtual Circuit Builder! Below are guidelines and instructions for setting up your development environment and submitting contributions.
+We welcome community contributions!
 
-## Environment Setup
+## Commit Conventions
+Follow conventional commit formats:
+- `feat(...)`: New features
+- `fix(...)`: Bug fixes
+- `docs(...)`: Documentation updates
+- `refactor(...)`: Code restructuring
+- `test(...)`: Unit/integration tests
 
-### Frontend (React + Three.js + Vite)
-```bash
-cd circuit-lab/frontend
-npm install
-npm run dev
-```
-
-### Backend (Python + Flask + SQLite)
-```bash
-cd circuit-lab/backend
-python -m venv venv
-# On Windows:
-venv\Scripts\activate
-# On Linux/macOS:
-source venv/bin/activate
-
-pip install -r requirements.txt
-python seed.py
-python app.py
-```
-
-## Pull Request Guidelines
-
-1. **Commit Messages**: Follow standard conventional commits format (e.g. `feat: ...`, `fix: ...`, `docs: ...`, `refactor: ...`, `test: ...`).
-2. **Coding Standards**: Ensure JavaScript uses ES6+ idioms and Python follows PEP8 styling.
-3. **Tests**: Add unit tests for new frontend utilities under `src/utils/__tests__` and backend routes under `backend/tests`.
+## Submitting Pull Requests
+1. Fork the repo and create a feature branch.
+2. Ensure all tests pass.
+3. Submit a PR against `main`.
