@@ -1,0 +1,7 @@
+{
+  "deprecatedAssets": [
+    "frontend/src/assets/legacy_wire.png",
+    "frontend/src/assets/old_led_icon.png"
+  ],
+  "cleanupStatus": "Completed"
+}
