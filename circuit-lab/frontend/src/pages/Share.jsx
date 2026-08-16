@@ -8,11 +8,12 @@ import CommentsModal from "../components/CommentsModal";
 import client from "../api/client";
 
 const STATUS_LABEL = {
-  complete: "Working",
-  open: "Open circuit",
-  short: "Short circuit",
-  no_source: "No power",
+  complete: "Operational",
+  open: "Open Loop",
+  short: "Short Circuit",
+  no_source: "No Power",
 };
+
 const STATUS_COLOR = {
   complete: "#2fd66f",
   open: "#ffd32a",
@@ -20,17 +21,24 @@ const STATUS_COLOR = {
   no_source: "#6c7a85",
 };
 
-const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
-const cardVariants = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
+const CATEGORIES = [
+  { id: "all", label: "All Circuits", icon: "⚡" },
+  { id: "esp32", label: "ESP32 & IoT", icon: "📡" },
+  { id: "arduino", label: "Arduino Uno", icon: "🤖" },
+  { id: "led", label: "Opto & LEDs", icon: "💡" },
+  { id: "sensor", label: "Sensors & Radar", icon: "🎯" },
+  { id: "analog", label: "Analog & Power", icon: "🔋" },
+];
 
 const DEMO_PROJECTS = [
   {
     id: "demo-esp32-neopixel",
     name: "ESP32 + NeoPixel RGB LED Ring",
     description:
-      "An ESP32 microcontroller board connected in 3D to a 12-LED NeoPixel RGB ring. GPIO2 drives the DIN signal pin (green wire), VIN supplies 5V power (red wire), and GND completes the circuit (black wire).",
+      "An ESP32 microcontroller board driving a 12-LED NeoPixel RGB ring in 3D. GPIO2 carries DIN data, VIN provides 5V bus power, and common GND completes the loop.",
     owner_name: "Akshay_Dev",
     owner_username: "akshay_dev",
+    category: "esp32",
     last_run_status: "complete",
     liked_by_me: false,
     like_count: 245,
@@ -70,11 +78,12 @@ const DEMO_PROJECTS = [
   },
   {
     id: "demo-uno-ultrasonic",
-    name: "Arduino Uno + Ultrasonic Radar",
+    name: "Arduino Uno + HC-SR04 Ultrasonic Radar",
     description:
-      "Classic Arduino Uno board paired with an HC-SR04 ultrasonic distance sensor. Trigger pin connected to D9, Echo pin to D8, VCC to 5V rail, and GND to ground.",
+      "Classic Arduino Uno R3 interfaced with an HC-SR04 sonar sensor for 3D distance scanning. Trigger wired to D9, Echo to D8, 5V rail power, and ground.",
     owner_name: "TechExplorer",
     owner_username: "techexplorer",
+    category: "arduino",
     last_run_status: "complete",
     liked_by_me: true,
     like_count: 189,
@@ -115,11 +124,12 @@ const DEMO_PROJECTS = [
   },
   {
     id: "demo-yash11-1",
-    name: "Dual-LED Emergency Torch",
+    name: "Dual-LED Regulated Emergency Torch",
     description:
-      "A 9V battery drives two LEDs in series, each protected by its own current-limiting resistor, switched on/off with a toggle — a simple, real emergency flashlight circuit.",
+      "A 9V battery supplies dual LEDs in series, protected by dedicated 220Ω current limiters and controlled via an SPST toggle switch.",
     owner_name: "Yash_11",
     owner_username: "yash_11",
+    category: "analog",
     last_run_status: "complete",
     liked_by_me: false,
     like_count: 132,
@@ -151,6 +161,8 @@ export default function Share() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [sortBy, setSortBy] = useState("popular"); // popular | recent | parts
 
   const [selected3DProject, setSelected3DProject] = useState(null);
   const [activeCommentsProject, setActiveCommentsProject] = useState(null);
@@ -158,7 +170,7 @@ export default function Share() {
 
   function triggerToast(msg) {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 2500);
+    setTimeout(() => setToastMessage(null), 2800);
   }
 
   function openProjectInBuilder(p) {
@@ -179,7 +191,12 @@ export default function Share() {
   function matchesQuery(p, q) {
     if (!q) return true;
     const needle = q.toLowerCase();
-    return p.name.toLowerCase().includes(needle) || (p.description || "").toLowerCase().includes(needle);
+    return (
+      p.name.toLowerCase().includes(needle) ||
+      (p.description || "").toLowerCase().includes(needle) ||
+      (p.owner_name || "").toLowerCase().includes(needle) ||
+      (p.owner_username || "").toLowerCase().includes(needle)
+    );
   }
 
   function load(q = "") {
@@ -204,7 +221,6 @@ export default function Share() {
   useEffect(() => {
     const t = setTimeout(() => load(query), 300);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
   async function toggleLike(e, projectId) {
@@ -250,7 +266,7 @@ export default function Share() {
     const url = `${window.location.origin}/circuits/${p.id}`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url);
-      triggerToast(`Link for "${p.name}" copied to clipboard!`);
+      triggerToast(`Circuit link copied to clipboard!`);
     } else {
       triggerToast(`Share link: ${url}`);
     }
@@ -264,151 +280,320 @@ export default function Share() {
     setActiveCommentsProject(p);
   }
 
+  // Filter & Sort
+  const filteredProjects = projects
+    .filter((p) => {
+      if (activeCategory === "all") return true;
+      if (activeCategory === "esp32") {
+        return (
+          p.name.toLowerCase().includes("esp32") ||
+          (p.circuit_json?.nodes || []).some((n) => n.key === "esp32" || n.modelType === "esp32")
+        );
+      }
+      if (activeCategory === "arduino") {
+        return (
+          p.name.toLowerCase().includes("arduino") ||
+          (p.circuit_json?.nodes || []).some((n) => n.key === "arduino_uno" || n.modelType === "arduino_uno")
+        );
+      }
+      if (activeCategory === "led") {
+        return (
+          p.name.toLowerCase().includes("led") ||
+          (p.circuit_json?.nodes || []).some((n) => n.category === "output" || (n.key || "").includes("led"))
+        );
+      }
+      if (activeCategory === "sensor") {
+        return (
+          p.name.toLowerCase().includes("sensor") ||
+          (p.circuit_json?.nodes || []).some((n) => n.category === "sensor")
+        );
+      }
+      if (activeCategory === "analog") {
+        return (
+          p.name.toLowerCase().includes("battery") ||
+          p.name.toLowerCase().includes("torch") ||
+          (p.circuit_json?.nodes || []).some((n) => n.category === "power" || n.category === "passive")
+        );
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "popular") return (b.like_count || 0) - (a.like_count || 0);
+      if (sortBy === "recent") return (b.id > a.id ? 1 : -1);
+      if (sortBy === "parts") return (b.circuit_json?.nodes?.length || 0) - (a.circuit_json?.nodes?.length || 0);
+      return 0;
+    });
+
   return (
     <AppShell>
-      <div style={{ padding: "40px 6vw 60px", maxWidth: 1400, margin: "0 auto" }}>
-        {/* Header Hero Section */}
-        <div style={{ maxWidth: 720, marginBottom: 30 }}>
-          <div className="eyebrow" style={{ letterSpacing: "0.1em" }}>⚡ 3D COMMUNITY SHOWCASE</div>
-          <h1 style={styles.heroTitle}>
-            Explore <span className="gradient-text">Interactive 3D Circuits</span>
-          </h1>
-          <p style={{ color: "var(--text-dim)", fontSize: 15, lineHeight: 1.6, margin: "10px 0 0" }}>
-            Inspect, orbit, and experiment with real 3D circuits built by the CircuitLab community.
-            Click any circuit card to view it in full interactive 3D right on this page!
-          </p>
-        </div>
+      <div style={styles.page}>
+        {/* HERO SECTION */}
+        <section style={styles.heroSection}>
+          <div style={styles.heroGlow} />
+          
+          <div style={styles.heroContent}>
+            <div style={styles.badgePill}>
+              <span style={styles.badgeDot} />
+              <span>COMMUNITY 3D SCHEMATIC REPOSITORY</span>
+            </div>
 
-        {/* Search Bar */}
-        <div style={{ position: "relative", maxWidth: 520, marginBottom: 32 }}>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search 3D circuits by name, author, or components…"
-            style={styles.search}
-          />
-          <span style={styles.searchIcon}>🔍</span>
-        </div>
+            <h1 style={styles.heroTitle}>
+              Explore Interactive <span className="gradient-text">3D Circuits</span>
+            </h1>
 
-        {loading && <p style={{ color: "var(--text-dim)", marginTop: 20 }}>Loading 3D community circuits…</p>}
+            <p style={styles.heroSub}>
+              Inspect, test-run, and clone real hardware schematics designed by creators worldwide. 
+              Orbit any circuit in 3D right from your browser without leaving the page.
+            </p>
 
-        {!loading && projects.length === 0 && (
-          <div style={styles.empty}>
-            {query ? `No 3D circuits match "${query}".` : "No public circuits yet — be the first to share one!"}
+            {/* Quick Metrics Bar */}
+            <div style={styles.metricsBar}>
+              <div style={styles.metricItem}>
+                <span style={styles.metricVal}>{projects.length}+</span>
+                <span style={styles.metricLabel}>Community Circuits</span>
+              </div>
+              <div style={styles.metricDivider} />
+              <div style={styles.metricItem}>
+                <span style={styles.metricVal}>100%</span>
+                <span style={styles.metricLabel}>Real-time 3D View</span>
+              </div>
+              <div style={styles.metricDivider} />
+              <div style={styles.metricItem}>
+                <span style={styles.metricVal}>1-Click</span>
+                <span style={styles.metricLabel}>Clone to Builder</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* SEARCH, CATEGORIES & SORT BAR */}
+        <section style={styles.controlsSection}>
+          <div style={styles.searchRow}>
+            {/* Search Input */}
+            <div style={styles.searchContainer}>
+              <span style={styles.searchIcon}>🔍</span>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search circuits by name, creator, or components…"
+                style={styles.searchInput}
+              />
+              {query && (
+                <button onClick={() => setQuery("")} style={styles.clearBtn}>
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Sort Dropdown */}
+            <div style={styles.sortContainer}>
+              <span style={styles.sortLabel}>Sort:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                style={styles.sortSelect}
+              >
+                <option value="popular">Most Liked ❤️</option>
+                <option value="recent">Recently Added ⏱️</option>
+                <option value="parts">Component Count 🧩</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Category Filter Pills */}
+          <div style={styles.categoryRow}>
+            {CATEGORIES.map((cat) => {
+              const active = activeCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  style={{
+                    ...styles.catBtn,
+                    background: active ? "rgba(47, 214, 111, 0.16)" : "rgba(255, 255, 255, 0.03)",
+                    color: active ? "#2fd66f" : "var(--text-dim)",
+                    borderColor: active ? "rgba(47, 214, 111, 0.45)" : "var(--border)",
+                  }}
+                >
+                  <span>{cat.icon}</span>
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* LOADING STATE */}
+        {loading && (
+          <div style={styles.loadingGrid}>
+            {[1, 2, 3].map((n) => (
+              <div key={n} style={styles.skeletonCard}>
+                <div style={styles.skeletonUpper} />
+                <div style={styles.skeletonLower}>
+                  <div style={styles.skeletonLine} />
+                  <div style={{ ...styles.skeletonLine, width: "60%" }} />
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* 3D Projects Cards Grid */}
-        {!loading && projects.length > 0 && (
-          <motion.div style={styles.grid} variants={gridVariants} initial="hidden" animate="show">
-            {projects.map((p) => {
+        {/* EMPTY STATE */}
+        {!loading && filteredProjects.length === 0 && (
+          <div style={styles.emptyCard}>
+            <div style={{ fontSize: 38, marginBottom: 12 }}>🔍</div>
+            <h3 style={{ margin: "0 0 8px", fontSize: 18, color: "var(--text)" }}>No circuits found</h3>
+            <p style={{ margin: "0 0 16px", fontSize: 13.5, color: "var(--text-dim)", maxWidth: 400 }}>
+              {query
+                ? `No community circuits match "${query}". Try searching with different keywords.`
+                : "No circuits match the selected category filter."}
+            </p>
+            <button
+              onClick={() => {
+                setQuery("");
+                setActiveCategory("all");
+              }}
+              style={styles.resetBtn}
+            >
+              Clear Search & Filters
+            </button>
+          </div>
+        )}
+
+        {/* CARDS GRID */}
+        {!loading && filteredProjects.length > 0 && (
+          <div style={styles.grid}>
+            {filteredProjects.map((p) => {
               const nodes = p.circuit_json?.nodes || [];
               const edges = p.circuit_json?.edges || [];
               const authorHandle = p.owner_username ? `@${p.owner_username}` : `by ${p.owner_name}`;
 
               return (
-                <motion.div key={p.id} variants={cardVariants}>
-                  <div style={styles.card} onClick={() => setSelected3DProject(p)}>
-                    {/* UPPER SIDE: Interactive 3D Canvas Preview */}
-                    <div style={styles.cardUpper}>
-                      <Card3DCanvas
-                        nodes={nodes}
-                        edges={edges}
-                        height={210}
-                        onClick={() => setSelected3DProject(p)}
-                      />
+                <div
+                  key={p.id}
+                  style={styles.card}
+                  onClick={() => setSelected3DProject(p)}
+                >
+                  {/* UPPER SIDE: 3D Canvas Preview */}
+                  <div style={styles.cardUpper}>
+                    <Card3DCanvas
+                      nodes={nodes}
+                      edges={edges}
+                      height={220}
+                      onClick={() => setSelected3DProject(p)}
+                    />
+                  </div>
+
+                  {/* LOWER SIDE: Info, Tags, Actions */}
+                  <div style={styles.cardLower}>
+                    {/* Header: Title + Operational Status Badge */}
+                    <div style={styles.cardTitleRow}>
+                      <h3 style={styles.cardTitle}>{p.name}</h3>
+                      {p.last_run_status && (
+                        <span
+                          style={{
+                            ...styles.statusBadge,
+                            color: STATUS_COLOR[p.last_run_status] || "var(--text-dim)",
+                            borderColor: `${STATUS_COLOR[p.last_run_status]}44`,
+                            background: `${STATUS_COLOR[p.last_run_status]}18`,
+                          }}
+                        >
+                          ● {STATUS_LABEL[p.last_run_status] || "Simulated"}
+                        </span>
+                      )}
                     </div>
 
-                    {/* LOWER SIDE: Description, Name, Actions, Author */}
-                    <div style={styles.cardLower}>
-                      {/* Name & Status Pill */}
-                      <div style={styles.cardTop}>
-                        <h3 style={styles.cardName}>{p.name}</h3>
-                        {p.last_run_status && (
-                          <span style={{ ...styles.statusPill, color: STATUS_COLOR[p.last_run_status] }}>
-                            ● {STATUS_LABEL[p.last_run_status]}
-                          </span>
-                        )}
-                      </div>
+                    {/* Description */}
+                    {p.description && <p style={styles.cardDescription}>{p.description}</p>}
 
-                      {/* Description */}
-                      {p.description && <p style={styles.cardDesc}>{p.description}</p>}
+                    {/* Component Chips */}
+                    <div style={styles.chipsRow}>
+                      {nodes.slice(0, 3).map((n, idx) => (
+                        <span key={idx} style={styles.partChip}>
+                          {n.name}
+                        </span>
+                      ))}
+                      {nodes.length > 3 && (
+                        <span style={styles.morePartsChip}>+{nodes.length - 3} more</span>
+                      )}
+                    </div>
 
-                      {/* View in 3D Modal & Edit in Builder Buttons */}
-                      <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelected3DProject(p);
-                          }}
-                          style={styles.view3dBtn}
-                        >
-                          <span>View in 3D 👁️</span>
-                        </button>
+                    {/* Primary Action Buttons */}
+                    <div style={styles.cardButtonRow}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelected3DProject(p);
+                        }}
+                        style={styles.inspectBtn}
+                      >
+                        <span>Inspect in 3D 👁️</span>
+                      </button>
 
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openProjectInBuilder(p);
-                          }}
-                          style={styles.openBuilderBtn}
-                        >
-                          <span>Edit in Builder ➔</span>
-                        </button>
-                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openProjectInBuilder(p);
+                        }}
+                        style={styles.cloneBtn}
+                      >
+                        <span>Clone & Edit ➔</span>
+                      </button>
+                    </div>
 
-                      {/* Interactive Action Bar: Like, Comment, Share */}
-                      <div style={styles.actionBar}>
-                        {/* Like Button */}
+                    {/* Social & Author Footer */}
+                    <div style={styles.cardFooter}>
+                      {/* Author */}
+                      <Link
+                        to={`/u/${p.owner_username || p.owner_name}`}
+                        onClick={(e) => e.stopPropagation()}
+                        style={styles.authorLink}
+                      >
+                        <div style={styles.avatar}>
+                          {p.owner_name?.[0]?.toUpperCase() || "U"}
+                        </div>
+                        <span style={styles.authorName}>{authorHandle}</span>
+                      </Link>
+
+                      {/* Action Pills: Likes, Comments, Share */}
+                      <div style={styles.socialBar}>
                         <button
                           onClick={(e) => toggleLike(e, p.id)}
                           style={{
-                            ...styles.actionBtn,
+                            ...styles.socialBtn,
                             color: p.liked_by_me ? "#ff4757" : "var(--text-dim)",
                             background: p.liked_by_me ? "rgba(255, 71, 87, 0.12)" : "rgba(255, 255, 255, 0.04)",
                             borderColor: p.liked_by_me ? "rgba(255, 71, 87, 0.35)" : "var(--border)",
                           }}
                           title={p.liked_by_me ? "Unlike circuit" : "Like circuit"}
                         >
-                          <span style={{ fontSize: 14 }}>{p.liked_by_me ? "❤️" : "🤍"}</span>
-                          <span>{p.like_count}</span>
+                          <span>{p.liked_by_me ? "❤️" : "🤍"}</span>
+                          <span>{p.like_count || 0}</span>
                         </button>
 
-                        {/* Comment Button */}
                         <button
                           onClick={(e) => handleOpenComments(e, p)}
-                          style={styles.actionBtn}
-                          title="View and add comments"
+                          style={styles.socialBtn}
+                          title="View comments"
                         >
-                          <span style={{ fontSize: 13 }}>💬</span>
-                          <span>{p.comment_count}</span>
+                          <span>💬</span>
+                          <span>{p.comment_count || 0}</span>
                         </button>
 
-                        {/* Share Button */}
-                        <button onClick={(e) => handleShare(e, p)} style={styles.actionBtn} title="Share circuit link">
-                          <span style={{ fontSize: 13 }}>🔗</span>
-                          <span>Share</span>
-                        </button>
-                      </div>
-
-                      {/* Bottom Author Tag & Username */}
-                      <div style={styles.cardFooter}>
-                        <Link
-                          to={`/u/${p.owner_username || p.owner_name}`}
-                          onClick={(e) => e.stopPropagation()}
-                          style={styles.authorTag}
+                        <button
+                          onClick={(e) => handleShare(e, p)}
+                          style={styles.socialBtn}
+                          title="Copy share link"
                         >
-                          <span style={styles.avatarCircle}>{p.owner_name?.[0]?.toUpperCase() || "U"}</span>
-                          <span style={styles.authorHandle}>{authorHandle}</span>
-                        </Link>
-                        <span style={styles.componentBadge}>{nodes.length} Parts</span>
+                          <span>🔗</span>
+                        </button>
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               );
             })}
-          </motion.div>
+          </div>
         )}
       </div>
 
@@ -457,181 +642,411 @@ export default function Share() {
 }
 
 const styles = {
-  heroTitle: {
-    margin: "6px 0 0",
-    fontSize: "clamp(28px, 3.6vw, 42px)",
-    fontWeight: 800,
-    fontFamily: "var(--font-body)",
-    lineHeight: 1.15,
+  page: {
+    padding: "36px 5vw 80px",
+    maxWidth: 1400,
+    margin: "0 auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: 32,
   },
-  search: {
-    width: "100%",
-    background: "var(--surface)",
+  heroSection: {
+    position: "relative",
+    padding: "40px 36px 36px",
+    background: "linear-gradient(135deg, rgba(16, 23, 32, 0.9) 0%, rgba(10, 14, 19, 0.95) 100%)",
     border: "1px solid var(--border-bright)",
-    borderRadius: "var(--radius-sm)",
-    padding: "12px 16px 12px 42px",
+    borderRadius: "var(--radius)",
+    overflow: "hidden",
+    boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
+  },
+  heroGlow: {
+    position: "absolute",
+    top: -60,
+    right: -60,
+    width: 320,
+    height: 320,
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(47, 214, 111, 0.14) 0%, transparent 70%)",
+    pointerEvents: "none",
+  },
+  heroContent: {
+    position: "relative",
+    zIndex: 2,
+    maxWidth: 820,
+  },
+  badgePill: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "4px 12px",
+    background: "rgba(47, 214, 111, 0.1)",
+    border: "1px solid rgba(47, 214, 111, 0.35)",
+    borderRadius: 20,
+    fontSize: 10.5,
+    fontWeight: 800,
+    letterSpacing: "0.08em",
+    color: "#2fd66f",
+    fontFamily: "var(--font-display)",
+    marginBottom: 12,
+  },
+  badgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: "50%",
+    background: "#2fd66f",
+    boxShadow: "0 0 8px #2fd66f",
+  },
+  heroTitle: {
+    margin: "0 0 10px",
+    fontSize: "clamp(28px, 3.8vw, 44px)",
+    fontWeight: 800,
+    letterSpacing: "-0.01em",
+    lineHeight: 1.15,
     color: "var(--text)",
-    fontSize: 14,
-    outline: "none",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+  },
+  heroSub: {
+    margin: "0 0 24px",
+    fontSize: 15,
+    color: "var(--text-dim)",
+    lineHeight: 1.6,
+  },
+  metricsBar: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 24,
+    padding: "12px 20px",
+    background: "rgba(255, 255, 255, 0.03)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-sm)",
+  },
+  metricItem: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+  },
+  metricVal: {
+    fontSize: 16,
+    fontWeight: 800,
+    fontFamily: "var(--font-display)",
+    color: "var(--primary)",
+  },
+  metricLabel: {
+    fontSize: 11,
+    color: "var(--text-dim)",
+  },
+  metricDivider: {
+    width: 1,
+    height: 24,
+    background: "var(--border)",
+  },
+  controlsSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+  },
+  searchRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 16,
+    flexWrap: "wrap",
+  },
+  searchContainer: {
+    position: "relative",
+    flex: 1,
+    minWidth: 280,
   },
   searchIcon: {
     position: "absolute",
     left: 14,
     top: "50%",
     transform: "translateY(-50%)",
-    pointerEvents: "none",
     fontSize: 14,
+    pointerEvents: "none",
     opacity: 0.6,
   },
-  empty: {
-    border: "1px dashed var(--border-bright)",
-    borderRadius: "var(--radius)",
-    padding: "50px",
+  searchInput: {
+    width: "100%",
+    padding: "12px 38px 12px 42px",
+    background: "rgba(16, 22, 29, 0.85)",
+    border: "1px solid var(--border-bright)",
+    borderRadius: "var(--radius-sm)",
+    color: "var(--text)",
+    fontSize: 13.5,
+    outline: "none",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+  },
+  clearBtn: {
+    position: "absolute",
+    right: 12,
+    top: "50%",
+    transform: "translateY(-50%)",
+    background: "none",
+    border: "none",
     color: "var(--text-dim)",
-    textAlign: "center",
+    cursor: "pointer",
+    fontSize: 13,
+  },
+  sortContainer: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  sortLabel: {
+    fontSize: 12.5,
+    fontWeight: 600,
+    color: "var(--text-dim)",
+  },
+  sortSelect: {
+    padding: "10px 14px",
+    background: "rgba(16, 22, 29, 0.85)",
+    border: "1px solid var(--border-bright)",
+    borderRadius: "var(--radius-sm)",
+    color: "var(--text)",
+    fontSize: 13,
+    outline: "none",
+    cursor: "pointer",
+  },
+  categoryRow: {
+    display: "flex",
+    gap: 8,
+    overflowX: "auto",
+    paddingBottom: 4,
+  },
+  catBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "8px 16px",
+    borderRadius: "var(--radius-sm)",
+    border: "1px solid var(--border)",
+    fontSize: 12.5,
+    fontWeight: 600,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    transition: "all 0.15s ease",
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-    gap: 24,
+    gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
+    gap: 26,
   },
   card: {
     display: "flex",
     flexDirection: "column",
-    background: "var(--surface)",
+    background: "rgba(16, 22, 29, 0.82)",
     border: "1px solid var(--border-bright)",
     borderRadius: "var(--radius)",
     overflow: "hidden",
-    boxShadow: "0 12px 32px rgba(0,0,0,0.35)",
-    transition: "transform 0.2s ease, border-color 0.2s ease",
+    boxShadow: "0 12px 36px rgba(0,0,0,0.45)",
+    transition: "transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease",
     cursor: "pointer",
   },
   cardUpper: {
     width: "100%",
+    background: "#080c10",
   },
   cardLower: {
-    padding: "18px 20px 16px",
+    padding: "20px",
     display: "flex",
     flexDirection: "column",
     flex: 1,
     gap: 12,
   },
-  cardTop: {
+  cardTitleRow: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: 10,
   },
-  cardName: { margin: 0, fontSize: 17, fontWeight: 700, color: "var(--text)", lineHeight: 1.25 },
-  statusPill: {
-    fontFamily: "var(--font-display)",
+  cardTitle: {
+    margin: 0,
+    fontSize: 16.5,
+    fontWeight: 700,
+    color: "var(--text)",
+    lineHeight: 1.3,
+  },
+  statusBadge: {
     fontSize: 10.5,
     fontWeight: 700,
-    letterSpacing: "0.04em",
+    fontFamily: "var(--font-display)",
+    padding: "2px 8px",
+    borderRadius: 10,
+    border: "1px solid",
     whiteSpace: "nowrap",
-    flexShrink: 0,
+    letterSpacing: "0.04em",
   },
-  cardDesc: {
+  cardDescription: {
+    margin: 0,
     fontSize: 13,
     color: "var(--text-dim)",
     lineHeight: 1.5,
-    margin: 0,
     display: "-webkit-box",
     WebkitLineClamp: 3,
     WebkitBoxOrient: "vertical",
     overflow: "hidden",
   },
-  view3dBtn: {
-    flex: 1,
+  chipsRow: {
     display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 2,
+  },
+  partChip: {
+    fontSize: 10.5,
+    padding: "2px 8px",
+    background: "rgba(255, 255, 255, 0.04)",
+    border: "1px solid var(--border)",
+    borderRadius: 4,
+    color: "var(--text-dim)",
+  },
+  morePartsChip: {
+    fontSize: 10.5,
+    padding: "2px 6px",
+    color: "var(--primary)",
+    fontWeight: 600,
+  },
+  cardButtonRow: {
+    display: "flex",
+    gap: 8,
+    marginTop: 4,
+  },
+  inspectBtn: {
+    flex: 1,
     padding: "9px 12px",
-    background: "rgba(47, 214, 111, 0.12)",
-    border: "1px solid rgba(47, 214, 111, 0.35)",
+    background: "rgba(47, 214, 111, 0.14)",
+    border: "1px solid rgba(47, 214, 111, 0.4)",
     borderRadius: "var(--radius-sm)",
     color: "#2fd66f",
     fontSize: 12.5,
     fontWeight: 700,
     cursor: "pointer",
-  },
-  openBuilderBtn: {
-    flex: 1,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+  },
+  cloneBtn: {
+    flex: 1,
     padding: "9px 12px",
     background: "rgba(255, 255, 255, 0.05)",
     border: "1px solid var(--border)",
     borderRadius: "var(--radius-sm)",
-    color: "var(--text-dim)",
+    color: "var(--text)",
     fontSize: 12.5,
     fontWeight: 600,
     cursor: "pointer",
-  },
-  actionBar: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    paddingTop: 4,
-  },
-  actionBtn: {
-    flex: 1,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    padding: "7px 10px",
-    background: "rgba(255, 255, 255, 0.04)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius-sm)",
-    color: "var(--text-dim)",
-    fontSize: 12.5,
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "all 0.15s ease",
   },
   cardFooter: {
     marginTop: "auto",
-    paddingTop: 12,
+    paddingTop: 14,
+    borderTop: "1px solid var(--border)",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    borderTop: "1px solid var(--border)",
+    gap: 12,
   },
-  authorTag: {
+  authorLink: {
     display: "flex",
     alignItems: "center",
     gap: 8,
     textDecoration: "none",
   },
-  avatarCircle: {
-    width: 24,
-    height: 24,
+  avatar: {
+    width: 26,
+    height: 26,
     borderRadius: "50%",
-    background: "var(--primary)",
+    background: "linear-gradient(135deg, #2fd66f 0%, #1f9a51 100%)",
     color: "#0a0e13",
+    fontWeight: 800,
+    fontSize: 12,
     display: "grid",
     placeItems: "center",
-    fontWeight: 800,
-    fontSize: 11,
   },
-  authorHandle: { fontSize: 12.5, fontWeight: 600, color: "var(--text-dim)" },
-  componentBadge: { fontSize: 11, color: "var(--text-faint)", background: "rgba(255,255,255,0.03)", padding: "3px 8px", borderRadius: 4 },
+  authorName: {
+    fontSize: 12.5,
+    fontWeight: 600,
+    color: "var(--text-dim)",
+  },
+  socialBar: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+  },
+  socialBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    padding: "5px 9px",
+    background: "rgba(255, 255, 255, 0.04)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-sm)",
+    fontSize: 12,
+    color: "var(--text-dim)",
+    cursor: "pointer",
+  },
+  loadingGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
+    gap: 26,
+  },
+  skeletonCard: {
+    background: "rgba(16, 22, 29, 0.6)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius)",
+    height: 380,
+    overflow: "hidden",
+  },
+  skeletonUpper: {
+    height: 220,
+    background: "rgba(255, 255, 255, 0.02)",
+  },
+  skeletonLower: {
+    padding: 20,
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+  },
+  skeletonLine: {
+    height: 16,
+    borderRadius: 4,
+    background: "rgba(255, 255, 255, 0.04)",
+  },
+  emptyCard: {
+    padding: "60px 20px",
+    textAlign: "center",
+    background: "rgba(16, 22, 29, 0.6)",
+    border: "1px dashed var(--border-bright)",
+    borderRadius: "var(--radius)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  resetBtn: {
+    padding: "8px 18px",
+    background: "var(--primary)",
+    color: "#0a0e13",
+    border: "none",
+    borderRadius: "var(--radius-sm)",
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: "pointer",
+  },
   toast: {
     position: "fixed",
     bottom: 24,
     right: 24,
-    zIndex: 2000,
-    background: "#161f28",
+    zIndex: 3000,
+    background: "rgba(16, 22, 29, 0.95)",
     border: "1px solid #2fd66f",
-    borderRadius: "var(--radius-sm)",
-    padding: "12px 20px",
     color: "#2fd66f",
+    padding: "12px 20px",
+    borderRadius: "var(--radius-sm)",
     fontSize: 13.5,
     fontWeight: 700,
-    boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+    boxShadow: "0 8px 28px rgba(0,0,0,0.6)",
+    backdropFilter: "blur(8px)",
   },
 };
