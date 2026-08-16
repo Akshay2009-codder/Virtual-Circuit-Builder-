@@ -29,10 +29,11 @@ export default function Login() {
     setFormError("");
     setStatus("loading");
     try {
-      await login(form.username.trim().toLowerCase(), form.password);
+      const data = await login(form.username.trim().toLowerCase(), form.password);
       // swipe the whole page up and out, then navigate once it's clear
       setLoggedIn(true);
-      setTimeout(() => navigate("/dashboard"), 550);
+      const target = data?.user?.is_admin ? "/admin" : "/dashboard";
+      setTimeout(() => navigate(target), 550);
     } catch (err) {
       setStatus("error");
       setFormError(err.response?.data?.error || "Couldn't sign in. Check your details and try again.");

@@ -33,6 +33,21 @@ export default function AppShell({ children }) {
               Profile
             </NavLink>
           )}
+          {user?.is_admin && (
+            <NavLink
+              to="/admin"
+              style={({ isActive }) => ({
+                ...navStyle({ isActive }),
+                color: isActive ? "var(--primary)" : "var(--primary)",
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              })}
+            >
+              <span style={{ fontSize: 9, background: "rgba(47, 214, 111, 0.2)", padding: "1px 5px", borderRadius: 4, border: "1px solid rgba(47, 214, 111, 0.4)" }}>ADMIN</span>
+            </NavLink>
+          )}
         </nav>
 
         <div style={styles.userArea}>
