@@ -334,7 +334,7 @@ export default function Share() {
           <div style={styles.heroContent}>
             <div style={styles.badgePill}>
               <span style={styles.badgeDot} />
-              <span>COMMUNITY 3D SCHEMATIC REPOSITORY</span>
+              <span>COMMUNITY 3D SHOWCASE</span>
             </div>
 
             <h1 style={styles.heroTitle}>
@@ -342,27 +342,8 @@ export default function Share() {
             </h1>
 
             <p style={styles.heroSub}>
-              Inspect, test-run, and clone real hardware schematics designed by creators worldwide. 
-              Orbit any circuit in 3D right from your browser without leaving the page.
+              Inspect, test-run, and clone real hardware schematics in interactive 3D.
             </p>
-
-            {/* Quick Metrics Bar */}
-            <div style={styles.metricsBar}>
-              <div style={styles.metricItem}>
-                <span style={styles.metricVal}>{projects.length}+</span>
-                <span style={styles.metricLabel}>Community Circuits</span>
-              </div>
-              <div style={styles.metricDivider} />
-              <div style={styles.metricItem}>
-                <span style={styles.metricVal}>100%</span>
-                <span style={styles.metricLabel}>Real-time 3D View</span>
-              </div>
-              <div style={styles.metricDivider} />
-              <div style={styles.metricItem}>
-                <span style={styles.metricVal}>1-Click</span>
-                <span style={styles.metricLabel}>Clone to Builder</span>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -652,7 +633,7 @@ const styles = {
   },
   heroSection: {
     position: "relative",
-    padding: "40px 36px 36px",
+    padding: "28px 32px 24px",
     background: "linear-gradient(135deg, rgba(16, 23, 32, 0.9) 0%, rgba(10, 14, 19, 0.95) 100%)",
     border: "1px solid var(--border-bright)",
     borderRadius: "var(--radius)",
@@ -687,7 +668,7 @@ const styles = {
     letterSpacing: "0.08em",
     color: "#2fd66f",
     fontFamily: "var(--font-display)",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   badgeDot: {
     width: 6,
@@ -697,47 +678,18 @@ const styles = {
     boxShadow: "0 0 8px #2fd66f",
   },
   heroTitle: {
-    margin: "0 0 10px",
-    fontSize: "clamp(28px, 3.8vw, 44px)",
+    margin: "0 0 8px",
+    fontSize: "clamp(26px, 3.4vw, 38px)",
     fontWeight: 800,
     letterSpacing: "-0.01em",
     lineHeight: 1.15,
     color: "var(--text)",
   },
   heroSub: {
-    margin: "0 0 24px",
-    fontSize: 15,
+    margin: 0,
+    fontSize: 14,
     color: "var(--text-dim)",
-    lineHeight: 1.6,
-  },
-  metricsBar: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 24,
-    padding: "12px 20px",
-    background: "rgba(255, 255, 255, 0.03)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius-sm)",
-  },
-  metricItem: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
-  },
-  metricVal: {
-    fontSize: 16,
-    fontWeight: 800,
-    fontFamily: "var(--font-display)",
-    color: "var(--primary)",
-  },
-  metricLabel: {
-    fontSize: 11,
-    color: "var(--text-dim)",
-  },
-  metricDivider: {
-    width: 1,
-    height: 24,
-    background: "var(--border)",
+    lineHeight: 1.5,
   },
   controlsSection: {
     display: "flex",
