@@ -127,6 +127,14 @@ function AnimatedRoutes() {
             </AdminRoute>
           }
         />
+        <Route
+          path="/admin/*"
+          element={
+            <AdminRoute>
+              <PageTransition><Admin /></PageTransition>
+            </AdminRoute>
+          }
+        />
       </Routes>
     </AnimatePresence>
   );
