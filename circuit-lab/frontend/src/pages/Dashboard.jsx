@@ -8,30 +8,17 @@ import { timeAgo } from "../utils/timeAgo";
 import client from "../api/client";
 
 const RUN_STATUS = {
-  complete: { label: "Working", color: "var(--primary)" },
-  open: { label: "Open circuit", color: "var(--gold)" },
-  short: { label: "Short circuit", color: "var(--danger)" },
-  no_source: { label: "No power source", color: "var(--text-faint)" },
+  complete: { label: "Operational", color: "#2fd66f", bg: "rgba(47, 214, 111, 0.12)", border: "rgba(47, 214, 111, 0.35)" },
+  open: { label: "Open Loop", color: "#ffd32a", bg: "rgba(255, 211, 42, 0.12)", border: "rgba(255, 211, 42, 0.35)" },
+  short: { label: "Short Circuit", color: "#ff4757", bg: "rgba(255, 71, 87, 0.12)", border: "rgba(255, 71, 87, 0.35)" },
+  no_source: { label: "No Power Source", color: "var(--text-dim)", bg: "rgba(255, 255, 255, 0.04)", border: "var(--border)" },
 };
 
-const MotionLink = motion(Link);
-
-const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
+const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const cardVariants = {
   hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
-  exit: { opacity: 0, x: -24, scale: 0.98, transition: { duration: 0.2, ease: "easeIn" } },
-};
-const menuVariants = {
-  hidden: { opacity: 0, scale: 0.92, y: -6 },
-  show: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.15, ease: "easeOut" } },
-  exit: { opacity: 0, scale: 0.94, y: -4, transition: { duration: 0.1 } },
-};
-const modalBackdropVariants = { hidden: { opacity: 0 }, show: { opacity: 1 }, exit: { opacity: 0 } };
-const modalPanelVariants = {
-  hidden: { opacity: 0, scale: 0.94, y: 12 },
-  show: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.22, ease: "easeOut" } },
-  exit: { opacity: 0, scale: 0.96, y: 8, transition: { duration: 0.15 } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
+  exit: { opacity: 0, scale: 0.96, transition: { duration: 0.15 } },
 };
 
 function greeting() {
@@ -42,12 +29,10 @@ function greeting() {
 }
 
 function runBadge(project) {
-  if (!project.last_run_status) return { label: "Not tested yet", color: "var(--text-faint)" };
-  return RUN_STATUS[project.last_run_status] || { label: "Unknown", color: "var(--text-faint)" };
+  if (!project.last_run_status) return { label: "Unchecked", color: "var(--text-dim)", bg: "rgba(255, 255, 255, 0.03)", border: "var(--border)" };
+  return RUN_STATUS[project.last_run_status] || { label: "Simulated", color: "var(--text-dim)", bg: "rgba(255, 255, 255, 0.03)", border: "var(--border)" };
 }
 
-// Counts up from 0 to `value` whenever value changes - used on the stat cards
-// so the dashboard feels alive instead of just printing static numbers.
 function AnimatedNumber({ value }) {
   const [display, setDisplay] = useState(0);
   const fromRef = useRef(0);
@@ -68,38 +53,26 @@ function AnimatedNumber({ value }) {
     }
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   return <>{display}</>;
 }
 
-function Toast({ toast }) {
+function StatCard({ label, value, sub, icon, accent = "var(--primary)" }) {
   return (
-    <div style={styles.toastWrap}>
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            key={toast.id}
-            initial={{ opacity: 0, y: 12, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            style={{
-              ...styles.toast,
-              borderColor: toast.type === "error" ? "var(--danger)" : "var(--primary)",
-            }}
-          >
-            <span
-              style={{
-                ...styles.toastDot,
-                background: toast.type === "error" ? "var(--danger)" : "var(--primary)",
-              }}
-            />
-            {toast.message}
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div style={{ ...styles.statCard, borderColor: "var(--border)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={styles.statLabel}>{label}</div>
+          <div style={{ ...styles.statNumber, color: accent }}>
+            <AnimatedNumber value={value} />
+          </div>
+        </div>
+        <div style={{ ...styles.statIconBox, background: `${accent}18`, color: accent, borderColor: `${accent}40` }}>
+          {icon}
+        </div>
+      </div>
+      <div style={styles.statSub}>{sub}</div>
     </div>
   );
 }
@@ -130,9 +103,7 @@ function ProjectMenu({ project, onRename, onDuplicate, onDelete }) {
 
   return (
     <div ref={ref} style={{ position: "relative" }} onClick={stop}>
-      <motion.button
-        whileHover={{ background: "var(--border)" }}
-        whileTap={{ scale: 0.92 }}
+      <button
         onClick={(e) => {
           stop(e);
           setOpen((o) => !o);
@@ -141,98 +112,68 @@ function ProjectMenu({ project, onRename, onDuplicate, onDelete }) {
         aria-label="Circuit options"
       >
         ⋮
-      </motion.button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            variants={menuVariants}
-            initial="hidden"
-            animate="show"
-            exit="exit"
-            style={styles.menu}
-            onClick={stop}
+      </button>
+      {open && (
+        <div style={styles.menu} onClick={stop}>
+          <button
+            style={styles.menuItem}
+            onClick={(e) => {
+              stop(e);
+              setOpen(false);
+              onRename(project);
+            }}
           >
-            <button
-              style={styles.menuItem}
-              onClick={(e) => {
-                stop(e);
-                setOpen(false);
-                onRename(project);
-              }}
-            >
-              Rename
-            </button>
-            <button
-              style={styles.menuItem}
-              onClick={(e) => {
-                stop(e);
-                setOpen(false);
-                onDuplicate(project);
-              }}
-            >
-              Duplicate
-            </button>
-            <div style={styles.menuDivider} />
-            <button
-              style={{ ...styles.menuItem, color: "var(--danger)" }}
-              onClick={(e) => {
-                stop(e);
-                setOpen(false);
-                onDelete(project);
-              }}
-            >
-              Delete
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            ✏️ Rename Circuit
+          </button>
+          <button
+            style={styles.menuItem}
+            onClick={(e) => {
+              stop(e);
+              setOpen(false);
+              onDuplicate(project);
+            }}
+          >
+            📋 Duplicate Project
+          </button>
+          <div style={styles.menuDivider} />
+          <button
+            style={{ ...styles.menuItem, color: "var(--danger)" }}
+            onClick={(e) => {
+              stop(e);
+              setOpen(false);
+              onDelete(project);
+            }}
+          >
+            🗑️ Delete Circuit
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 function DeleteConfirmModal({ project, onCancel, onConfirm, deleting }) {
+  if (!project) return null;
   return (
-    <AnimatePresence>
-      {project && (
-        <motion.div
-          variants={modalBackdropVariants}
-          initial="hidden"
-          animate="show"
-          exit="exit"
-          style={styles.backdrop}
-          onClick={onCancel}
-        >
-          <motion.div
-            variants={modalPanelVariants}
-            initial="hidden"
-            animate="show"
-            exit="exit"
-            style={styles.confirmPanel}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ margin: "0 0 8px", fontSize: 16 }}>Delete this circuit?</h3>
-            <p style={{ margin: "0 0 20px", fontSize: 13, color: "var(--text-dim)" }}>
-              <strong style={{ color: "var(--text)" }}>{project.name}</strong> and its circuit data
-              will be permanently removed. This can't be undone.
-            </p>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-              <button style={styles.cancelBtn} onClick={onCancel} disabled={deleting}>
-                Cancel
-              </button>
-              <motion.button
-                whileHover={{ scale: deleting ? 1 : 1.03 }}
-                whileTap={{ scale: deleting ? 1 : 0.97 }}
-                style={styles.deleteBtn}
-                onClick={onConfirm}
-                disabled={deleting}
-              >
-                {deleting ? "Deleting…" : "Delete circuit"}
-              </motion.button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <div style={styles.backdrop} onClick={onCancel}>
+      <div style={styles.confirmPanel} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+          <span style={{ fontSize: 22 }}>⚠️</span>
+          <h3 style={{ margin: 0, fontSize: 17, color: "var(--text)" }}>Delete this circuit?</h3>
+        </div>
+        <p style={{ margin: "0 0 20px", fontSize: 13.5, color: "var(--text-dim)", lineHeight: 1.5 }}>
+          <strong style={{ color: "var(--text)" }}>"{project.name}"</strong> and all placed component wiring will be permanently removed.
+        </p>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <button style={styles.cancelBtn} onClick={onCancel} disabled={deleting}>
+            Cancel
+          </button>
+          <button style={styles.deleteBtn} onClick={onConfirm} disabled={deleting}>
+            {deleting ? "Deleting…" : "Delete Circuit"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -246,7 +187,9 @@ export default function Dashboard() {
   const [createError, setCreateError] = useState("");
 
   const [query, setQuery] = useState("");
-  const [sortBy, setSortBy] = useState("recent"); // recent | name | components
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("recent");
+  const [viewMode, setViewMode] = useState("grid"); // grid | list
 
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
@@ -254,22 +197,17 @@ export default function Dashboard() {
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
-
   const [toast, setToast] = useState(null);
 
   function loadProjects() {
     client
       .get("/projects")
-      .then((res) => setProjects(res.data.projects))
+      .then((res) => setProjects(res.data.projects || []))
       .finally(() => setLoading(false));
   }
 
   useEffect(() => {
     loadProjects();
-
-    // NotificationBell lives in AppShell and stays mounted across page
-    // navigation, so accepting an invite there won't otherwise trigger
-    // this component to refetch - listen for its event instead.
     window.addEventListener("project-invite-accepted", loadProjects);
     return () => window.removeEventListener("project-invite-accepted", loadProjects);
   }, []);
@@ -283,8 +221,7 @@ export default function Dashboard() {
 
   function showToast(message, type = "success") {
     setToast({ id: Date.now(), message, type });
-    window.clearTimeout(showToast._t);
-    showToast._t = window.setTimeout(() => setToast(null), 2600);
+    setTimeout(() => setToast(null), 2800);
   }
 
   async function handleCreate({ name, description }) {
@@ -298,10 +235,7 @@ export default function Dashboard() {
       });
       navigate(`/builder/${res.data.project.id}`);
     } catch (err) {
-      setCreateError(
-        err.response?.data?.error ||
-          "Couldn't create the circuit. Make sure the backend is running and up to date."
-      );
+      setCreateError(err.response?.data?.error || "Couldn't create circuit.");
     } finally {
       setCreating(false);
     }
@@ -317,29 +251,27 @@ export default function Dashboard() {
     setRenamingId(null);
     if (!nextName || nextName === project.name) return;
 
-    const prevProjects = projects;
     setProjects((ps) => ps.map((p) => (p.id === project.id ? { ...p, name: nextName } : p)));
-
     try {
       await client.patch(`/projects/${project.id}`, { name: nextName });
-      showToast("Circuit renamed");
+      showToast("Circuit renamed successfully.");
     } catch (err) {
-      setProjects(prevProjects);
-      showToast(err.response?.data?.error || "Couldn't rename the circuit", "error");
+      showToast(err.response?.data?.error || "Failed to rename.", "error");
+      loadProjects();
     }
   }
 
   async function handleDuplicate(project) {
     try {
       const res = await client.post("/projects", {
-        name: `${project.name} (copy)`,
+        name: `${project.name} (Copy)`,
         description: project.description,
         circuit_json: project.circuit_json || { nodes: [], edges: [] },
       });
       setProjects((ps) => [res.data.project, ...ps]);
-      showToast("Circuit duplicated");
+      showToast("Circuit duplicated.");
     } catch (err) {
-      showToast(err.response?.data?.error || "Couldn't duplicate the circuit", "error");
+      showToast(err.response?.data?.error || "Failed to duplicate.", "error");
     }
   }
 
@@ -349,10 +281,10 @@ export default function Dashboard() {
     try {
       await client.delete(`/projects/${deleteTarget.id}`);
       setProjects((ps) => ps.filter((p) => p.id !== deleteTarget.id));
-      showToast("Circuit deleted");
+      showToast("Circuit deleted.");
       setDeleteTarget(null);
     } catch (err) {
-      showToast(err.response?.data?.error || "Couldn't delete the circuit", "error");
+      showToast(err.response?.data?.error || "Failed to delete.", "error");
     } finally {
       setDeleting(false);
     }
@@ -361,14 +293,8 @@ export default function Dashboard() {
   const stats = useMemo(() => {
     const totalComponents = projects.reduce((sum, p) => sum + (p.circuit_json?.nodes?.length || 0), 0);
     const totalRuns = projects.reduce((sum, p) => sum + (p.run_count || 0), 0);
-    return { active: projects.length, totalComponents, totalRuns };
-  }, [projects]);
-
-  const recentActivity = useMemo(() => {
-    return projects
-      .filter((p) => p.last_run_at)
-      .sort((a, b) => new Date(b.last_run_at) - new Date(a.last_run_at))
-      .slice(0, 6);
+    const workingCount = projects.filter((p) => p.last_run_status === "complete").length;
+    return { active: projects.length, totalComponents, totalRuns, workingCount };
   }, [projects]);
 
   const visibleProjects = useMemo(() => {
@@ -379,6 +305,13 @@ export default function Dashboard() {
         (p) => p.name.toLowerCase().includes(q) || (p.description || "").toLowerCase().includes(q)
       );
     }
+    if (statusFilter !== "all") {
+      if (statusFilter === "shared") {
+        list = list.filter((p) => p.is_public);
+      } else {
+        list = list.filter((p) => p.last_run_status === statusFilter);
+      }
+    }
     list = [...list];
     if (sortBy === "name") {
       list.sort((a, b) => a.name.localeCompare(b.name));
@@ -388,478 +321,692 @@ export default function Dashboard() {
       list.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
     }
     return list;
-  }, [projects, query, sortBy]);
+  }, [projects, query, statusFilter, sortBy]);
 
   return (
     <AppShell>
-      <div style={{ padding: "36px 6vw" }}>
-        {/* welcome banner */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          style={styles.banner}
-        >
-          <div>
-            <h1 style={styles.bannerTitle}>
-              {greeting()}, <span className="gradient-text">{user?.name}</span> 👋
-            </h1>
-            <p style={styles.bannerSub}>
-              Build circuits, run real connectivity checks, and share projects with your team.
-            </p>
+      <div style={styles.page}>
+        {/* Toast Alert */}
+        {toast && (
+          <div style={{ ...styles.toast, borderColor: toast.type === "error" ? "var(--danger)" : "#2fd66f" }}>
+            <span>{toast.type === "error" ? "⚠️" : "✓"}</span>
+            <span>{toast.message}</span>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setModalOpen(true)} style={styles.newBtn}>
-              + New circuit
-            </motion.button>
-            <Link to="/components" style={styles.secondaryBtn}>
-              Browse parts
-            </Link>
-          </div>
-        </motion.div>
+        )}
 
-        {/* stat cards - real numbers, animated on change */}
-        <motion.div
-          style={styles.statGrid}
-          variants={gridVariants}
-          initial="hidden"
-          animate="show"
-        >
-          <StatCard label="Active projects" value={stats.active} sub="circuits in your workspace" accent="var(--primary)" />
-          <StatCard label="Components placed" value={stats.totalComponents} sub="across all your circuits" accent="var(--accent)" />
-          <StatCard label="Simulations run" value={stats.totalRuns} sub="times you've hit Run circuit" accent="var(--gold)" />
-        </motion.div>
-
-        <div style={styles.layout}>
-          {/* project list */}
-          <div>
-            <div style={styles.listHeader}>
-              <h2 style={{ fontSize: 16, margin: 0 }}>Recent projects</h2>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search circuits…"
-                  style={styles.searchInput}
-                />
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={styles.sortSelect}>
-                  <option value="recent">Recently updated</option>
-                  <option value="name">Name (A–Z)</option>
-                  <option value="components">Most components</option>
-                </select>
-              </div>
+        {/* WORKBENCH WELCOME HERO */}
+        <section style={styles.heroSection}>
+          <div style={styles.heroContent}>
+            <div>
+              <div className="eyebrow">⚡ VIRTUAL ELECTRONICS WORKBENCH</div>
+              <h1 style={styles.heroTitle}>
+                {greeting()}, <span className="gradient-text">{user?.name}</span>
+              </h1>
+              <p style={styles.heroSub}>
+                Design, test, and simulate 3D circuits with real-time electronic physics analysis.
+              </p>
             </div>
 
-            {loading && <p style={{ color: "var(--text-dim)" }}>Loading your circuits…</p>}
+            <div style={styles.heroBtnGroup}>
+              <button onClick={() => setModalOpen(true)} style={styles.primaryNewBtn}>
+                <span>+ New Circuit</span>
+              </button>
+              <Link to="/components" style={styles.secondaryBrowseBtn}>
+                <span>🧩 Component Catalog</span>
+              </Link>
+            </div>
+          </div>
+        </section>
 
-            {!loading && projects.length === 0 && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} style={styles.empty}>
-                No circuits yet. Click <strong style={{ color: "var(--primary)" }}>New circuit</strong> to start
-                building, or check out <strong style={{ color: "var(--primary)" }}>Browse parts</strong> first.
-              </motion.div>
-            )}
+        {/* METRICS ROW */}
+        <div style={styles.statGrid}>
+          <StatCard label="Total Circuits" value={stats.active} sub="Saved in your workspace" icon="⚡" accent="#2fd66f" />
+          <StatCard label="Components Placed" value={stats.totalComponents} sub="Across active schematics" icon="🧩" accent="#45d8c4" />
+          <StatCard label="Simulations Run" value={stats.totalRuns} sub="Real-time solver checks" icon="🔬" accent="#ffd32a" />
+          <StatCard label="Operational Circuits" value={stats.workingCount} sub="Verified working loops" icon="✅" accent="#20bf6b" />
+        </div>
 
-            {!loading && projects.length > 0 && visibleProjects.length === 0 && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={styles.empty}>
-                No circuits match <strong style={{ color: "var(--text)" }}>"{query}"</strong>.
-              </motion.div>
-            )}
+        {/* CONTROL TOOLBAR: SEARCH, FILTERS & VIEW TOGGLE */}
+        <div style={styles.toolbar}>
+          <div style={styles.toolbarLeft}>
+            {/* Search Input */}
+            <div style={styles.searchWrap}>
+              <span style={styles.searchIcon}>🔍</span>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search circuits by name or description…"
+                style={styles.searchInput}
+              />
+              {query && (
+                <button onClick={() => setQuery("")} style={styles.searchClear}>
+                  ✕
+                </button>
+              )}
+            </div>
 
-            {!loading && visibleProjects.length > 0 && (
-              <motion.div style={styles.list} variants={gridVariants} initial="hidden" animate="show" layout>
-                <AnimatePresence initial={false}>
-                  {visibleProjects.map((p) => {
-                    const badge = runBadge(p);
-                    const isRenaming = renamingId === p.id;
-                    return (
-                      <MotionLink
-                        key={p.id}
-                        to={`/builder/${p.id}`}
-                        style={styles.row}
-                        layout
-                        variants={cardVariants}
-                        initial="hidden"
-                        animate="show"
-                        exit="exit"
-                        whileHover={{ borderColor: "var(--primary)", x: 2 }}
-                        transition={{ duration: 0.15 }}
-                        onClick={(e) => {
-                          if (isRenaming) e.preventDefault();
-                        }}
-                      >
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            {isRenaming ? (
-                              <input
-                                ref={renameInputRef}
-                                value={renameValue}
-                                onChange={(e) => setRenameValue(e.target.value)}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    commitRename(p);
-                                  }
-                                  if (e.key === "Escape") {
-                                    e.preventDefault();
-                                    setRenamingId(null);
-                                  }
-                                }}
-                                onBlur={() => commitRename(p)}
-                                style={styles.renameInput}
-                              />
-                            ) : (
-                              <span style={styles.rowName}>{p.name}</span>
-                            )}
-                            {!p.is_owner && <span style={styles.sharedTag}>Shared</span>}
-                          </div>
-                          {p.description && !isRenaming && <div style={styles.rowDesc}>{p.description}</div>}
-                          <div style={styles.rowMeta}>
-                            {(p.circuit_json?.nodes || []).length} components · updated {timeAgo(p.updated_at)}
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-                          <span style={{ ...styles.badge, color: badge.color, borderColor: badge.color }}>{badge.label}</span>
-                          {p.is_owner !== false && (
-                            <ProjectMenu
-                              project={p}
-                              onRename={startRename}
-                              onDuplicate={handleDuplicate}
-                              onDelete={setDeleteTarget}
-                            />
-                          )}
-                        </div>
-                      </MotionLink>
-                    );
-                  })}
-                </AnimatePresence>
-              </motion.div>
-            )}
+            {/* Filter Tabs */}
+            <div style={styles.filterPills}>
+              {[
+                { id: "all", label: "All" },
+                { id: "complete", label: "Operational" },
+                { id: "open", label: "Open Loop" },
+                { id: "shared", label: "Shared" },
+              ].map((tab) => {
+                const active = statusFilter === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setStatusFilter(tab.id)}
+                    style={{
+                      ...styles.filterPill,
+                      background: active ? "rgba(47, 214, 111, 0.15)" : "rgba(255, 255, 255, 0.03)",
+                      color: active ? "#2fd66f" : "var(--text-dim)",
+                      borderColor: active ? "rgba(47, 214, 111, 0.4)" : "var(--border)",
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* real activity feed, built from actual run history */}
-          <div style={styles.activityPanel}>
-            <h2 style={{ fontSize: 14, margin: "0 0 14px" }}>Recent activity</h2>
-            {recentActivity.length === 0 && (
-              <p style={{ color: "var(--text-faint)", fontSize: 12.5 }}>
-                Nothing yet — run a circuit to see activity here.
-              </p>
-            )}
-            {recentActivity.map((p, i) => {
+          <div style={styles.toolbarRight}>
+            {/* Sort Dropdown */}
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={styles.sortSelect}>
+              <option value="recent">Recently Updated</option>
+              <option value="name">Name (A–Z)</option>
+              <option value="components">Most Components</option>
+            </select>
+
+            {/* View Mode Toggle */}
+            <div style={styles.viewToggleGroup}>
+              <button
+                onClick={() => setViewMode("grid")}
+                style={{
+                  ...styles.viewBtn,
+                  background: viewMode === "grid" ? "rgba(47, 214, 111, 0.15)" : "transparent",
+                  color: viewMode === "grid" ? "#2fd66f" : "var(--text-dim)",
+                }}
+                title="Grid View"
+              >
+                🪟
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                style={{
+                  ...styles.viewBtn,
+                  background: viewMode === "list" ? "rgba(47, 214, 111, 0.15)" : "transparent",
+                  color: viewMode === "list" ? "#2fd66f" : "var(--text-dim)",
+                }}
+                title="List View"
+              >
+                📋
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* LOADING STATE */}
+        {loading && <p style={{ color: "var(--text-dim)", padding: 20 }}>Loading your circuits…</p>}
+
+        {/* EMPTY STATE */}
+        {!loading && projects.length === 0 && (
+          <div style={styles.emptyState}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>⚡</div>
+            <h2 style={{ margin: "0 0 8px", fontSize: 20, color: "var(--text)" }}>Your Workbench is Empty</h2>
+            <p style={{ margin: "0 0 20px", fontSize: 14, color: "var(--text-dim)", maxWidth: 460 }}>
+              Start by creating your first circuit or exploring component models in the 3D catalog.
+            </p>
+            <button onClick={() => setModalOpen(true)} style={styles.primaryNewBtn}>
+              + Create First Circuit
+            </button>
+          </div>
+        )}
+
+        {/* NO SEARCH RESULTS */}
+        {!loading && projects.length > 0 && visibleProjects.length === 0 && (
+          <div style={styles.emptyState}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
+            <h3 style={{ margin: "0 0 8px", fontSize: 17, color: "var(--text)" }}>No matching circuits</h3>
+            <p style={{ margin: "0 0 16px", fontSize: 13.5, color: "var(--text-dim)" }}>
+              No circuits match "{query}". Try adjusting your search or filters.
+            </p>
+            <button
+              onClick={() => {
+                setQuery("");
+                setStatusFilter("all");
+              }}
+              style={styles.cancelBtn}
+            >
+              Reset Filters
+            </button>
+          </div>
+        )}
+
+        {/* CIRCUIT CARDS / LIST VIEW */}
+        {!loading && visibleProjects.length > 0 && (
+          <div style={viewMode === "grid" ? styles.grid : styles.listContainer}>
+            {visibleProjects.map((p) => {
               const badge = runBadge(p);
+              const nodes = p.circuit_json?.nodes || [];
+              const isRenaming = renamingId === p.id;
+
               return (
-                <motion.div
-                  key={p.id}
-                  initial={{ opacity: 0, x: 8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: i * 0.04 }}
-                  style={styles.activityRow}
-                >
-                  <span style={{ ...styles.activityDot, background: badge.color }} />
-                  <div>
-                    <div style={styles.activityTime}>{timeAgo(p.last_run_at)}</div>
-                    <div style={styles.activityName}>{p.name}</div>
-                    <div style={{ color: badge.color, fontSize: 11.5 }}>{badge.label}</div>
+                <div key={p.id} style={viewMode === "grid" ? styles.card : styles.listRow}>
+                  {/* Top Row: Name + Kebab Options */}
+                  <div style={styles.cardHeader}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      {isRenaming ? (
+                        <input
+                          ref={renameInputRef}
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") commitRename(p);
+                            if (e.key === "Escape") setRenamingId(null);
+                          }}
+                          onBlur={() => commitRename(p)}
+                          style={styles.renameInput}
+                        />
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <Link to={`/builder/${p.id}`} style={styles.cardTitle}>
+                            {p.name}
+                          </Link>
+                          {p.is_public && <span style={styles.publicBadge}>🌐 Public</span>}
+                        </div>
+                      )}
+                    </div>
+                    <ProjectMenu
+                      project={p}
+                      onRename={startRename}
+                      onDuplicate={handleDuplicate}
+                      onDelete={(target) => setDeleteTarget(target)}
+                    />
                   </div>
-                </motion.div>
+
+                  {/* Description */}
+                  {p.description && !isRenaming && (
+                    <p style={styles.cardDesc}>{p.description}</p>
+                  )}
+
+                  {/* Component Chips */}
+                  <div style={styles.chipsRow}>
+                    {nodes.slice(0, 3).map((n, idx) => (
+                      <span key={idx} style={styles.partChip}>
+                        {n.name}
+                      </span>
+                    ))}
+                    {nodes.length > 3 && (
+                      <span style={styles.morePartsChip}>+{nodes.length - 3} more</span>
+                    )}
+                  </div>
+
+                  {/* Footer: Status Badge + Launch Button */}
+                  <div style={styles.cardFooter}>
+                    <span
+                      style={{
+                        ...styles.statusBadge,
+                        color: badge.color,
+                        background: badge.bg,
+                        borderColor: badge.border,
+                      }}
+                    >
+                      ● {badge.label}
+                    </span>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <span style={styles.timeText}>{timeAgo(p.updated_at)}</span>
+                      <Link to={`/builder/${p.id}`} style={styles.launchBtn}>
+                        <span>Open 3D ➔</span>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>
-        </div>
+        )}
+
+        {/* NEW CIRCUIT MODAL */}
+        <NewCircuitModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          onCreate={handleCreate}
+          loading={creating}
+          error={createError}
+        />
+
+        {/* DELETE CONFIRM MODAL */}
+        <DeleteConfirmModal
+          project={deleteTarget}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={confirmDelete}
+          deleting={deleting}
+        />
       </div>
-
-      <NewCircuitModal
-        open={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setCreateError("");
-        }}
-        onCreate={handleCreate}
-        creating={creating}
-        error={createError}
-      />
-
-      <DeleteConfirmModal
-        project={deleteTarget}
-        onCancel={() => setDeleteTarget(null)}
-        onConfirm={confirmDelete}
-        deleting={deleting}
-      />
-
-      <Toast toast={toast} />
     </AppShell>
   );
 }
 
-function StatCard({ label, value, sub, accent }) {
-  return (
-    <motion.div variants={cardVariants} style={styles.statCard} whileHover={{ y: -2, borderColor: accent }}>
-      <div style={{ ...styles.statAccentBar, background: accent }} />
-      <div className="eyebrow" style={{ color: accent }}>
-        {label}
-      </div>
-      <div style={styles.statValue}>
-        <AnimatedNumber value={value} />
-      </div>
-      <div style={styles.statSub}>{sub}</div>
-    </motion.div>
-  );
-}
-
 const styles = {
-  banner: {
+  page: {
+    padding: "32px 5vw 80px",
+    maxWidth: 1400,
+    margin: "0 auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: 28,
+  },
+  heroSection: {
+    padding: "32px 36px",
+    background: "linear-gradient(135deg, rgba(16, 23, 32, 0.9) 0%, rgba(10, 14, 19, 0.95) 100%)",
+    border: "1px solid var(--border-bright)",
+    borderRadius: "var(--radius)",
+    boxShadow: "0 12px 32px rgba(0, 0, 0, 0.45)",
+  },
+  heroContent: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "flex-end",
+    alignItems: "center",
+    gap: 24,
     flexWrap: "wrap",
-    gap: 16,
-    marginBottom: 28,
   },
-  bannerTitle: { fontSize: 26, margin: 0, fontFamily: "var(--font-body)" },
-  bannerSub: { color: "var(--text-dim)", fontSize: 13.5, margin: "8px 0 0" },
-  newBtn: {
-    background: "var(--primary)",
-    color: "#062011",
-    fontWeight: 600,
-    fontSize: 13.5,
+  heroTitle: {
+    margin: "6px 0",
+    fontSize: "clamp(24px, 3.2vw, 36px)",
+    fontWeight: 800,
+    color: "var(--text)",
+  },
+  heroSub: {
+    margin: 0,
+    fontSize: 14,
+    color: "var(--text-dim)",
+  },
+  heroBtnGroup: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  primaryNewBtn: {
     padding: "10px 18px",
-    borderRadius: "var(--radius-sm)",
+    background: "#2fd66f",
+    color: "#0a0e13",
     border: "none",
+    borderRadius: "var(--radius-sm)",
+    fontSize: 13.5,
+    fontWeight: 700,
     cursor: "pointer",
+    boxShadow: "0 4px 14px rgba(47, 214, 111, 0.3)",
+    transition: "transform 0.15s ease",
   },
-  secondaryBtn: {
+  secondaryBrowseBtn: {
     display: "inline-flex",
     alignItems: "center",
-    background: "transparent",
-    color: "var(--text-dim)",
-    fontWeight: 600,
-    fontSize: 13.5,
-    padding: "10px 18px",
+    padding: "10px 16px",
+    background: "rgba(255, 255, 255, 0.04)",
+    border: "1px solid var(--border)",
     borderRadius: "var(--radius-sm)",
-    border: "1px solid var(--border-bright)",
+    color: "var(--text)",
+    fontSize: 13.5,
+    fontWeight: 600,
     textDecoration: "none",
   },
   statGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: 14,
-    marginBottom: 32,
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: 16,
   },
   statCard: {
-    position: "relative",
-    background: "var(--surface)",
+    background: "rgba(16, 22, 29, 0.75)",
     border: "1px solid var(--border)",
     borderRadius: "var(--radius)",
     padding: "18px 20px",
-    overflow: "hidden",
-    transition: "border-color 0.2s ease",
+    backdropFilter: "blur(12px)",
   },
-  statAccentBar: { position: "absolute", top: 0, left: 0, right: 0, height: 3 },
-  statValue: { fontSize: 28, fontWeight: 700, margin: "8px 0 2px", fontFamily: "var(--font-display)" },
-  statSub: { color: "var(--text-faint)", fontSize: 12 },
-  layout: {
+  statLabel: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: "var(--text-dim)",
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+    fontFamily: "var(--font-mono)",
+  },
+  statNumber: {
+    fontSize: 28,
+    fontWeight: 800,
+    fontFamily: "var(--font-mono)",
+    margin: "4px 0",
+  },
+  statIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    border: "1px solid",
     display: "grid",
-    gridTemplateColumns: "1fr 300px",
-    gap: 28,
-    alignItems: "start",
+    placeItems: "center",
+    fontSize: 16,
   },
-  listHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 10,
-    marginBottom: 14,
+  statSub: {
+    fontSize: 11.5,
+    color: "var(--text-faint)",
+    marginTop: 4,
   },
-  searchInput: {
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius-sm)",
-    color: "var(--text)",
-    fontSize: 12.5,
-    padding: "7px 10px",
-    outline: "none",
-    width: 170,
-  },
-  sortSelect: {
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius-sm)",
-    color: "var(--text-dim)",
-    fontSize: 12.5,
-    padding: "7px 8px",
-    outline: "none",
-  },
-  empty: {
-    border: "1px dashed var(--border-bright)",
-    borderRadius: "var(--radius)",
-    padding: "40px",
-    color: "var(--text-dim)",
-    textAlign: "center",
-  },
-  list: { display: "flex", flexDirection: "column", gap: 10 },
-  row: {
+  toolbar: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     gap: 16,
-    padding: "14px 18px",
-    background: "var(--surface)",
+    flexWrap: "wrap",
+  },
+  toolbarLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+    minWidth: 300,
+    flexWrap: "wrap",
+  },
+  searchWrap: {
+    position: "relative",
+    flex: 1,
+    minWidth: 220,
+    maxWidth: 400,
+  },
+  searchIcon: {
+    position: "absolute",
+    left: 12,
+    top: "50%",
+    transform: "translateY(-50%)",
+    fontSize: 13,
+    opacity: 0.5,
+    pointerEvents: "none",
+  },
+  searchInput: {
+    width: "100%",
+    padding: "9px 32px 9px 36px",
+    background: "rgba(16, 22, 29, 0.85)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-sm)",
+    color: "var(--text)",
+    fontSize: 13,
+    outline: "none",
+  },
+  searchClear: {
+    position: "absolute",
+    right: 10,
+    top: "50%",
+    transform: "translateY(-50%)",
+    background: "none",
+    border: "none",
+    color: "var(--text-dim)",
+    cursor: "pointer",
+    fontSize: 12,
+  },
+  filterPills: {
+    display: "flex",
+    gap: 6,
+  },
+  filterPill: {
+    padding: "6px 12px",
+    borderRadius: "var(--radius-sm)",
+    border: "1px solid var(--border)",
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  toolbarRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+  },
+  sortSelect: {
+    padding: "8px 12px",
+    background: "rgba(16, 22, 29, 0.85)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-sm)",
+    color: "var(--text)",
+    fontSize: 12.5,
+    outline: "none",
+    cursor: "pointer",
+  },
+  viewToggleGroup: {
+    display: "flex",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-sm)",
+    overflow: "hidden",
+  },
+  viewBtn: {
+    padding: "6px 10px",
+    border: "none",
+    cursor: "pointer",
+    fontSize: 13,
+  },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+    gap: 20,
+  },
+  card: {
+    background: "rgba(16, 22, 29, 0.8)",
     border: "1px solid var(--border)",
     borderRadius: "var(--radius)",
+    padding: "20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    backdropFilter: "blur(12px)",
+    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.35)",
+    transition: "transform 0.15s ease, border-color 0.15s ease",
+  },
+  cardHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: 700,
+    color: "var(--text)",
     textDecoration: "none",
   },
-  rowName: { fontSize: 14.5, fontWeight: 600, color: "var(--text)" },
-  rowDesc: {
-    fontSize: 12,
-    color: "var(--text-dim)",
-    marginTop: 3,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-    maxWidth: 480,
-  },
-  rowMeta: { fontSize: 11.5, color: "var(--text-faint)", marginTop: 5, fontFamily: "var(--font-display)" },
-  sharedTag: {
+  publicBadge: {
     fontSize: 10,
-    fontFamily: "var(--font-display)",
-    color: "var(--accent)",
-    border: "1px solid var(--accent)",
-    borderRadius: 10,
-    padding: "1px 7px",
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
+    padding: "1px 6px",
+    borderRadius: 4,
+    background: "rgba(69, 216, 196, 0.12)",
+    color: "#45d8c4",
+    border: "1px solid rgba(69, 216, 196, 0.3)",
   },
-  badge: {
+  cardDesc: {
+    margin: 0,
+    fontSize: 12.5,
+    color: "var(--text-dim)",
+    lineHeight: 1.4,
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+  },
+  chipsRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  partChip: {
     fontSize: 11,
-    fontFamily: "var(--font-display)",
-    border: "1px solid",
-    borderRadius: 20,
-    padding: "4px 10px",
-    whiteSpace: "nowrap",
-    flexShrink: 0,
+    padding: "2px 8px",
+    background: "rgba(255, 255, 255, 0.04)",
+    border: "1px solid var(--border)",
+    borderRadius: 4,
+    color: "var(--text-dim)",
   },
-  renameInput: {
-    fontSize: 14.5,
+  morePartsChip: {
+    fontSize: 11,
+    color: "#2fd66f",
     fontWeight: 600,
-    color: "var(--text)",
-    background: "var(--bg)",
-    border: "1px solid var(--primary)",
-    borderRadius: 6,
-    padding: "3px 7px",
-    outline: "none",
-    minWidth: 160,
+    padding: "2px 4px",
+  },
+  cardFooter: {
+    marginTop: "auto",
+    paddingTop: 12,
+    borderTop: "1px solid var(--border)",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  statusBadge: {
+    fontSize: 11,
+    fontWeight: 700,
+    fontFamily: "var(--font-mono)",
+    padding: "2px 8px",
+    borderRadius: 10,
+    border: "1px solid",
+  },
+  timeText: {
+    fontSize: 11.5,
+    color: "var(--text-faint)",
+  },
+  launchBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "5px 10px",
+    background: "rgba(47, 214, 111, 0.12)",
+    border: "1px solid rgba(47, 214, 111, 0.35)",
+    borderRadius: "var(--radius-sm)",
+    color: "#2fd66f",
+    fontSize: 11.5,
+    fontWeight: 700,
+    textDecoration: "none",
+  },
+  listContainer: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+  },
+  listRow: {
+    background: "rgba(16, 22, 29, 0.8)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-sm)",
+    padding: "14px 18px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 16,
   },
   kebabBtn: {
-    background: "transparent",
-    border: "1px solid var(--border)",
-    borderRadius: 6,
+    background: "none",
+    border: "none",
     color: "var(--text-dim)",
-    width: 28,
-    height: 28,
     fontSize: 16,
-    lineHeight: 1,
     cursor: "pointer",
+    padding: "2px 6px",
+    borderRadius: 4,
   },
   menu: {
     position: "absolute",
-    top: 34,
     right: 0,
-    background: "var(--surface)",
-    border: "1px solid var(--border-bright)",
-    borderRadius: "var(--radius-sm)",
-    boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
-    minWidth: 140,
-    padding: 6,
+    top: 24,
     zIndex: 20,
+    background: "#121922",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-sm)",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+    padding: 4,
+    minWidth: 160,
+    display: "flex",
+    flexDirection: "column",
   },
   menuItem: {
-    display: "block",
-    width: "100%",
-    textAlign: "left",
-    background: "transparent",
+    background: "none",
     border: "none",
     color: "var(--text)",
-    fontSize: 13,
-    padding: "8px 10px",
-    borderRadius: 6,
+    padding: "8px 12px",
+    textAlign: "left",
+    fontSize: 12.5,
     cursor: "pointer",
+    borderRadius: 4,
   },
-  menuDivider: { height: 1, background: "var(--border)", margin: "4px 2px" },
-  activityPanel: {
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius)",
-    padding: "18px 20px",
-    position: "sticky",
-    top: 90,
+  menuDivider: {
+    height: 1,
+    background: "var(--border)",
+    margin: "4px 0",
   },
-  activityRow: {
-    display: "flex",
-    gap: 10,
-    padding: "10px 0",
-    borderTop: "1px solid var(--border)",
+  renameInput: {
+    width: "100%",
+    padding: "4px 8px",
+    background: "#0a0e13",
+    border: "1px solid #2fd66f",
+    borderRadius: 4,
+    color: "var(--text)",
+    fontSize: 14,
+    outline: "none",
   },
-  activityDot: { width: 7, height: 7, borderRadius: "50%", marginTop: 5, flexShrink: 0 },
-  activityTime: { fontSize: 10.5, color: "var(--text-faint)", fontFamily: "var(--font-display)" },
-  activityName: { fontSize: 13, fontWeight: 600, color: "var(--text)", margin: "2px 0" },
   backdrop: {
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,0.55)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 100,
+    zIndex: 1000,
+    background: "rgba(0,0,0,0.75)",
+    display: "grid",
+    placeItems: "center",
+    backdropFilter: "blur(6px)",
   },
   confirmPanel: {
-    background: "var(--surface)",
-    border: "1px solid var(--border-bright)",
+    background: "#10161d",
+    border: "1px solid var(--border)",
     borderRadius: "var(--radius)",
-    padding: "22px 24px",
-    width: 360,
-    boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
+    padding: 24,
+    maxWidth: 400,
+    width: "90%",
+    boxShadow: "0 16px 40px rgba(0,0,0,0.6)",
   },
   cancelBtn: {
-    background: "transparent",
-    border: "1px solid var(--border-bright)",
-    color: "var(--text-dim)",
-    fontSize: 13,
-    fontWeight: 600,
-    padding: "9px 16px",
+    padding: "8px 14px",
+    background: "rgba(255, 255, 255, 0.04)",
+    border: "1px solid var(--border)",
     borderRadius: "var(--radius-sm)",
+    color: "var(--text)",
+    fontSize: 13,
     cursor: "pointer",
   },
   deleteBtn: {
+    padding: "8px 14px",
     background: "var(--danger)",
-    border: "none",
     color: "#fff",
-    fontSize: 13,
-    fontWeight: 600,
-    padding: "9px 16px",
+    border: "none",
     borderRadius: "var(--radius-sm)",
+    fontSize: 13,
+    fontWeight: 700,
     cursor: "pointer",
   },
-  toastWrap: {
-    position: "fixed",
-    bottom: 24,
-    right: 24,
-    zIndex: 200,
+  emptyState: {
+    padding: "60px 20px",
+    textAlign: "center",
+    background: "rgba(16, 22, 29, 0.6)",
+    border: "1px dashed var(--border-bright)",
+    borderRadius: "var(--radius)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
   },
   toast: {
+    position: "fixed",
+    top: 24,
+    right: 24,
+    zIndex: 3000,
+    background: "rgba(16, 22, 29, 0.95)",
+    border: "1px solid",
+    padding: "10px 18px",
+    borderRadius: "var(--radius-sm)",
+    color: "var(--text)",
+    fontSize: 13,
+    fontWeight: 600,
     display: "flex",
     alignItems: "center",
     gap: 8,
-    background: "var(--surface)",
-    border: "1px solid",
-    borderRadius: "var(--radius-sm)",
-    padding: "10px 16px",
-    fontSize: 13,
-    color: "var(--text)",
-    boxShadow: "0 12px 30px rgba(0,0,0,0.4)",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
   },
-  toastDot: { width: 7, height: 7, borderRadius: "50%", flexShrink: 0 },
 };

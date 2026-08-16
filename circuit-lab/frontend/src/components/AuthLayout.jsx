@@ -6,40 +6,39 @@ export default function AuthLayout({ eyebrow, title, subtitle, children }) {
     <div style={styles.page}>
       <CircuitBackground />
 
-      {/* soft floating color blobs - green + coral, drifting slowly for depth */}
+      {/* Floating color ambient glow */}
       <motion.div
-        style={{ ...styles.blob, width: 340, height: 340, top: "-8%", left: "2%", background: "var(--primary)" }}
-        animate={{ x: [0, 30, 0], y: [0, 20, 0] }}
-        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        style={{ ...styles.blob, width: 380, height: 380, top: "-5%", left: "5%", background: "#2fd66f" }}
+        animate={{ x: [0, 25, 0], y: [0, 20, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        style={{ ...styles.blob, width: 300, height: 300, bottom: "-10%", left: "28%", background: "var(--accent)" }}
-        animate={{ x: [0, -25, 0], y: [0, -15, 0] }}
-        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
+        style={{ ...styles.blob, width: 340, height: 340, bottom: "-5%", left: "30%", background: "#45d8c4" }}
+        animate={{ x: [0, -20, 0], y: [0, -15, 0] }}
+        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
       />
 
       <div style={styles.brandPanel}>
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         >
-          <div className="eyebrow" style={{ marginBottom: 14 }}>
-            ● CIRCUITLAB
+          <div className="eyebrow" style={{ marginBottom: 12 }}>
+            ⚡ CIRCUITLAB PRO 3D
           </div>
           <h1 style={styles.brandTitle}>
-            Build circuits.
+            Design circuits.
             <br />
-            <span className="gradient-text">Watch them come alive.</span>
+            <span className="gradient-text">Simulate in real-time 3D.</span>
           </h1>
           <p style={styles.brandSub}>
-            Drag components onto a breadboard, wire them up, and run a real
-            simulation to see voltage, current, and where your circuit
-            breaks — all in the browser.
+            Build, test, and wire microcontrollers, sensors, and analog components on an interactive 3D workbench with instant circuit solver feedback.
           </p>
           <div style={styles.badgeRow}>
-            <span style={styles.badge}>28 components</span>
-            <span style={styles.badge}>Live 3D catalog</span>
+            <span style={styles.badge}>⚡ Real-time Solvers</span>
+            <span style={styles.badge}>🌐 3D Interactive Workbench</span>
+            <span style={styles.badge}>🧩 ESP32 & Arduino Ready</span>
           </div>
         </motion.div>
       </div>
@@ -48,7 +47,7 @@ export default function AuthLayout({ eyebrow, title, subtitle, children }) {
         style={styles.cardWrap}
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+        transition={{ duration: 0.45, ease: "easeOut", delay: 0.1 }}
       >
         <div style={styles.card}>
           <div style={styles.cardGlow} />
@@ -79,41 +78,43 @@ const styles = {
     position: "absolute",
     borderRadius: "50%",
     filter: "blur(90px)",
-    opacity: 0.16,
+    opacity: 0.12,
     zIndex: 0,
     pointerEvents: "none",
   },
   brandPanel: {
     position: "relative",
     zIndex: 1,
-    maxWidth: 460,
+    maxWidth: 480,
   },
   brandTitle: {
-    fontFamily: "var(--font-body)",
-    fontWeight: 700,
-    fontSize: "clamp(28px, 3.4vw, 42px)",
+    fontFamily: "var(--font-display)",
+    fontWeight: 800,
+    fontSize: "clamp(30px, 3.6vw, 44px)",
     lineHeight: 1.15,
-    margin: "0 0 18px",
+    margin: "0 0 16px",
     color: "var(--text)",
   },
   brandSub: {
     color: "var(--text-dim)",
     fontSize: 15,
     lineHeight: 1.6,
-    maxWidth: 420,
+    maxWidth: 440,
   },
   badgeRow: {
     display: "flex",
+    flexWrap: "wrap",
     gap: 8,
-    marginTop: 20,
+    marginTop: 24,
   },
   badge: {
-    fontFamily: "var(--font-display)",
+    fontFamily: "var(--font-mono)",
     fontSize: 11,
-    letterSpacing: "0.04em",
-    padding: "5px 12px",
+    fontWeight: 600,
+    padding: "6px 12px",
     borderRadius: 20,
     border: "1px solid var(--border-bright)",
+    background: "rgba(255, 255, 255, 0.03)",
     color: "var(--text-dim)",
   },
   cardWrap: {
@@ -125,12 +126,13 @@ const styles = {
   card: {
     position: "relative",
     width: "100%",
-    maxWidth: 380,
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
+    maxWidth: 400,
+    background: "rgba(16, 22, 29, 0.85)",
+    border: "1px solid var(--border-bright)",
     borderRadius: "var(--radius)",
-    padding: "32px 30px",
-    boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
+    padding: "36px 32px",
+    boxShadow: "0 24px 64px rgba(0,0,0,0.55)",
+    backdropFilter: "blur(16px)",
     overflow: "hidden",
   },
   cardGlow: {
@@ -139,11 +141,13 @@ const styles = {
     left: 0,
     right: 0,
     height: 3,
-    background: "linear-gradient(90deg, var(--primary), var(--accent))",
+    background: "linear-gradient(90deg, #2fd66f, #45d8c4)",
   },
   cardTitle: {
     margin: "4px 0 6px",
     fontSize: 22,
+    fontWeight: 800,
+    color: "var(--text)",
   },
   cardSub: {
     color: "var(--text-dim)",

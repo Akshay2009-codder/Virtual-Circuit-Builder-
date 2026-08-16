@@ -1,27 +1,45 @@
 :root {
-  /* ---- Design tokens: PCB theme, green/coral/red accent trio ---- */
-  --bg: #0a0e13;
-  --surface: #10161d;
-  --surface-2: #171f28;
-  --border: #232e3a;
-  --border-bright: #35465a;
+  /* ---- Design Tokens: Obsidian Cyber Workbench Theme ---- */
+  --bg: #070a0e;
+  --bg-subtle: #0b1016;
+  --surface: #0f151d;
+  --surface-2: #151d27;
+  --surface-glass: rgba(15, 21, 29, 0.78);
+  --surface-glass-bright: rgba(21, 29, 39, 0.85);
 
-  --text: #e7edf3;
-  --text-dim: #8ea0b3;
-  --text-faint: #536575;
+  --border: #1e2936;
+  --border-bright: #2f3e50;
+  --border-emerald: rgba(47, 214, 111, 0.35);
 
-  --primary: #2fd66f;       /* green - primary CTA / active states */
-  --primary-dim: #1f9a51;
-  --accent: #ff6f5e;        /* coral - secondary accent / highlights */
+  --text: #f0f4f8;
+  --text-dim: #94a5b7;
+  --text-faint: #556779;
+
+  --primary: #2fd66f;       /* Emerald laser - primary CTA / active states */
+  --primary-dim: #1ea353;
+  --primary-glow: rgba(47, 214, 111, 0.28);
+  
+  --accent: #ff6f5e;        /* Cyber coral - highlights & secondary */
   --accent-dim: #d1503f;
-  --danger: #ff4757;        /* red - errors / alerts */
-  --gold: #ffc94d;          /* amber - sources / warnings, used sparingly */
+  --cyan: #45d8c4;          /* Telemetry cyan */
+  --cyan-dim: #279e8e;
+  --purple: #a55eea;        /* ICs / custom boards */
+  --danger: #ff4757;        /* Alerts & errors */
+  --gold: #ffd32a;          /* Amber power / warnings */
 
-  --font-display: "IBM Plex Mono", monospace;
-  --font-body: "Inter", sans-serif;
+  --font-display: "Outfit", "Inter", sans-serif;
+  --font-mono: "IBM Plex Mono", "JetBrains Mono", monospace;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-  --radius: 10px;
-  --radius-sm: 6px;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 4px;
+  --radius-pill: 9999px;
+
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 24px var(--primary-glow);
 }
 
 * {
@@ -40,14 +58,25 @@ body {
   color: var(--text);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-image: 
+    radial-gradient(ellipse at 50% 0%, rgba(31, 154, 81, 0.07) 0%, transparent 65%),
+    linear-gradient(rgba(30, 41, 54, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 41, 54, 0.07) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px, 32px 32px;
+  background-attachment: fixed;
 }
 
 h1,
 h2,
 h3,
-.mono {
+h4 {
   font-family: var(--font-display);
-  letter-spacing: 0.01em;
+  letter-spacing: -0.01em;
+}
+
+.mono {
+  font-family: var(--font-mono);
 }
 
 a {
@@ -58,26 +87,91 @@ button {
   font-family: var(--font-body);
 }
 
+/* Custom Sleek PCB Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(8, 12, 16, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: #1f2c3b;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2e4157;
+}
+
 ::selection {
-  background: var(--accent-dim);
-  color: #06110f;
+  background: rgba(47, 214, 111, 0.25);
+  color: #ffffff;
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
-input:focus {
+input:focus,
+textarea:focus,
+select:focus {
   border-color: var(--primary) !important;
-  box-shadow: 0 0 0 3px rgba(47, 214, 111, 0.15);
+  box-shadow: 0 0 0 3px var(--primary-glow) !important;
 }
 
+/* Typography Gradient Utility */
 .gradient-text {
-  background: linear-gradient(100deg, var(--primary) 0%, var(--accent) 100%);
+  background: linear-gradient(110deg, #2fd66f 0%, #45d8c4 50%, #ff6f5e 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.gradient-text-emerald {
+  background: linear-gradient(110deg, #ffffff 0%, #2fd66f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Glassmorphism Card Utilities */
+.glass-panel {
+  background: var(--surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+}
+
+.glass-panel-interactive {
+  background: var(--surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-panel-interactive:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-emerald);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 16px rgba(47, 214, 111, 0.1);
+}
+
+/* Eyebrow Label */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* ---- Floating labels & code badge above placed 3D components ---- */
@@ -86,12 +180,12 @@ input:focus {
   border: 1.5px solid;
   border-radius: 8px;
   padding: 4px 8px;
-  font-family: var(--font-mono, monospace);
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
   transition: transform 0.15s ease, background 0.15s ease;
   user-select: none;
 }
@@ -104,14 +198,14 @@ input:focus {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(16, 22, 29, 0.92);
+  background: rgba(15, 21, 29, 0.94);
   border: 1.5px solid;
   border-radius: 10px;
-  padding: 6px 8px 6px 12px;
+  padding: 6px 10px;
   font-family: var(--font-body);
   white-space: nowrap;
-  backdrop-filter: blur(4px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
 }
 .part3d-label-dot {
   width: 7px;
@@ -130,7 +224,7 @@ input:focus {
   color: var(--text);
 }
 .part3d-label-value {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text-dim);
 }
@@ -149,7 +243,7 @@ input:focus {
 }
 
 .part3d-polarity {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 15px;
   font-weight: 700;
   text-shadow: 0 0 4px rgba(0,0,0,0.9), 0 0 8px currentColor;
@@ -162,7 +256,7 @@ input:focus {
   border: none;
   border-radius: 20px;
   padding: 2px 12px;
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -171,12 +265,13 @@ input:focus {
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
-.eyebrow {
-  font-family: var(--font-display);
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--primary);
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.04); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -189,7 +284,7 @@ input:focus {
   }
 }
 
-/* ---- Custom cursor: comet trail + targeting reticle + click sparks ---- */
+/* Custom Cursor */
 body.custom-cursor-active,
 body.custom-cursor-active * {
   cursor: none !important;
@@ -239,7 +334,6 @@ body.custom-cursor-active * {
   background: var(--primary);
 }
 
-/* Wire Color Palette Tooltip & Active States */
 .wire-color-swatch {
   transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.15s ease;
 }
@@ -247,9 +341,4 @@ body.custom-cursor-active * {
 .wire-color-swatch:hover {
   transform: scale(1.25);
   box-shadow: 0 0 10px currentColor;
-}
-
-@keyframes wire-pulse {
-  0% { stroke-dashoffset: 24; }
-  100% { stroke-dashoffset: 0; }
 }
