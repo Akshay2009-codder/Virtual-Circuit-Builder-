@@ -31,21 +31,33 @@ function ConnectorBoot({ position, color }) {
 
 export default function Wire3D({
   start,
+  startPos,
   end,
+  endPos,
   color = "#2fd66f",
   powered = false,
   selected = false,
+  isSelected = false,
   isPreview = false,
   onClick = null,
 }) {
   const [hovered, setHovered] = useState(false);
 
-  const { tubeGeometry, startVec, endVec, midPoint } = useMemo(() => {
-    const startY = typeof start[1] === "number" ? start[1] : 0.16;
-    const endY = typeof end[1] === "number" ? end[1] : 0.16;
+  const activeSelected = selected || isSelected;
+  const rawStart = start || startPos || [0, 0.16, 0];
+  const rawEnd = end || endPos || [0, 0.16, 0];
 
-    const s = new THREE.Vector3(start[0], startY, start[2]);
-    const e = new THREE.Vector3(end[0], endY, end[2]);
+  const { tubeGeometry, startVec, endVec, midPoint } = useMemo(() => {
+    const startX = typeof rawStart[0] === "number" ? rawStart[0] : 0;
+    const startY = typeof rawStart[1] === "number" ? rawStart[1] : 0.16;
+    const startZ = typeof rawStart[2] === "number" ? rawStart[2] : 0;
+
+    const endX = typeof rawEnd[0] === "number" ? rawEnd[0] : 0;
+    const endY = typeof rawEnd[1] === "number" ? rawEnd[1] : 0.16;
+    const endZ = typeof rawEnd[2] === "number" ? rawEnd[2] : 0;
+
+    const s = new THREE.Vector3(startX, startY, startZ);
+    const e = new THREE.Vector3(endX, endY, endZ);
     const dist = s.distanceTo(e);
 
     // Natural 3D cubic Bezier curve - lifts out of headers and loops naturally
@@ -61,9 +73,9 @@ export default function Wire3D({
     const midP = curve.getPoint(0.5);
 
     return { tubeGeometry: geo, startVec: s, endVec: e, midPoint: midP };
-  }, [start, end, isPreview]);
+  }, [rawStart[0], rawStart[1], rawStart[2], rawEnd[0], rawEnd[1], rawEnd[2], isPreview]);
 
-  const activeColor = selected ? "#ffffff" : hovered ? "#ff4757" : color;
+  const activeColor = activeSelected ? "#ffffff" : hovered ? "#ff4757" : color;
 
   return (
     <group>
