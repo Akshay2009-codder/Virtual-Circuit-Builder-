@@ -3,31 +3,27 @@ services:
   - type: web
     name: virtual-circuit-backend
     runtime: python
+    region: oregon
     buildCommand: "cd circuit-lab/backend && pip install -r requirements.txt"
-    startCommand: "cd circuit-lab/backend && gunicorn --bind 0.0.0.0:$PORT app:app"
+    startCommand: "cd circuit-lab/backend && gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 app:app"
     plan: free
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.9
-      - key: CORS_ORIGINS
-        value: "*"
+        value: "3.11.9"
+      - key: DATABASE_URL
+        sync: false          # Set this manually in Render dashboard to your Neon PostgreSQL URL
       - key: JWT_SECRET_KEY
         generateValue: true
-
-  # React + Three.js Frontend (Vite Static Site)
-  - type: web
-    name: virtual-circuit-frontend
-    runtime: static
-    buildCommand: "cd circuit-lab/frontend && npm install && npm run build"
-    staticPublishPath: "./circuit-lab/frontend/dist"
-    plan: free
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: virtual-circuit-backend
-          property: host
+      - key: CORS_ORIGINS
+        value: "https://frontend-phi-tawny-26.vercel.app,https://frontend-phi-tawny-26.vercel.app"
+      # Optional: SMTP for real OTP emails (leave unset to print OTP to logs instead)
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
