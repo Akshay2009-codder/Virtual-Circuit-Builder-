@@ -1,0 +1,33 @@
+services:
+  # Python Flask Backend (MNA Matrix Solver & API)
+  - type: web
+    name: virtual-circuit-backend
+    runtime: python
+    buildCommand: "cd circuit-lab/backend && pip install -r requirements.txt"
+    startCommand: "cd circuit-lab/backend && gunicorn --bind 0.0.0.0:$PORT app:app"
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: JWT_SECRET_KEY
+        generateValue: true
+
+  # React + Three.js Frontend (Vite Static Site)
+  - type: web
+    name: virtual-circuit-frontend
+    runtime: static
+    buildCommand: "cd circuit-lab/frontend && npm install && npm run build"
+    staticPublishPath: "./circuit-lab/frontend/dist"
+    plan: free
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: virtual-circuit-backend
+          property: host

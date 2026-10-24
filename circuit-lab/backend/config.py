@@ -15,4 +15,5 @@ class Config:
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "dev-secret-change-this")
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=6)
 
-    CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
+    _cors = os.environ.get("CORS_ORIGINS", "*")
+    CORS_ORIGINS = "*" if _cors == "*" else [o.strip() for o in _cors.split(",") if o.strip()]

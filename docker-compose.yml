@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./circuit-lab/backend
+    ports:
+      - "5000:5000"
+    environment:
+      - CORS_ORIGINS=*
+      - JWT_SECRET_KEY=production-secret-key-replace-me
+
+  frontend:
+    build:
+      context: ./circuit-lab/frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
