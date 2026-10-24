@@ -1,0 +1,12 @@
+{
+  "buildCommand": "npm --prefix circuit-lab/frontend run build",
+  "outputDirectory": "circuit-lab/frontend/dist",
+  "installCommand": "npm --prefix circuit-lab/frontend install",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
